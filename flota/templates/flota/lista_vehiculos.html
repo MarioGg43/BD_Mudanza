@@ -12,100 +12,62 @@
     </a>
 </div>
 
-<div class="table-responsive bg-white card-panel">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-            <tr>
-                <th>Patente</th>
-                <th>Marca / Modelo</th>
-                <th>Tipo</th>
-                <th class="text-center">Capacidad</th>
-                <th class="text-center">Estado</th>
-                <th class="text-center">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for vehiculo in vehiculos %}
-            <tr>
-                <td class="fw-semibold">{{ vehiculo.patente }}</td>
-                <td>{{ vehiculo.marca_modelo }}</td>
-                <td>{{ vehiculo.tipo_vehiculo }}</td>
-                <td class="text-center">{{ vehiculo.capacidad_kg }} kg / {{ vehiculo.capacidad_m3 }} m³</td>
-                <td class="text-center">{{ vehiculo.estado }}</td>
-                <td class="text-center">
-                    <div class="d-inline-flex gap-2">
-                        <a href="{% url 'editarVehiculo' vehiculo.id_vehiculo %}" class="btn btn-sm btn-warning" title="Editar Vehículo">
-                            <i class="bi bi-pencil-square"></i>
-                        </a>
-                        <button type="button"
-                                class="btn btn-sm btn-outline-danger"
-                                title="Eliminar Vehículo"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalEliminarVehiculo"
-                                data-vehiculo-id="{{ vehiculo.id_vehiculo }}"
-                                data-vehiculo-patente="{{ vehiculo.patente }}">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center py-5 text-muted">
-                    <i class="bi bi-truck fs-1 d-block mb-2 text-secondary"></i>
-                    <p class="mb-2">No hay vehículos registrados en la flota todavía.</p>
-                    <a href="{% url 'createVehiculo' %}" class="btn btn-sm btn-success">
-                        Registrar el primer vehículo
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for vehiculo in vehiculos %}
+    <div class="col">
+        <div class="card-panel bg-white p-3 h-100 d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h2 class="h5 fw-bold mb-0">{{ vehiculo.patente }}</h2>
+                    <span class="text-muted small">{{ vehiculo.tipo_vehiculo }}</span>
+                </div>
+                <span class="small fw-semibold text-end">{{ vehiculo.estado }}</span>
+            </div>
 
-<div class="modal fade" id="modalEliminarVehiculo" tabindex="-1" aria-labelledby="modalEliminarVehiculoLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="modalEliminarVehiculoLabel">
-                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar eliminación
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-0">
-                    ¿Estás seguro de que querés eliminar el vehículo
-                    "<strong id="modalEliminarVehiculoPatente"></strong>" de la flota?
-                </p>
-                <p class="text-muted small mt-2 mb-0">Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form id="formEliminarVehiculo" method="post" action="">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger fw-semibold">
-                        <i class="bi bi-trash"></i> Sí, eliminar
+            <p class="mb-1">{{ vehiculo.marca_modelo }}</p>
+            <p class="text-muted small mb-3">
+                {{ vehiculo.capacidad_kg }} kg &middot; {{ vehiculo.capacidad_m3 }} m³
+            </p>
+
+            <div class="mt-auto">
+                <div class="d-flex gap-2">
+                    <a href="{% url 'editarVehiculo' vehiculo.id_vehiculo %}" class="btn btn-sm btn-warning flex-fill">
+                        <i class="bi bi-pencil-square me-1"></i>Editar
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger flex-fill"
+                            data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.id_vehiculo }}">
+                        <i class="bi bi-trash me-1"></i>Eliminar
                     </button>
-                </form>
+                </div>
+
+                <div class="collapse mt-2" id="confirmar-{{ vehiculo.id_vehiculo }}">
+                    <div class="border rounded-3 p-2 bg-light">
+                        <p class="small mb-2">¿Eliminar "{{ vehiculo.patente }}" de la flota?</p>
+                        <div class="d-flex gap-2">
+                            <form method="post" action="{% url 'eliminarVehiculo' vehiculo.id_vehiculo %}" class="flex-fill">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger w-100">Sí, eliminar</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
+                                    data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.id_vehiculo }}">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card-panel bg-white p-5 text-center text-muted">
+            <i class="bi bi-truck fs-1 d-block mb-2 text-secondary"></i>
+            <p class="mb-2">No hay vehículos registrados en la flota todavía.</p>
+            <a href="{% url 'createVehiculo' %}" class="btn btn-sm btn-success">
+                Registrar el primer vehículo
+            </a>
+        </div>
+    </div>
+    {% endfor %}
 </div>
-
-<script>
-    const URL_ELIMINAR_VEHICULO_BASE = "{% url 'eliminarVehiculo' 0 %}";
-
-    const modalEliminarVehiculo = document.getElementById('modalEliminarVehiculo');
-    modalEliminarVehiculo.addEventListener('show.bs.modal', function (event) {
-        const boton = event.relatedTarget;
-        const vehiculoId = boton.getAttribute('data-vehiculo-id');
-        const vehiculoPatente = boton.getAttribute('data-vehiculo-patente');
-
-        document.getElementById('modalEliminarVehiculoPatente').textContent = vehiculoPatente;
-
-        const form = document.getElementById('formEliminarVehiculo');
-        form.action = URL_ELIMINAR_VEHICULO_BASE.replace('/0/', '/' + vehiculoId + '/');
-    });
-</script>
 {% endblock %}
