@@ -22,6 +22,7 @@ class Vehiculo(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'vehiculos'
         verbose_name = "Vehículo"
         verbose_name_plural = "Vehículos"
 

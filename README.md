@@ -8,10 +8,11 @@ material aparte en `proyecto mudanza/` (fuera de este repo).
 ## Puesta en marcha
 
 ```bash
+cp .env.example .env  # crea el .env real con credenciales de desarrollo
 docker compose up -d
 docker exec mudanzas_web pip install -r requirements.txt
 docker exec mudanzas_web python manage.py migrate
-docker exec mudanzas_web python manage.py createsuperuser
+docker exec -it mudanzas_web python manage.py createsuperuser
 docker exec -d mudanzas_web python manage.py runserver 0.0.0.0:8000
 ```
 
