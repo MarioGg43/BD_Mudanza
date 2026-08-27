@@ -1,0 +1,874 @@
+# Vehiculos CRUD (Django + MySQL) Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build a Django app, running on MySQL via Docker, that implements the full CRUD (Alta/Baja/Modificación/Consulta) for the `vehiculos` table of "Mudanzas y Fletes Salta" — nothing else.
+
+**Architecture:** Django project `core` with a single app `flota`, mirroring the structure of the peer group's reference project (`C:\repo git\BD_Proyecto`): function-based views, `ModelForm`, `django.contrib.messages`, MySQL via `PyMySQL`, Docker Compose with db/phpMyAdmin/web services, manual `pip install` inside the web container (no Dockerfile).
+
+**Tech Stack:** Django 4.2.16, PyMySQL 1.1.1, Python 3.11 (Docker image `python:3.11`), MySQL 8.0, Bootstrap 5 (CDN, no custom CSS files).
+
+## Global Constraints
+
+- Project root: `C:\Users\gaboo\Downloads\mudanzas_django\` (already `git init`'d, first commit is the design spec).
+- `Django==4.2.16`, `PyMySQL==1.1.1`, `cryptography` (unpinned) — exact same as the reference project's `requirements.txt`.
+- Docker container names: `mudanzas_db`, `mudanzas_phpmyadmin`, `mudanzas_web`.
+- Host ports: **3308** (MySQL), **8002** (Django), **8082** (phpMyAdmin) — chosen to avoid clashing with two other stacks already running on this machine on 3306/8000/8080 and 3307/8001/8081.
+- One Django app only: `flota`. One model only: `Vehiculo`. No other DER entities become code.
+- No automated tests (matches the reference project and the approved spec) — every task is verified by running real commands/requests and reading their output, plus a full manual browser pass in the last task.
+- No custom CSS files — Bootstrap 5 + Bootstrap Icons via CDN only.
+- `.env` holds MySQL credentials and is gitignored; never commit it.
+
+---
+
+### Task 1: Docker infrastructure scaffolding
+
+**Files:**
+- Create: `.gitignore`
+- Create: `requirements.txt`
+- Create: `.env`
+- Create: `docker-compose.yml`
+
+**Interfaces:**
+- Produces: three running containers (`mudanzas_db` on host port 3308, `mudanzas_phpmyadmin` on host port 8082, `mudanzas_web` on host port 8002, working dir `/opt/app` bind-mounted to the project root) and the env vars `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE=mudanzas_db`, `MYSQL_USER=mudanzas_user`, `MYSQL_PASSWORD=mudanzas_pass` that later tasks' `settings.py` reads via `DB_NAME`/`DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT` (set inside the `web` service's `environment:` block from these same `.env` values).
+
+- [ ] **Step 1: Create `.gitignore`**
+
+```
+.env
+__pycache__/
+*.py[cod]
+*.sqlite3
+venv/
+.venv/
+.vscode/
+.idea/
+```
+
+- [ ] **Step 2: Create `requirements.txt`**
+
+```
+Django==4.2.16
+PyMySQL==1.1.1
+cryptography
+```
+
+- [ ] **Step 3: Create `.env`**
+
+```
+MYSQL_ROOT_PASSWORD=root_pass
+MYSQL_DATABASE=mudanzas_db
+MYSQL_USER=mudanzas_user
+MYSQL_PASSWORD=mudanzas_pass
+```
+
+- [ ] **Step 4: Create `docker-compose.yml`**
+
+```yaml
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: mudanzas_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: mudanzas_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "8082:80"
+    depends_on:
+      - db
+
+  web:
+    image: python:3.11
+    container_name: mudanzas_web
+    restart: always
+    working_dir: /opt/app
+    volumes:
+      - .:/opt/app
+    ports:
+      - "8002:8000"
+    environment:
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_HOST: db
+      DB_PORT: 3306
+    stdin_open: true
+    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+```
+
+- [ ] **Step 5: Start the stack and verify all 3 containers are healthy/running**
+
+Run (from the project root):
+```bash
+docker compose up -d
+docker compose ps
+```
+Expected: `mudanzas_db` shows `(healthy)`, `mudanzas_web` and `mudanzas_phpmyadmin` show `Up`. If a port is already allocated, `docker ps` on the host will show which other container holds it — pick different free host ports and retry rather than stopping someone else's containers.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add .gitignore requirements.txt docker-compose.yml
+git commit -m "Add Docker infrastructure (MySQL + phpMyAdmin + Django web)"
+```
+(`.env` stays untracked — it's gitignored.)
+
+---
+
+### Task 2: Bootstrap the Django project and the `flota` app
+
+**Files:**
+- Create (generated by Django, then committed as-is): `manage.py`, `core/__init__.py`, `core/settings.py`, `core/urls.py`, `core/wsgi.py`, `core/asgi.py`, `flota/__init__.py`, `flota/admin.py`, `flota/apps.py`, `flota/models.py`, `flota/tests.py`, `flota/views.py`, `flota/migrations/__init__.py`
+
+**Interfaces:**
+- Consumes: the running `mudanzas_web` container from Task 1.
+- Produces: a default Django 4.2 project skeleton (`core` project, `flota` app) on disk at the project root, untouched — Task 3 will edit `core/settings.py`, `core/__init__.py`, `core/urls.py`.
+
+- [ ] **Step 1: Install dependencies inside the web container**
+
+```bash
+docker exec mudanzas_web pip install -r requirements.txt
+```
+Expected: ends with `Successfully installed Django-4.2.16 PyMySQL-1.1.1 ... cryptography-...`.
+
+- [ ] **Step 2: Generate the Django project**
+
+```bash
+docker exec mudanzas_web django-admin startproject core .
+```
+Expected: no output on success. Verify on the host:
+```bash
+test -f manage.py && test -f core/settings.py && echo OK
+```
+Expected: `OK`.
+
+- [ ] **Step 3: Generate the `flota` app**
+
+```bash
+docker exec mudanzas_web python manage.py startapp flota
+```
+Expected: no output on success. Verify on the host:
+```bash
+test -f flota/models.py && test -f flota/admin.py && echo OK
+```
+Expected: `OK`.
+
+- [ ] **Step 4: Commit the generated skeleton**
+
+```bash
+git add manage.py core flota
+git commit -m "Bootstrap Django project 'core' and app 'flota'"
+```
+
+---
+
+### Task 3: Wire MySQL, INSTALLED_APPS, and the URL skeleton
+
+**Files:**
+- Modify: `core/__init__.py`
+- Modify: `core/settings.py`
+- Modify: `core/urls.py`
+- Create: `flota/urls.py` (stub — filled in by Task 5)
+
+**Interfaces:**
+- Consumes: `.env` values from Task 1 (`MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`) as read through the `DB_*` environment variables set on the `web` service.
+- Produces: a working MySQL connection for Django, `flota` registered in `INSTALLED_APPS`, and a URL tree that will resolve `/`, `/admin/`, and `/vehiculos/...` once Task 5 fills in `flota/urls.py`. The redirect target name `lista_vehiculos` is declared here as a *reference* (Task 5 must define a URL pattern with that exact `name=`).
+
+- [ ] **Step 1: Replace `core/__init__.py` with the PyMySQL compatibility shim**
+
+```python
+# Hacemos que PyMySQL se comporte como el conector MySQLdb que espera Django.
+# Esto permite usar el motor 'django.db.backends.mysql' sin compilar nada.
+import pymysql
+
+pymysql.install_as_MySQLdb()
+```
+
+- [ ] **Step 2: Replace `core/settings.py` in full**
+
+```python
+"""
+Configuración del proyecto Django 'core'.
+Sistema de Gestión - Mudanzas y Fletes Salta (Grupo 5).
+"""
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = 'django-insecure-cambia-esta-clave-en-produccion'
+
+DEBUG = True
+
+ALLOWED_HOSTS = ['*']
+
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'flota',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'core.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'core.wsgi.application'
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'mudanzas_db'),
+        'USER': os.environ.get('DB_USER', 'mudanzas_user'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'mudanzas_pass'),
+        'HOST': os.environ.get('DB_HOST', 'db'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+    }
+}
+
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+
+LANGUAGE_CODE = 'es-ar'
+TIME_ZONE = 'America/Argentina/Salta'
+USE_I18N = True
+USE_TZ = True
+
+
+STATIC_URL = 'static/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+```
+
+- [ ] **Step 3: Replace `core/urls.py`**
+
+```python
+from django.contrib import admin
+from django.urls import path, include
+from django.views.generic import RedirectView
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', RedirectView.as_view(pattern_name='lista_vehiculos', permanent=False)),
+    path('vehiculos/', include('flota.urls')),
+]
+```
+
+- [ ] **Step 4: Create the `flota/urls.py` stub**
+
+```python
+from django.urls import path
+
+urlpatterns = []
+```
+
+- [ ] **Step 5: Verify Django can talk to MySQL and the URLconf loads cleanly**
+
+```bash
+docker exec mudanzas_web python manage.py check
+docker exec mudanzas_web python manage.py migrate
+```
+Expected: `check` prints `System check identified no issues (0 silenced).`; `migrate` ends having applied `admin`, `auth`, `contenttypes`, `sessions` migrations with `OK` on each line (no connection errors to MySQL).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add core flota/urls.py
+git commit -m "Configure MySQL connection, INSTALLED_APPS and URL skeleton"
+```
+
+---
+
+### Task 4: `Vehiculo` model, migration, and admin registration
+
+**Files:**
+- Modify: `flota/models.py`
+- Modify: `flota/admin.py`
+- Create (generated): `flota/migrations/0001_initial.py`
+
+**Interfaces:**
+- Consumes: the `flota` app wired in Task 3.
+- Produces: `class Vehiculo(models.Model)` in `flota/models.py` with fields `id_vehiculo` (PK), `patente`, `marca_modelo`, `tipo_vehiculo`, `capacidad_kg`, `capacidad_m3`, `estado`, `kilometraje`, `anio`, `observaciones`, `created_at` — this exact field set is what Task 5's `VehiculoForm` and Task 6's templates reference field-by-field.
+
+- [ ] **Step 1: Write `flota/models.py`**
+
+```python
+from django.db import models
+
+
+class Vehiculo(models.Model):
+    ESTADO_CHOICES = [
+        ('Disponible', 'Disponible'),
+        ('En Viaje', 'En Viaje'),
+        ('En Mantenimiento', 'En Mantenimiento'),
+        ('Fuera de Servicio', 'Fuera de Servicio'),
+    ]
+
+    id_vehiculo = models.AutoField(primary_key=True)
+    patente = models.CharField(max_length=15, unique=True)
+    marca_modelo = models.CharField(max_length=100)
+    tipo_vehiculo = models.CharField(max_length=50)
+    capacidad_kg = models.DecimalField(max_digits=10, decimal_places=2)
+    capacidad_m3 = models.DecimalField(max_digits=10, decimal_places=2)
+    estado = models.CharField(max_length=30, choices=ESTADO_CHOICES, default='Disponible')
+    kilometraje = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    anio = models.IntegerField(null=True, blank=True)
+    observaciones = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Vehículo"
+        verbose_name_plural = "Vehículos"
+
+    def __str__(self):
+        return f"{self.patente} - {self.marca_modelo}"
+```
+
+- [ ] **Step 2: Write `flota/admin.py`**
+
+```python
+from django.contrib import admin
+
+from .models import Vehiculo
+
+
+@admin.register(Vehiculo)
+class VehiculoAdmin(admin.ModelAdmin):
+    list_display = ('id_vehiculo', 'patente', 'marca_modelo', 'tipo_vehiculo', 'estado', 'kilometraje')
+    list_filter = ('estado', 'tipo_vehiculo')
+    search_fields = ('patente', 'marca_modelo')
+```
+
+- [ ] **Step 3: Generate and apply the migration**
+
+```bash
+docker exec mudanzas_web python manage.py makemigrations flota
+docker exec mudanzas_web python manage.py migrate
+```
+Expected: `makemigrations` prints `Migrations for 'flota': ... - Create model Vehiculo`; `migrate` prints `Applying flota.0001_initial... OK`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add flota/models.py flota/admin.py flota/migrations
+git commit -m "Add Vehiculo model, migration and admin registration"
+```
+
+---
+
+### Task 5: `VehiculoForm`, views, and URLs
+
+**Files:**
+- Create: `flota/forms.py`
+- Modify: `flota/views.py`
+- Modify: `flota/urls.py` (replace the Task 3 stub)
+
+**Interfaces:**
+- Consumes: `Vehiculo` model from Task 4.
+- Produces: view functions `listaVehiculos`, `createVehiculo`, `editarVehiculo(request, id_vehiculo)`, `eliminarVehiculo(request, id_vehiculo)` (POST-only) in `flota/views.py`; URL names `lista_vehiculos` (`/vehiculos/`), `createVehiculo` (`/vehiculos/crear/`), `editarVehiculo` (`/vehiculos/editar/<id>/`), `eliminarVehiculo` (`/vehiculos/eliminar/<id>/`) — Task 6's templates use these exact names in `{% url %}` tags.
+
+- [ ] **Step 1: Write `flota/forms.py`**
+
+```python
+from django import forms
+
+from .models import Vehiculo
+
+
+class VehiculoForm(forms.ModelForm):
+    class Meta:
+        model = Vehiculo
+        fields = [
+            'patente', 'marca_modelo', 'tipo_vehiculo',
+            'capacidad_kg', 'capacidad_m3', 'estado',
+            'kilometraje', 'anio', 'observaciones',
+        ]
+        labels = {
+            'patente': 'Patente',
+            'marca_modelo': 'Marca y Modelo',
+            'tipo_vehiculo': 'Tipo de Vehículo',
+            'capacidad_kg': 'Capacidad Máxima (kg)',
+            'capacidad_m3': 'Capacidad Máxima (m³)',
+            'estado': 'Estado',
+            'kilometraje': 'Kilometraje',
+            'anio': 'Año',
+            'observaciones': 'Observaciones',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Asignación automática de clases CSS de Bootstrap según el tipo de widget
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs.update({'class': 'form-select'})
+            elif isinstance(field.widget, forms.Textarea):
+                field.widget.attrs.update({'class': 'form-control', 'rows': 3})
+            else:
+                field.widget.attrs.update({'class': 'form-control'})
+```
+
+- [ ] **Step 2: Write `flota/views.py`**
+
+```python
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+
+from .models import Vehiculo
+from .forms import VehiculoForm
+
+
+def listaVehiculos(request):
+    """Lista todos los vehículos de la flota."""
+    vehiculos = Vehiculo.objects.all().order_by('patente')
+    return render(request, 'flota/lista_vehiculos.html', {'vehiculos': vehiculos})
+
+
+def createVehiculo(request):
+    if request.method == 'POST':
+        form = VehiculoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '¡Vehículo registrado con éxito en la flota!')
+            return redirect('lista_vehiculos')
+        else:
+            messages.error(request, 'Por favor, revise los errores.')
+    else:
+        form = VehiculoForm()
+
+    return render(request, 'flota/create_vehiculo.html', {'form': form})
+
+
+def editarVehiculo(request, id_vehiculo):
+    """Edita un vehículo existente."""
+    vehiculo = get_object_or_404(Vehiculo, pk=id_vehiculo)
+
+    if request.method == 'POST':
+        form = VehiculoForm(request.POST, instance=vehiculo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '¡Vehículo actualizado con éxito!')
+            return redirect('lista_vehiculos')
+        else:
+            messages.error(request, 'Por favor, revise los errores.')
+    else:
+        form = VehiculoForm(instance=vehiculo)
+
+    return render(request, 'flota/edit_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
+
+
+@require_POST
+def eliminarVehiculo(request, id_vehiculo):
+    """Elimina un vehículo. Solo acepta POST."""
+    vehiculo = get_object_or_404(Vehiculo, pk=id_vehiculo)
+    patente = vehiculo.patente
+    vehiculo.delete()
+    messages.success(request, f'El vehículo "{patente}" fue eliminado de la flota.')
+    return redirect('lista_vehiculos')
+```
+
+- [ ] **Step 3: Replace `flota/urls.py`**
+
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.listaVehiculos, name='lista_vehiculos'),
+    path('crear/', views.createVehiculo, name='createVehiculo'),
+    path('editar/<int:id_vehiculo>/', views.editarVehiculo, name='editarVehiculo'),
+    path('eliminar/<int:id_vehiculo>/', views.eliminarVehiculo, name='eliminarVehiculo'),
+]
+```
+
+- [ ] **Step 4: Verify the routes respond** (templates don't exist yet, so expect server errors, not 404s — that's the point of this check: routing resolves correctly)
+
+```bash
+docker exec -d mudanzas_web python manage.py runserver 0.0.0.0:8000
+sleep 2
+docker exec mudanzas_web sh -c "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/vehiculos/"
+```
+Expected: `500` (a `TemplateDoesNotExist` for `flota/lista_vehiculos.html` — confirms the view ran and only the template is missing, not a routing/`NoReverseMatch` error). A `404` here would mean the URL wiring is wrong — stop and fix before continuing.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add flota/forms.py flota/views.py flota/urls.py
+git commit -m "Add VehiculoForm, CRUD views and URL routes"
+```
+
+---
+
+### Task 6: Templates, end-to-end verification, and superuser
+
+**Files:**
+- Create: `flota/templates/flota/base.html`
+- Create: `flota/templates/flota/lista_vehiculos.html`
+- Create: `flota/templates/flota/create_vehiculo.html`
+- Create: `flota/templates/flota/edit_vehiculo.html`
+- Modify: `README.md`
+
+**Interfaces:**
+- Consumes: URL names and view context variables from Task 5 (`vehiculos` list in `lista_vehiculos.html`, `form` in create/edit, `vehiculo` object in edit).
+- Produces: a fully working app, verified end-to-end through the browser.
+
+- [ ] **Step 1: Write `flota/templates/flota/base.html`**
+
+```html
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mudanzas y Fletes Salta{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+
+    <header class="bg-dark text-white py-3 mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'lista_vehiculos' %}" class="text-white text-decoration-none fs-4 fw-bold">
+                <i class="bi bi-truck me-2"></i>Mudanzas y Fletes Salta
+            </a>
+            <span class="text-white-50">Gestión de Flota Vehicular</span>
+        </div>
+    </header>
+
+    <main class="container mb-5">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="text-center text-muted small py-3 border-top">
+        <div class="container">
+            &copy; 2026 Mudanzas y Fletes Salta - Grupo 5.
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Write `flota/templates/flota/lista_vehiculos.html`**
+
+```html
+{% extends 'flota/base.html' %}
+{% block title %}Flota de Vehículos{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Flota de Vehículos</h1>
+        <p class="text-muted mb-0">Listado de unidades registradas.</p>
+    </div>
+    <a href="{% url 'createVehiculo' %}" class="btn btn-success fw-bold">
+        <i class="bi bi-plus-circle me-1"></i> Registrar Vehículo
+    </a>
+</div>
+
+<div class="table-responsive bg-white rounded-3 border">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Patente</th>
+                <th>Marca / Modelo</th>
+                <th>Tipo</th>
+                <th class="text-center">Capacidad</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehiculo in vehiculos %}
+            <tr>
+                <td class="fw-semibold">{{ vehiculo.patente }}</td>
+                <td>{{ vehiculo.marca_modelo }}</td>
+                <td>{{ vehiculo.tipo_vehiculo }}</td>
+                <td class="text-center">{{ vehiculo.capacidad_kg }} kg / {{ vehiculo.capacidad_m3 }} m³</td>
+                <td class="text-center">{{ vehiculo.estado }}</td>
+                <td class="text-center">
+                    <div class="d-inline-flex gap-2">
+                        <a href="{% url 'editarVehiculo' vehiculo.id_vehiculo %}" class="btn btn-sm btn-warning" title="Editar Vehículo">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Eliminar Vehículo"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalEliminarVehiculo"
+                                data-vehiculo-id="{{ vehiculo.id_vehiculo }}"
+                                data-vehiculo-patente="{{ vehiculo.patente }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                    <i class="bi bi-truck fs-1 d-block mb-2 text-secondary"></i>
+                    <p class="mb-2">No hay vehículos registrados en la flota todavía.</p>
+                    <a href="{% url 'createVehiculo' %}" class="btn btn-sm btn-success">
+                        Registrar el primer vehículo
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="modalEliminarVehiculo" tabindex="-1" aria-labelledby="modalEliminarVehiculoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalEliminarVehiculoLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    ¿Estás seguro de que querés eliminar el vehículo
+                    "<strong id="modalEliminarVehiculoPatente"></strong>" de la flota?
+                </p>
+                <p class="text-muted small mt-2 mb-0">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminarVehiculo" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger fw-semibold">
+                        <i class="bi bi-trash"></i> Sí, eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL_ELIMINAR_VEHICULO_BASE = "{% url 'eliminarVehiculo' 0 %}";
+
+    const modalEliminarVehiculo = document.getElementById('modalEliminarVehiculo');
+    modalEliminarVehiculo.addEventListener('show.bs.modal', function (event) {
+        const boton = event.relatedTarget;
+        const vehiculoId = boton.getAttribute('data-vehiculo-id');
+        const vehiculoPatente = boton.getAttribute('data-vehiculo-patente');
+
+        document.getElementById('modalEliminarVehiculoPatente').textContent = vehiculoPatente;
+
+        const form = document.getElementById('formEliminarVehiculo');
+        form.action = URL_ELIMINAR_VEHICULO_BASE.replace('/0/', '/' + vehiculoId + '/');
+    });
+</script>
+{% endblock %}
+```
+
+- [ ] **Step 3: Write `flota/templates/flota/create_vehiculo.html`**
+
+```html
+{% extends 'flota/base.html' %}
+{% block title %}Registrar Vehículo{% endblock %}
+{% block content %}
+
+<div class="mx-auto" style="max-width: 720px;">
+    <h1 class="h3 fw-bold mb-1">Registrar Nuevo Vehículo</h1>
+    <p class="text-muted mb-4">Complete los datos para dar de alta la unidad en la flota.</p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+            {% for field in form %}
+            <div class="col-md-6">
+                <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="d-flex justify-content-end gap-3 pt-4 mt-3 border-top">
+            <a href="{% url 'lista_vehiculos' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+            <button type="submit" class="btn btn-success px-4 fw-bold">Guardar Vehículo</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+```
+
+- [ ] **Step 4: Write `flota/templates/flota/edit_vehiculo.html`**
+
+```html
+{% extends 'flota/base.html' %}
+{% block title %}Editar Vehículo{% endblock %}
+{% block content %}
+
+<div class="mx-auto" style="max-width: 720px;">
+    <h1 class="h3 fw-bold mb-1">Editar Vehículo</h1>
+    <p class="text-muted mb-4">Actualizando "<strong>{{ vehiculo.patente }}</strong>".</p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+            {% for field in form %}
+            <div class="col-md-6">
+                <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="d-flex justify-content-end gap-3 pt-4 mt-3 border-top">
+            <a href="{% url 'lista_vehiculos' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+            <button type="submit" class="btn btn-success px-4 fw-bold">Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+```
+
+- [ ] **Step 5: Restart the dev server and verify the list page now renders (200, not 500)**
+
+```bash
+docker exec mudanzas_web pkill -f runserver || true
+docker exec -d mudanzas_web python manage.py runserver 0.0.0.0:8000
+sleep 2
+docker exec mudanzas_web sh -c "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/vehiculos/"
+```
+Expected: `200`.
+
+- [ ] **Step 6: Create a superuser for `/admin/`**
+
+```bash
+docker exec -e DJANGO_SUPERUSER_USERNAME=admin -e DJANGO_SUPERUSER_EMAIL=admin@example.com -e DJANGO_SUPERUSER_PASSWORD=admin12345 mudanzas_web python manage.py createsuperuser --noinput
+```
+Expected: `Superuser created successfully.`
+
+- [ ] **Step 7: Full manual browser verification (this is the real test of the feature)**
+
+Open `http://localhost:8002/` in a browser and confirm:
+1. It redirects to `http://localhost:8002/vehiculos/` and shows "No hay vehículos registrados en la flota todavía."
+2. Click "Registrar Vehículo" → fill the form (e.g. patente `AF120CD`, marca_modelo `Mercedes-Benz Accelo 815`, tipo_vehiculo `Camión Mediano`, capacidad_kg `5000`, capacidad_m3 `32`, estado `Disponible`) → submit → redirected back to the list with a green success message and the new row visible.
+3. Click the edit (pencil) button on that row → change a field (e.g. `estado` to `En Viaje`) → submit → success message and the updated value shows in the list.
+4. Click the delete (trash) button → confirm in the modal → row disappears with a success message.
+5. Visit `http://localhost:8002/admin/`, log in with `admin` / `admin12345`, and confirm "Vehículos" is listed and browsable.
+
+- [ ] **Step 8: Update `README.md` with run instructions**
+
+```markdown
+# Sistema de Gestión "Mudanzas y Fletes Salta" — CRUD de Flota
+
+Django + MySQL + phpMyAdmin sobre Docker. Implementa el ABM (alta,
+baja, modificación, consulta) de la tabla `vehiculos` — Punto 3 del
+Hito 1. La presentación, el DER y los DFDs del proyecto son el
+material aparte en `proyecto mudanza/` (fuera de este repo).
+
+## Puesta en marcha
+
+```bash
+docker compose up -d
+docker exec mudanzas_web pip install -r requirements.txt
+docker exec mudanzas_web python manage.py migrate
+docker exec mudanzas_web python manage.py createsuperuser
+docker exec -d mudanzas_web python manage.py runserver 0.0.0.0:8000
+```
+
+## Acceso
+
+- Flota de vehículos: http://localhost:8002/
+- Panel de administración: http://localhost:8002/admin/
+- phpMyAdmin: http://localhost:8082/ (usuario y contraseña del archivo `.env`)
+
+## Detener todo
+
+```bash
+docker compose down
+```
+```
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add flota/templates README.md
+git commit -m "Add CRUD templates for Vehiculo and finish end-to-end verification"
+```
