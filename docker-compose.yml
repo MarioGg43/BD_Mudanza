@@ -1,0 +1,56 @@
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: mudanzas_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: mudanzas_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "8082:80"
+    depends_on:
+      - db
+
+  web:
+    image: python:3.11
+    container_name: mudanzas_web
+    restart: always
+    working_dir: /opt/app
+    volumes:
+      - .:/opt/app
+    ports:
+      - "8002:8000"
+    environment:
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_HOST: db
+      DB_PORT: 3306
+    stdin_open: true
+    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
