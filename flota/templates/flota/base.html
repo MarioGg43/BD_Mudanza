@@ -7,15 +7,47 @@
     <title>{% block title %}Mudanzas y Fletes Salta{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-dark: #047857;
+            --secondary-color: #0f172a;
+            --bg-light: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+        }
+        .navbar-brand-custom {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .btn-success {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-success:hover, .btn-success:focus {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        a {
+            color: var(--primary-dark);
+        }
+        .card-panel {
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+    </style>
 </head>
 <body>
 
-    <header class="bg-dark text-white py-3 mb-4">
+    <header class="navbar-brand-custom text-white py-3 mb-4 shadow-sm">
         <div class="container d-flex justify-content-between align-items-center">
-            <a href="{% url 'lista_vehiculos' %}" class="text-white text-decoration-none fs-4 fw-bold">
-                <i class="bi bi-truck me-2"></i>Mudanzas y Fletes Salta
+            <a href="{% url 'lista_vehiculos' %}" class="text-white text-decoration-none fs-4 fw-bold d-flex align-items-center">
+                <i class="bi bi-truck me-2 text-success"></i>Mudanzas y Fletes Salta
             </a>
-            <span class="text-white-50">Gestión de Flota Vehicular</span>
+            <span class="text-white-50 small text-uppercase fw-semibold">Gestión de Flota Vehicular</span>
         </div>
     </header>
 
