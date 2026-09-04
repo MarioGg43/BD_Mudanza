@@ -8,13 +8,13 @@ from .forms import VehiculoForm
 
 def inicio(request):
     """Página de bienvenida del sistema."""
-    return render(request, 'flota/inicio.html')
+    return render(request, 'vehiculos/inicio.html')
 
 
 def listaVehiculos(request):
     """Lista todos los vehículos de la flota."""
     vehiculos = Vehiculo.objects.all().order_by('patente')
-    return render(request, 'flota/lista_vehiculos.html', {'vehiculos': vehiculos})
+    return render(request, 'vehiculos/lista_vehiculos.html', {'vehiculos': vehiculos})
 
 
 def createVehiculo(request):
@@ -29,7 +29,7 @@ def createVehiculo(request):
     else:
         form = VehiculoForm()
 
-    return render(request, 'flota/create_vehiculo.html', {'form': form})
+    return render(request, 'vehiculos/create_vehiculo.html', {'form': form})
 
 
 def editarVehiculo(request, id_vehiculo):
@@ -47,7 +47,7 @@ def editarVehiculo(request, id_vehiculo):
     else:
         form = VehiculoForm(instance=vehiculo)
 
-    return render(request, 'flota/edit_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
+    return render(request, 'vehiculos/edit_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
 
 
 @require_POST
