@@ -10,17 +10,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #059669;
-            --primary-dark: #047857;
-            --secondary-color: #0f172a;
-            --bg-light: #f8fafc;
+            --primary-color: #ea580c;
+            --primary-dark: #c2410c;
+            --accent-gold: #faa307;
+            --secondary-color: #1c1006;
+            --bg-light: #fffaf5;
         }
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-light);
         }
         .navbar-brand-custom {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, #1c1006 0%, #431407 100%);
+        }
+        .brand-icon {
+            background: linear-gradient(135deg, #dc2f02 0%, #e85d04 45%, #f48c06 75%, #faa307 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
         .btn-success {
             background-color: var(--primary-color);
@@ -35,7 +42,7 @@
         }
         .card-panel {
             border-radius: 1rem;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #f1e4d8;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
     </style>
@@ -45,7 +52,7 @@
     <header class="navbar-brand-custom text-white py-3 mb-4 shadow-sm">
         <div class="container d-flex justify-content-between align-items-center">
             <a href="{% url 'inicio' %}" class="text-white text-decoration-none fs-4 fw-bold d-flex align-items-center">
-                <i class="bi bi-truck me-2 text-success"></i>Mudanzas y Fletes Salta
+                <i class="bi bi-truck me-2 brand-icon"></i>Mudanzas y Fletes Salta
             </a>
             <a href="{% url 'lista_vehiculos' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
                 Ver Flota <i class="bi bi-arrow-right ms-1"></i>
