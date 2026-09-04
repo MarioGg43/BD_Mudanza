@@ -1,0 +1,56 @@
+{% extends 'flota/base.html' %}
+{% block title %}Mudanzas y Fletes Salta{% endblock %}
+{% block content %}
+
+<div class="card-panel p-5 mb-4 text-white" style="background: linear-gradient(135deg, #065f46 0%, #047857 60%, #0f766e 100%);">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <span class="badge bg-white text-success fw-semibold px-3 py-2 mb-3">
+                <i class="bi bi-truck me-1"></i>Sistema de Gestión de Flota
+            </span>
+            <h1 class="display-6 fw-bold mb-3">Mudanzas y Fletes Salta</h1>
+            <p class="fs-5 mb-4 text-white-50">
+                Control centralizado de la flota de camiones y utilitarios: qué unidades hay,
+                cuánto pueden cargar y en qué estado están.
+            </p>
+            <a href="{% url 'lista_vehiculos' %}" class="btn btn-light fw-bold px-4">
+                Ver Flota <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="col-lg-4 text-center d-none d-lg-block">
+            <i class="bi bi-truck" style="font-size: 8rem; opacity: 0.25;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card-panel bg-white p-4 h-100">
+            <i class="bi bi-clipboard-check fs-2 text-success mb-3 d-block"></i>
+            <h2 class="h6 fw-bold">Registro de Unidades</h2>
+            <p class="text-muted small mb-0">
+                Patente, marca, modelo y tipo de cada vehículo de la flota, en un solo lugar.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-panel bg-white p-4 h-100">
+            <i class="bi bi-speedometer2 fs-2 text-success mb-3 d-block"></i>
+            <h2 class="h6 fw-bold">Capacidad de Carga</h2>
+            <p class="text-muted small mb-0">
+                Peso máximo (kg) y volumen (m³) de cada unidad, para planificar los traslados.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-panel bg-white p-4 h-100">
+            <i class="bi bi-geo-alt fs-2 text-success mb-3 d-block"></i>
+            <h2 class="h6 fw-bold">Estado en Tiempo Real</h2>
+            <p class="text-muted small mb-0">
+                Disponible, en viaje o en mantenimiento — sabé al instante qué unidad usar.
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

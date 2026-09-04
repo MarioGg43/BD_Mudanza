@@ -6,6 +6,11 @@ from .models import Vehiculo
 from .forms import VehiculoForm
 
 
+def inicio(request):
+    """Página de bienvenida del sistema."""
+    return render(request, 'flota/inicio.html')
+
+
 def listaVehiculos(request):
     """Lista todos los vehículos de la flota."""
     vehiculos = Vehiculo.objects.all().order_by('patente')
