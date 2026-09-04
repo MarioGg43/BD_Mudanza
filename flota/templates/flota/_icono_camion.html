@@ -1,0 +1,29 @@
+<svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" style="height: {{ size|default:32 }}px; width: auto;" aria-hidden="true">
+    <defs>
+        <linearGradient id="wingGrad{{ size|default:32 }}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#faa307"/>
+            <stop offset="50%" stop-color="#f4511e"/>
+            <stop offset="100%" stop-color="#dc2f02"/>
+        </linearGradient>
+        <linearGradient id="truckGrad{{ size|default:32 }}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f4511e"/>
+            <stop offset="100%" stop-color="#c2410c"/>
+        </linearGradient>
+    </defs>
+
+    <rect x="0" y="58" width="14" height="6" rx="3" fill="#f4511e" opacity="0.35"/>
+    <rect x="20" y="58" width="22" height="6" rx="3" fill="#f4511e" opacity="0.55"/>
+    <rect x="48" y="58" width="30" height="6" rx="3" fill="#f4511e" opacity="0.8"/>
+
+    <path d="M40,72 C88,22 138,10 192,16 C150,26 118,42 98,62 C130,46 160,44 186,50 C150,58 120,70 104,78 C126,70 150,68 172,72 C142,80 112,84 96,86 Z" fill="url(#wingGrad{{ size|default:32 }})"/>
+
+    <g>
+        <rect x="88" y="35" width="70" height="46" rx="4" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <path d="M158,50 h24 l16,16 v15 h-40 Z" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <rect x="166" y="55" width="14" height="12" rx="1" fill="#fff7ed" opacity="0.9"/>
+        <circle cx="111" cy="86" r="11" fill="#2b0f05"/>
+        <circle cx="111" cy="86" r="4" fill="#fdba74"/>
+        <circle cx="167" cy="86" r="11" fill="#2b0f05"/>
+        <circle cx="167" cy="86" r="4" fill="#fdba74"/>
+    </g>
+</svg>
