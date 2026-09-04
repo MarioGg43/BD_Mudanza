@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
 
-from flota import views as flota_views
+from vehiculos import views as vehiculos_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', flota_views.inicio, name='inicio'),
-    path('vehiculos/', include('flota.urls')),
+    path('', vehiculos_views.inicio, name='inicio'),
+    path('vehiculos/', include('vehiculos.urls')),
 ]
