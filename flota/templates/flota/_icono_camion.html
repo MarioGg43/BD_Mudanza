@@ -1,29 +1,42 @@
-<svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" style="height: {{ size|default:32 }}px; width: auto;" aria-hidden="true">
+<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" style="height: {{ size|default:32 }}px; width: auto;" aria-hidden="true">
     <defs>
-        <linearGradient id="wingGrad{{ size|default:32 }}" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#faa307"/>
-            <stop offset="50%" stop-color="#f4511e"/>
-            <stop offset="100%" stop-color="#dc2f02"/>
+        <linearGradient id="wingGrad{{ size|default:32 }}" x1="0%" y1="0%" x2="100%" y2="60%">
+            <stop offset="0%" stop-color="#ffc93c"/>
+            <stop offset="55%" stop-color="#f4901e"/>
+            <stop offset="100%" stop-color="#e2431e"/>
         </linearGradient>
         <linearGradient id="truckGrad{{ size|default:32 }}" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#f4511e"/>
+            <stop offset="0%" stop-color="#f0501a"/>
             <stop offset="100%" stop-color="#c2410c"/>
         </linearGradient>
     </defs>
 
-    <rect x="0" y="58" width="14" height="6" rx="3" fill="#f4511e" opacity="0.35"/>
-    <rect x="20" y="58" width="22" height="6" rx="3" fill="#f4511e" opacity="0.55"/>
-    <rect x="48" y="58" width="30" height="6" rx="3" fill="#f4511e" opacity="0.8"/>
+    <!-- lineas de velocidad -->
+    <rect x="0" y="42" width="16" height="7" rx="3.5" fill="#f4901e"/>
+    <rect x="22" y="42" width="34" height="7" rx="3.5" fill="#f4901e"/>
+    <rect x="62" y="42" width="16" height="7" rx="3.5" fill="#f4901e"/>
+    <rect x="10" y="66" width="46" height="7" rx="3.5" fill="#f4901e"/>
+    <rect x="0" y="90" width="16" height="7" rx="3.5" fill="#f4901e"/>
+    <rect x="22" y="90" width="50" height="7" rx="3.5" fill="#f4901e"/>
 
-    <path d="M40,72 C88,22 138,10 192,16 C150,26 118,42 98,62 C130,46 160,44 186,50 C150,58 120,70 104,78 C126,70 150,68 172,72 C142,80 112,84 96,86 Z" fill="url(#wingGrad{{ size|default:32 }})"/>
+    <!-- ala: 4 capas tipo pluma, de mas clara (punta) a mas oscura (base) -->
+    <path d="M55,95 C100,35 150,15 205,18 C170,30 145,45 128,62 L118,60 C138,44 158,32 178,25 C150,33 128,45 112,60 L102,58
+             C122,44 142,33 160,27 C135,34 115,45 100,58 L90,56 C108,45 126,37 143,32 C118,40 100,50 88,62 Z"
+          fill="url(#wingGrad{{ size|default:32 }})"/>
+    <path d="M60,98 C102,42 150,22 200,22 C168,33 143,47 126,64 C148,50 172,42 195,40 C160,50 132,64 116,80
+             C142,66 168,58 190,58 C158,68 130,82 114,98 Z"
+          fill="url(#wingGrad{{ size|default:32 }})" opacity="0.9"/>
 
+    <!-- camion -->
     <g>
-        <rect x="88" y="35" width="70" height="46" rx="4" fill="url(#truckGrad{{ size|default:32 }})"/>
-        <path d="M158,50 h24 l16,16 v15 h-40 Z" fill="url(#truckGrad{{ size|default:32 }})"/>
-        <rect x="166" y="55" width="14" height="12" rx="1" fill="#fff7ed" opacity="0.9"/>
-        <circle cx="111" cy="86" r="11" fill="#2b0f05"/>
-        <circle cx="111" cy="86" r="4" fill="#fdba74"/>
-        <circle cx="167" cy="86" r="11" fill="#2b0f05"/>
-        <circle cx="167" cy="86" r="4" fill="#fdba74"/>
+        <rect x="95" y="40" width="72" height="48" rx="3" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <path d="M167,55 h26 l17,16 v17 h-43 Z" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <rect x="176" y="60" width="15" height="13" rx="1" fill="#fdf2e9"/>
+        <circle cx="118" cy="90" r="12" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <circle cx="118" cy="90" r="7" fill="#fdf2e9"/>
+        <circle cx="118" cy="90" r="3" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <circle cx="178" cy="90" r="12" fill="url(#truckGrad{{ size|default:32 }})"/>
+        <circle cx="178" cy="90" r="7" fill="#fdf2e9"/>
+        <circle cx="178" cy="90" r="3" fill="url(#truckGrad{{ size|default:32 }})"/>
     </g>
 </svg>
