@@ -1,10 +1,10 @@
 {% extends 'vehiculos/base.html' %}
-{% block title %}Flota de Vehículos{% endblock %}
+{% block title %}Vehículos{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h1 class="h3 fw-bold mb-1">Flota de Vehículos</h1>
+        <h1 class="h3 fw-bold mb-1">Vehículos</h1>
         <p class="text-muted mb-0">Listado de unidades registradas.</p>
     </div>
     <a href="{% url 'createVehiculo' %}" class="btn btn-success fw-bold">
@@ -42,7 +42,7 @@
 
                 <div class="collapse mt-2" id="confirmar-{{ vehiculo.id_vehiculo }}">
                     <div class="border rounded-3 p-2 bg-light">
-                        <p class="small mb-2">¿Eliminar "{{ vehiculo.patente }}" de la flota?</p>
+                        <p class="small mb-2">¿Eliminar el vehículo "{{ vehiculo.patente }}"?</p>
                         <div class="d-flex gap-2">
                             <form method="post" action="{% url 'eliminarVehiculo' vehiculo.id_vehiculo %}" class="flex-fill">
                                 {% csrf_token %}
@@ -62,7 +62,7 @@
     <div class="col-12">
         <div class="card-panel bg-white p-5 text-center text-muted">
             <i class="bi bi-truck fs-1 d-block mb-2 text-secondary"></i>
-            <p class="mb-2">No hay vehículos registrados en la flota todavía.</p>
+            <p class="mb-2">No hay vehículos registrados todavía.</p>
             <a href="{% url 'createVehiculo' %}" class="btn btn-sm btn-success">
                 Registrar el primer vehículo
             </a>

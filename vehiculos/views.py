@@ -12,7 +12,7 @@ def inicio(request):
 
 
 def listaVehiculos(request):
-    """Lista todos los vehículos de la flota."""
+    """Lista todos los vehículos."""
     vehiculos = Vehiculo.objects.all().order_by('patente')
     return render(request, 'vehiculos/lista_vehiculos.html', {'vehiculos': vehiculos})
 
@@ -22,7 +22,7 @@ def createVehiculo(request):
         form = VehiculoForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, '¡Vehículo registrado con éxito en la flota!')
+            messages.success(request, '¡Vehículo registrado con éxito!')
             return redirect('lista_vehiculos')
         else:
             messages.error(request, 'Por favor, revise los errores.')
@@ -56,5 +56,5 @@ def eliminarVehiculo(request, id_vehiculo):
     vehiculo = get_object_or_404(Vehiculo, pk=id_vehiculo)
     patente = vehiculo.patente
     vehiculo.delete()
-    messages.success(request, f'El vehículo "{patente}" fue eliminado de la flota.')
+    messages.success(request, f'El vehículo "{patente}" fue eliminado.')
     return redirect('lista_vehiculos')
