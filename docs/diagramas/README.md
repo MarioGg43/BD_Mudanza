@@ -1,5 +1,7 @@
 # Diagramas — Mudanzas y Fletes Salta (Grupo 5)
 
+> **Borradores en evaluación por el grupo — no es la versión final.** El DER y los DFDs todavía pueden cambiar.
+
 Archivos de draw.io. Se abren en https://app.diagrams.net (Archivo → Abrir desde → Dispositivo).
 
 | Archivo | Contenido |
