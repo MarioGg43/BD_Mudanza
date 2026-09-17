@@ -1,0 +1,35 @@
+<mxfile host="app.diagrams.net" modified="2026-09-08T00:00:00.000Z" agent="Claude" version="24.0.0">
+  <diagram name="DFD - Gestionar Cliente" id="dfd-gestionar-cliente">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1080" pageHeight="480" background="#000000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+<mxCell id="cliente" value="Cliente" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#ffffff;fontColor=#ffffff;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
+  <mxGeometry x="40" y="170" width="200" height="100" as="geometry" />
+</mxCell>
+<mxCell id="proceso" value="Gestionar
+Cliente" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#ffffff;fontColor=#ffffff;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+  <mxGeometry x="400" y="140" width="260" height="160" as="geometry" />
+</mxCell>
+<mxCell id="dclientes" value="Clientes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#ffffff;fontColor=#ffffff;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
+  <mxGeometry x="800" y="170" width="200" height="100" as="geometry" />
+</mxCell>
+<mxCell id="e1" value="Datos de acceso" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontColor=#ffffff;strokeColor=#ffffff;fontSize=11;endArrow=block;endFill=1;endSize=6;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" edge="1" parent="1" source="cliente" target="proceso">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="e2" value="Consulta cliente" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontColor=#ffffff;strokeColor=#ffffff;fontSize=11;endArrow=block;endFill=1;endSize=6;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="proceso" target="dclientes">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="e3" value="Resultado de busqueda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontColor=#ffffff;strokeColor=#ffffff;fontSize=11;endArrow=block;endFill=1;endSize=6;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.55;entryDx=0;entryDy=0;" edge="1" parent="1" source="dclientes" target="proceso">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="e4" value="Cliente no registrado" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontColor=#ffffff;strokeColor=#ffffff;fontSize=11;endArrow=block;endFill=1;endSize=6;exitX=0;exitY=0.65;exitDx=0;exitDy=0;entryX=1;entryY=0.55;entryDx=0;entryDy=0;" edge="1" parent="1" source="proceso" target="cliente">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="e5" value="Cliente registrado" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontColor=#ffffff;strokeColor=#ffffff;fontSize=11;endArrow=block;endFill=1;endSize=6;exitX=0;exitY=0.85;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="proceso" target="cliente">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
