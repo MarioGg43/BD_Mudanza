@@ -1,0 +1,5 @@
+# Los scripts que corren dentro de los contenedores Linux tienen que tener fin de linea LF,
+# aunque el repo se clone en Windows (si no, entrypoint.sh no arranca).
+*.sh  text eol=lf
+*.sql text eol=lf
+Dockerfile text eol=lf
