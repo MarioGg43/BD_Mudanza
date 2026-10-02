@@ -7,4 +7,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', vehiculos_views.inicio, name='inicio'),
     path('vehiculos/', include('vehiculos.urls')),
+    path('', include('usuarios.urls')),      # login, panel, portal y CRUD de usuarios
 ]

@@ -31,25 +31,25 @@
 
             <div class="mt-auto">
                 <div class="d-flex gap-2">
-                    <a href="{% url 'editarVehiculo' vehiculo.id_vehiculo %}" class="btn btn-sm btn-warning flex-fill">
+                    <a href="{% url 'editarVehiculo' vehiculo.patente %}" class="btn btn-sm btn-warning flex-fill">
                         <i class="bi bi-pencil-square me-1"></i>Editar
                     </a>
                     <button type="button" class="btn btn-sm btn-outline-danger flex-fill"
-                            data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.id_vehiculo }}">
+                            data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.patente }}">
                         <i class="bi bi-trash me-1"></i>Eliminar
                     </button>
                 </div>
 
-                <div class="collapse mt-2" id="confirmar-{{ vehiculo.id_vehiculo }}">
+                <div class="collapse mt-2" id="confirmar-{{ vehiculo.patente }}">
                     <div class="border rounded-3 p-2 bg-light">
                         <p class="small mb-2">¿Eliminar el vehículo "{{ vehiculo.patente }}"?</p>
                         <div class="d-flex gap-2">
-                            <form method="post" action="{% url 'eliminarVehiculo' vehiculo.id_vehiculo %}" class="flex-fill">
+                            <form method="post" action="{% url 'eliminarVehiculo' vehiculo.patente %}" class="flex-fill">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-danger w-100">Sí, eliminar</button>
                             </form>
                             <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
-                                    data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.id_vehiculo }}">
+                                    data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.patente }}">
                                 Cancelar
                             </button>
                         </div>

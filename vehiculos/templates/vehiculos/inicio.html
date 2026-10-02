@@ -14,9 +14,14 @@
                 Control centralizado de los vehículos de la empresa: qué camiones y utilitarios hay,
                 cuánto pueden cargar y en qué estado están.
             </p>
-            <a href="{% url 'lista_vehiculos' %}" class="btn btn-light fw-bold px-4" style="color: #c2410c;">
-                Ver Vehículos <i class="bi bi-arrow-right ms-1"></i>
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'lista_vehiculos' %}" class="btn btn-light fw-bold px-4" style="color: #c2410c;">
+                    Ver Vehículos <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-light fw-bold px-4">
+                    <i class="bi bi-person-lock me-1"></i> Ingresar al sistema
+                </a>
+            </div>
         </div>
         <div class="col-lg-4 text-center d-none d-lg-block">
             <div class="bg-white rounded-4 d-inline-flex align-items-center justify-content-center shadow p-4">

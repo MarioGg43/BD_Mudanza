@@ -48,9 +48,14 @@
             <a href="{% url 'inicio' %}" class="text-white text-decoration-none fs-4 fw-bold d-flex align-items-center">
                 <img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta" class="me-2" style="height: 42px; width: auto;">Mudanzas y Fletes Salta
             </a>
-            <a href="{% url 'lista_vehiculos' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
-                Ver Vehículos <i class="bi bi-arrow-right ms-1"></i>
-            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="{% url 'lista_vehiculos' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
+                    Ver Vehículos
+                </a>
+                <a href="{% url 'login' %}" class="text-white small text-uppercase fw-semibold text-decoration-none">
+                    Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i>
+                </a>
+            </div>
         </div>
     </header>
 

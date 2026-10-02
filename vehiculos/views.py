@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 
-from .models import Vehiculo
+from usuarios.models import Vehiculo
 from .forms import VehiculoForm
 
 
@@ -32,9 +32,9 @@ def createVehiculo(request):
     return render(request, 'vehiculos/create_vehiculo.html', {'form': form})
 
 
-def editarVehiculo(request, id_vehiculo):
+def editarVehiculo(request, patente):
     """Edita un vehículo existente."""
-    vehiculo = get_object_or_404(Vehiculo, pk=id_vehiculo)
+    vehiculo = get_object_or_404(Vehiculo, pk=patente)
 
     if request.method == 'POST':
         form = VehiculoForm(request.POST, instance=vehiculo)
@@ -51,9 +51,9 @@ def editarVehiculo(request, id_vehiculo):
 
 
 @require_POST
-def eliminarVehiculo(request, id_vehiculo):
+def eliminarVehiculo(request, patente):
     """Elimina un vehículo. Solo acepta POST."""
-    vehiculo = get_object_or_404(Vehiculo, pk=id_vehiculo)
+    vehiculo = get_object_or_404(Vehiculo, pk=patente)
     patente = vehiculo.patente
     vehiculo.delete()
     messages.success(request, f'El vehículo "{patente}" fue eliminado.')
