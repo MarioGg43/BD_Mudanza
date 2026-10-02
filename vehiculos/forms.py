@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Vehiculo
+from usuarios.models import Vehiculo
 
 
 class VehiculoForm(forms.ModelForm):
@@ -9,7 +9,7 @@ class VehiculoForm(forms.ModelForm):
         fields = [
             'patente', 'marca_modelo', 'tipo_vehiculo',
             'capacidad_kg', 'capacidad_m3', 'estado',
-            'kilometraje', 'anio', 'observaciones',
+            'kilometraje', 'anio', 'chofer_asignado', 'observaciones',
         ]
         labels = {
             'patente': 'Patente',
@@ -20,6 +20,7 @@ class VehiculoForm(forms.ModelForm):
             'estado': 'Estado',
             'kilometraje': 'Kilometraje',
             'anio': 'Año',
+            'chofer_asignado': 'Chofer Asignado',
             'observaciones': 'Observaciones',
         }
 

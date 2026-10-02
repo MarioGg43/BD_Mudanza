@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}Portal de Personal - Mudanzas y Fletes Salta{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<header class="grad-brand-header px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+  <div class="flex items-center space-x-3">
+    <div class="h-10 w-16 flex items-center justify-center">
+      <img src="/static/img/logo.png" alt="Logo" class="h-9 w-auto object-contain drop-shadow">
+    </div>
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+        Mudanzas y Fletes Salta
+        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500 text-black uppercase tracking-wider">Portal Empleado</span>
+      </h1>
+      <p class="text-xs text-gray-400">Espacio de trabajo para Choferes y Ayudantes de Carga</p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3 mt-3 sm:mt-0">
+    <div class="flex items-center gap-2 bg-[#1e2029] px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-300">
+      <i class="fa-solid fa-user-check text-emerald-400"></i>
+      <span class="font-semibold text-white">{{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }}</span>
+    </div>
+    <a href="{% url 'logout' %}" class="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 border border-racing-red text-racing-red text-xs font-semibold transition flex items-center gap-1.5">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      <span>Cerrar Sesión</span>
+    </a>
+  </div>
+</header>
+
+<!-- CONTENIDO LIMPIO -->
+<main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+  <!-- ENCABEZADO DE BIENVENIDA LIMPIO -->
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 pb-4">
+    <div>
+      <h2 class="text-xl font-bold text-white">¡Hola, {{ usuario_actual.Nombre }}!</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Portal de servicios y rutas asignadas</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-400">Rol Asignado:</span>
+      <span class="text-xs font-bold px-3 py-1 rounded-full bg-[#252833] text-amber-gold border border-amber-gold/40">{{ usuario_actual.idRol.nom_rol }}</span>
+    </div>
+  </div>
+
+  <!-- DETALLES DEL USUARIO -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- Ficha de Datos -->
+    <div class="bg-[#1c1e24] p-5 rounded-2xl border border-gray-800 shadow space-y-3">
+      <h3 class="font-bold text-sm text-white flex items-center gap-2 border-b border-gray-800 pb-2">
+        <i class="fa-solid fa-id-card text-amber-gold"></i>
+        Mis Datos de Cuenta
+      </h3>
+      <div class="text-xs space-y-2">
+        <div>
+          <span class="text-gray-400 block">DNI:</span>
+          <span class="font-mono text-white font-bold">{{ usuario_actual.DNI }}</span>
+        </div>
+        <div>
+          <span class="text-gray-400 block">Nombre de Usuario:</span>
+          <span class="font-mono text-amber-gold font-bold">{{ usuario_actual.NombreUsuario }}</span>
+        </div>
+        <div>
+          <span class="text-gray-400 block">Correo Electrónico:</span>
+          <span class="text-white">{{ usuario_actual.Correo }}</span>
+        </div>
+        <div>
+          <span class="text-gray-400 block">Estado de Clave:</span>
+          <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Actualizada y Segura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permisos Asignados -->
+    <div class="bg-[#1c1e24] p-5 rounded-2xl border border-gray-800 shadow space-y-3 md:col-span-2">
+      <h3 class="font-bold text-sm text-white flex items-center gap-2 border-b border-gray-800 pb-2">
+        <i class="fa-solid fa-shield-halved text-blazing-flame"></i>
+        Mis Permisos Operativos de Seguridad
+      </h3>
+      <p class="text-xs text-gray-400">Permisos que tu rol tiene habilitados según las reglas del sistema:</p>
+      <div class="flex flex-wrap gap-2 pt-1">
+        {% for perm in permisos %}
+        <span class="px-2.5 py-1 rounded bg-[#252833] text-amber-gold border border-amber-gold/40 text-xs font-mono font-semibold">{{ perm.NombrePermiso }}</span>
+        {% empty %}
+        <span class="text-xs text-gray-500">Sin permisos específicos</span>
+        {% endfor %}
+      </div>
+      
+      <div class="p-3 bg-amber-gold/10 border border-amber-gold/30 rounded-xl text-xs text-gray-300 mt-4">
+        <i class="fa-solid fa-circle-info text-amber-gold mr-1"></i>
+        <strong>Acceso Diferenciado:</strong> Tu cuenta operativa tiene acceso a tus asignaciones de mudanzas, rutas y fletes programados. Las funciones de alta/baja y administración total de usuarios corresponden exclusivamente al Administrador.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MÓDULO OPERATIVO: TAREAS ASIGNADAS -->
+  <div class="bg-[#1c1e24] p-6 rounded-2xl border border-gray-800 shadow">
+    <h3 class="font-bold text-base text-white flex items-center gap-2 mb-3">
+      <i class="fa-solid fa-calendar-check text-harvest-orange"></i>
+      Mis Tareas de Mudanzas y Fletes
+    </h3>
+    <div class="p-5 bg-[#252833] rounded-xl border border-gray-700 text-center text-xs text-gray-400">
+      <i class="fa-solid fa-clipboard-check text-harvest-orange text-3xl mb-2"></i>
+      <p class="font-semibold text-white">Servicios y turnos sincronizados con éxito</p>
+      <p class="mt-1 text-gray-400">Tu cuenta se encuentra habilitada para las operaciones de ruta y logística del día.</p>
+    </div>
+  </div>
+
+  <!-- MÓDULO DE FLOTA VEHICULAR (PRESERVADO EN CÓDIGO - OCULTO TEMPORALMENTE) -->
+  <div class="bg-[#1c1e24] p-6 rounded-2xl border border-gray-800 shadow space-y-4" style="display: none !important;">
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-base text-white flex items-center gap-2">
+        <i class="fa-solid fa-truck-front text-harvest-orange"></i>
+        Flota y Recursos Asignados (Continuidad Hito 1)
+      </h3>
+      <span class="text-xs text-gray-400">Turno Activo</span>
+    </div>
+
+    {% if vehiculos %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for v in vehiculos %}
+      <div class="p-4 bg-[#252833] rounded-xl border border-gray-700 flex flex-col justify-between space-y-3">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-harvest-orange/20 text-harvest-orange border border-harvest-orange/30">{{ v.patente }}</span>
+            <h4 class="font-bold text-white text-sm mt-1">{{ v.marca_modelo }}</h4>
+            <p class="text-xs text-gray-400">{{ v.tipo_vehiculo }} (Año {{ v.anio|default:"-" }})</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full font-semibold
+            {% if v.estado == 'Disponible' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
+            {% elif v.estado == 'En Viaje' %}bg-blue-500/20 text-blue-400 border border-blue-500/30
+            {% elif v.estado == 'En Mantenimiento' %}bg-amber-500/20 text-amber-400 border border-amber-500/30
+            {% else %}bg-red-500/20 text-red-400 border border-red-500/30{% endif %}">
+            {{ v.estado }}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-700/60">
+          <div>
+            <span class="text-gray-400 block text-[10px]">Capacidad Peso</span>
+            <span class="font-bold text-white">{{ v.capacidad_kg }} kg</span>
+          </div>
+          <div>
+            <span class="text-gray-400 block text-[10px]">Capacidad Volumen</span>
+            <span class="font-bold text-white">{{ v.capacidad_m3 }} m³</span>
+          </div>
+          <div>
+            <span class="text-gray-400 block text-[10px]">Odómetro</span>
+            <span class="text-gray-300 font-mono">{{ v.kilometraje }} km</span>
+          </div>
+          <div>
+            <span class="text-gray-400 block text-[10px]">Estado Operativo</span>
+            <span class="text-gray-300">Asignado</span>
+          </div>
+        </div>
+        {% if v.observaciones %}
+        <p class="text-[11px] text-gray-400 bg-[#1c1e24] p-2 rounded border border-gray-800 italic">"{{ v.observaciones }}"</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-6 bg-[#252833] rounded-xl border border-gray-700 text-center text-xs text-gray-400">
+      <i class="fa-solid fa-truck-moving text-harvest-orange text-3xl mb-2"></i>
+      <p class="font-semibold text-white">Sin vehículo directo asignado en este momento</p>
+      <p class="mt-1 text-gray-400">Tu rol operativo puede asistir en cuadrilla de carga/descarga según la hoja de ruta del día.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</main>
+
+
+{% endblock %}

@@ -32,7 +32,7 @@ services:
       - db
 
   web:
-    image: python:3.11
+    build: .
     container_name: mudanzas_web
     restart: always
     working_dir: /opt/app
@@ -46,8 +46,6 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_HOST: db
       DB_PORT: 3306
-    stdin_open: true
-    tty: true
     depends_on:
       db:
         condition: service_healthy

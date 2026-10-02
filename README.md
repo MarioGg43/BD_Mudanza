@@ -1,110 +1,102 @@
-# Django + MySQL + phpMyAdmin sobre Docker
+# Mudanzas y Fletes Salta — Django + MySQL + Docker
 
-Sistema de Gestión "Mudanzas y Fletes Salta" — un stack de 3 contenedores
-con **instalación manual** de Django dentro del contenedor de Python.
-Implementa el ABM (alta, baja, modificación, consulta) de la tabla
-`vehiculos` — Punto 3 del Hito 1. La presentación, el DER y los DFDs
-del proyecto son el material aparte en `proyecto mudanza/` (fuera de
-este repo).
+Sistema de gestión del Grupo 5. Reúne los dos hitos de Taller de Programación
+en un solo proyecto:
 
-## Arquitectura
+- **Hito 1** — CRUD de vehículos (app `vehiculos`).
+- **Hito 2** — usuarios, roles y permisos: alta, modificación, baja,
+  restablecimiento de clave y cambio obligatorio en el próximo ingreso
+  (app `usuarios`).
 
-| Contenedor                | Imagen           | Puerto host | Para qué sirve                       |
-|----------------------------|------------------|-------------|---------------------------------------|
-| `mudanzas_db`              | `mysql:8.0`      | 3308        | Base de datos MySQL                  |
-| `mudanzas_phpmyadmin`      | `phpmyadmin:5`   | 8082        | Administrador web de MySQL           |
-| `mudanzas_web`             | `python:3.11`    | 8002        | Entorno donde corre Django           |
+La base de datos sigue el DER del grupo: **13 tablas**, con los mismos nombres
+de tablas y columnas que el diagrama.
 
-## Estructura de archivos
+## Cómo levantarlo
 
-```
-mudanzas_django/
-├── docker-compose.yml      # Orquesta los 3 contenedores
-├── requirements.txt        # Django + PyMySQL
-├── .env.example            # Plantilla de credenciales de MySQL
-├── .env                    # Credenciales reales (no versionado)
-├── manage.py               # Lanzador de Django
-├── core/                   # Configuración del proyecto
-│   ├── __init__.py         # Activa PyMySQL como conector
-│   ├── settings.py         # Conexión a MySQL vía variables de entorno
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-└── flota/                  # App del CRUD de vehículos
-    ├── models.py           # Modelo Vehiculo
-    ├── admin.py
-    ├── forms.py
-    ├── views.py
-    ├── urls.py
-    ├── migrations/
-    └── templates/flota/
-```
-
-## Puesta en marcha (instalación manual)
-
-### 1. Crear el archivo de credenciales
+Con Docker Desktop abierto:
 
 ```bash
-cp .env.example .env
+docker compose up -d --build
 ```
 
-### 2. Levantar los contenedores
+El contenedor se encarga de todo: espera a MySQL, aplica las migraciones,
+carga los datos iniciales y levanta el servidor. El `--build` solo hace falta
+la primera vez o cuando cambian las dependencias.
 
-En la carpeta del `docker-compose.yml`:
-
-```bash
-docker compose up -d
-```
-
-### 3. Entrar al contenedor de Django
-
-```bash
-docker exec -i -t mudanzas_web bash
-```
-
-### 4. Instalar Django y el conector MySQL (dentro del contenedor)
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. Aplicar las migraciones (crea las tablas en MySQL)
-
-```bash
-python manage.py migrate
-```
-
-### 6. Crear un superusuario para el panel /admin
-
-```bash
-python manage.py createsuperuser
-```
-
-### 7. Iniciar el servidor de desarrollo
-
-```bash
-python manage.py runserver 0.0.0.0:8000
-```
-
-> Tip: si no querés entrar al contenedor con `bash`, podés correr cada
-> paso directo desde tu terminal con `docker exec mudanzas_web <comando>`
-> (o `docker exec -it` para el paso de `createsuperuser`, y
-> `docker exec -d` para dejar el `runserver` corriendo en segundo plano).
-
-## Acceso
-
-- Aplicación Django: http://localhost:8002/
-- Panel de administración: http://localhost:8002/admin/
-- phpMyAdmin: http://localhost:8082/ (usuario y contraseña del archivo `.env`)
-
-## Detener todo
+Para bajarlo:
 
 ```bash
 docker compose down
 ```
 
-Para borrar también la base de datos:
+## Direcciones
 
-```bash
-docker compose down -v
+| Dirección | Qué es |
+|---|---|
+| http://localhost:8002/ | Portada del sistema |
+| http://localhost:8002/vehiculos/ | CRUD de vehículos (Hito 1) |
+| http://localhost:8002/login/ | Ingreso al sistema (Hito 2) |
+| http://localhost:8002/panel/ | Panel del administrador |
+| http://localhost:8002/portal/ | Portal del personal operativo |
+| http://localhost:8002/admin/ | Admin de Django |
+| http://localhost:8082/ | phpMyAdmin |
+
+## Usuarios de prueba
+
+| Usuario | Contraseña | Rol | Qué ve |
+|---|---|---|---|
+| `sarmientoc` | `Admin123!` | Administrador | El panel completo |
+| `fernandezl` | `Usuario123!` | Chofer | El portal del personal |
+| `romerol` | `Temporal123!` | Ayudante de Carga | Le exige cambiar la clave al entrar |
+
+## Reglas del Hito 2
+
+- El **nombre de usuario se genera solo**: apellido más la inicial del nombre.
+- La **clave se guarda cifrada** con SHA-256; nunca se guarda en texto plano.
+- La **modificación solo permite editar el correo**, y actualiza la fecha de
+  última modificación.
+- La **baja es lógica**: pasa `Estado_usuario` a falso y asienta la fecha de baja.
+- El **alta y el restablecimiento** exigen cambiar la clave en el próximo ingreso.
+- Hay **tres roles** con accesos distintos: Administrador, Chofer y Ayudante de Carga.
+- Cada operación valida del lado del servidor que quien la llama sea un
+  administrador activo.
+- No se puede dar de baja al **último administrador activo** ni a uno mismo.
+
+## Arquitectura
+
+| Contenedor | Imagen | Puerto | Para qué |
+|---|---|---|---|
+| `mudanzas_db` | `mysql:8.0` | 3308 | Base de datos |
+| `mudanzas_phpmyadmin` | `phpmyadmin:5` | 8082 | Administrador web de MySQL |
+| `mudanzas_web` | build local | 8002 | Django |
+
+## Estructura
+
 ```
+mudanzas_django/
+├── docker-compose.yml      # Los 3 contenedores
+├── Dockerfile              # Imagen de Django
+├── entrypoint.sh           # Migra, carga datos y levanta el servidor
+├── requirements.txt
+├── .env                    # Credenciales de MySQL (no versionado)
+├── manage.py
+├── core/                   # Configuración del proyecto
+├── vehiculos/              # Hito 1: CRUD de vehículos
+│   ├── views.py, forms.py, urls.py
+│   └── templates/vehiculos/
+├── usuarios/               # Hito 2: las 13 tablas del DER y la seguridad
+│   ├── models.py           # Roles, Permisos, Usuarios, Vehículos, Pedidos…
+│   ├── views.py, urls.py, utils.py, admin.py
+│   ├── management/commands/init_data.py
+│   └── templates/
+└── docs/
+    ├── diagramas/          # DER y DFDs
+    └── superpowers/        # Especificaciones de diseño
+```
+
+El modelo `Vehiculo` vive en la app `usuarios`, junto al resto del DER; la app
+`vehiculos` lo importa para su CRUD.
+
+## Datos de acceso a MySQL
+
+Están en `.env`. Por defecto: usuario `mudanzas_user`, base `mudanzas_db`.
