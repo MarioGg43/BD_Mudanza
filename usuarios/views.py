@@ -85,6 +85,10 @@ def cambiar_clave_obligatoria(request):
 
     usuario = get_object_or_404(Usuario, DNI=dni)
 
+    # el formulario se puede enviar directo, sin pasar por el login
+    if not usuario.Activo:
+        return render(request, 'login.html', {'error': 'El usuario se encuentra dado de baja (Inactivo).'})
+
     if not usuario.verificar_clave(clave_actual):
         return render(request, 'login.html', {
             'cambio_obligatorio': True,
@@ -166,7 +170,7 @@ def olvide_clave_view(request):
         'clave_provisoria': nueva_clave
     })
 
-# ---- DASHBOARD DE ADMINISTRADOR (CRUD USUARIOS HITO 2 + FLOTA HITO 1) ----
+# ---- DASHBOARD DE ADMINISTRADOR (CRUD USUARIOS; LA FLOTA ESTÁ EN /vehiculos/) ----
 def admin_dashboard(request):
     usuario_actual = get_usuario_actual(request)
     if not usuario_actual:
@@ -181,16 +185,12 @@ def admin_dashboard(request):
     usuarios = usuarios.order_by('Apellido', 'Nombre')
 
     roles = Rol.objects.all().order_by('id_rol')
-    vehiculos = Vehiculo.objects.select_related('chofer_asignado').order_by('patente')
-    choferes = Usuario.objects.filter(idRol__nom_rol='Chofer', Activo=True)
 
     return render(request, 'admin_dashboard.html', {
         'usuario_actual': usuario_actual,
         'usuarios': usuarios,
         'roles': roles,
         'solo_activos': solo_activos,
-        'vehiculos': vehiculos,
-        'choferes': choferes,
     })
 
 # ---- PORTAL DE USUARIO OPERATIVO ----

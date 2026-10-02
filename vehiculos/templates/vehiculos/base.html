@@ -52,9 +52,18 @@
                 <a href="{% url 'lista_vehiculos' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
                     Ver Vehículos
                 </a>
+                {% if request.session.usuario_dni %}
+                <a href="{% url 'admin_dashboard' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
+                    Panel
+                </a>
+                <a href="{% url 'logout' %}" class="text-white small text-uppercase fw-semibold text-decoration-none">
+                    Salir <i class="bi bi-box-arrow-right ms-1"></i>
+                </a>
+                {% else %}
                 <a href="{% url 'login' %}" class="text-white small text-uppercase fw-semibold text-decoration-none">
                     Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i>
                 </a>
+                {% endif %}
             </div>
         </div>
     </header>

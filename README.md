@@ -7,6 +7,8 @@ en un solo proyecto:
 - **Hito 2** — usuarios, roles y permisos: alta, modificación, baja,
   restablecimiento de clave y cambio obligatorio en el próximo ingreso
   (app `usuarios`).
+- **App móvil** — prototipo navegable de 35 pantallas para Desarrollo Móvil
+  (carpeta `app-movil/`, independiente de Django).
 
 La base de datos sigue el DER del grupo: **13 tablas**, con los mismos nombres
 de tablas y columnas que el diagrama.
@@ -34,7 +36,7 @@ docker compose down
 | Dirección | Qué es |
 |---|---|
 | http://localhost:8002/ | Portada del sistema |
-| http://localhost:8002/vehiculos/ | CRUD de vehículos (Hito 1) |
+| http://localhost:8002/vehiculos/ | CRUD de vehículos (Hito 1, solo administrador) |
 | http://localhost:8002/login/ | Ingreso al sistema (Hito 2) |
 | http://localhost:8002/panel/ | Panel del administrador |
 | http://localhost:8002/portal/ | Portal del personal operativo |
@@ -62,6 +64,29 @@ docker compose down
   administrador activo.
 - No se puede dar de baja al **último administrador activo** ni a uno mismo.
 
+## Reglas de vehículos
+
+- Solo entra el **administrador**; sin sesión, la flota manda al login.
+- La **patente es la clave**: se guarda en mayúsculas y sin espacios, y no se
+  puede cambiar al editar.
+- La **baja es lógica**: el vehículo pasa a «Fuera de Servicio» y conserva sus
+  pedidos. Se reactiva editando el estado.
+- Como **chofer asignado** solo se puede elegir un usuario activo con rol Chofer.
+
+## Pruebas
+
+Con los contenedores levantados (corren sobre MySQL, en una base temporal):
+
+```bash
+docker exec mudanzas_web python manage.py test
+```
+
+Las de la app móvil, con Node:
+
+```bash
+node --test app-movil/tests/logic.test.js app-movil/tests/store.test.js
+```
+
 ## Arquitectura
 
 | Contenedor | Imagen | Puerto | Para qué |
@@ -77,6 +102,7 @@ mudanzas_django/
 ├── docker-compose.yml      # Los 3 contenedores
 ├── Dockerfile              # Imagen de Django
 ├── entrypoint.sh           # Migra, carga datos y levanta el servidor
+├── docker/mysql-init/      # Permiso para la base de pruebas (corre al crear el volumen)
 ├── requirements.txt
 ├── .env                    # Credenciales de MySQL (no versionado)
 ├── manage.py
@@ -88,7 +114,9 @@ mudanzas_django/
 │   ├── models.py           # Roles, Permisos, Usuarios, Vehículos, Pedidos…
 │   ├── views.py, urls.py, utils.py, admin.py
 │   ├── management/commands/init_data.py
+│   ├── static/             # Logo y paleta de colores
 │   └── templates/
+├── app-movil/              # Prototipo de la app móvil (HTML + JS)
 └── docs/
     ├── diagramas/          # DER y DFDs
     └── superpowers/        # Especificaciones de diseño

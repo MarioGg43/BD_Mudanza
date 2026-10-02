@@ -18,7 +18,6 @@ sys.exit(1)
 PY
 
 echo "Aplicando migraciones..."
-python manage.py makemigrations usuarios --noinput
 python manage.py migrate --noinput
 
 echo "Cargando datos iniciales..."
