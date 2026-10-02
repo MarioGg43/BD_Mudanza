@@ -1,0 +1,111 @@
+:root {
+  --color-harvest-orange: #FF7A00;
+  --color-amber-gold: #FFC107;
+  --color-orange: #FFA600;
+  --color-blazing-flame: #FF4000;
+  --color-racing-red: #E10E0E;
+
+  --bg-dark: #121316;
+  --bg-card: #1c1e24;
+  --bg-card-hover: #262932;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+.bg-harvest-orange { background-color: var(--color-harvest-orange); }
+.bg-amber-gold { background-color: var(--color-amber-gold); }
+.bg-orange-custom { background-color: var(--color-orange); }
+.bg-blazing-flame { background-color: var(--color-blazing-flame); }
+.bg-racing-red { background-color: var(--color-racing-red); }
+
+.text-harvest-orange { color: var(--color-harvest-orange); }
+.text-amber-gold { color: var(--color-amber-gold); }
+.text-orange-custom { color: var(--color-orange); }
+.text-blazing-flame { color: var(--color-blazing-flame); }
+.text-racing-red { color: var(--color-racing-red); }
+
+.grad-brand {
+  background: linear-gradient(135deg, var(--color-harvest-orange), var(--color-blazing-flame));
+}
+
+.grad-brand-header {
+  background: linear-gradient(90deg, #18191f 0%, #201a18 50%, #291512 100%);
+  border-bottom: 2px solid var(--color-harvest-orange);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-harvest-orange), var(--color-orange));
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-orange), var(--color-blazing-flame));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.35);
+}
+
+.btn-danger {
+  background: var(--color-racing-red);
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.btn-danger:hover {
+  background: #c50a0a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(225, 14, 14, 0.4);
+}
+
+.btn-warning {
+  background: var(--color-amber-gold);
+  color: #111;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.btn-warning:hover {
+  background: #e0a800;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.35);
+}
+
+.btn-flame {
+  background: var(--color-blazing-flame);
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.btn-flame:hover {
+  background: #e03800;
+  box-shadow: 0 4px 12px rgba(255, 64, 0, 0.4);
+}
+
+.badge-active {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-inactive {
+  background-color: rgba(225, 14, 14, 0.15);
+  color: var(--color-racing-red);
+  border: 1px solid rgba(225, 14, 14, 0.3);
+}
+
+.badge-must-change {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: var(--color-amber-gold);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+}
+
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}

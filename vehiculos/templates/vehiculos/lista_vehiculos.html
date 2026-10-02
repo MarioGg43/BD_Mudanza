@@ -21,12 +21,13 @@
                     <h2 class="h5 fw-bold mb-0">{{ vehiculo.patente }}</h2>
                     <span class="text-muted small">{{ vehiculo.tipo_vehiculo }}</span>
                 </div>
-                <span class="small fw-semibold text-end">{{ vehiculo.estado }}</span>
+                <span class="small fw-semibold text-end {% if vehiculo.estado == 'Fuera de Servicio' %}text-danger{% endif %}">{{ vehiculo.estado }}</span>
             </div>
 
             <p class="mb-1">{{ vehiculo.marca_modelo }}</p>
             <p class="text-muted small mb-3">
-                {{ vehiculo.capacidad_kg }} kg &middot; {{ vehiculo.capacidad_m3 }} m³
+                {{ vehiculo.capacidad_kg }} kg &middot; {{ vehiculo.capacidad_m3 }} m³<br>
+                Chofer: {{ vehiculo.chofer_asignado.Nombre|default:"sin asignar" }} {{ vehiculo.chofer_asignado.Apellido|default:"" }}
             </p>
 
             <div class="mt-auto">
@@ -34,19 +35,21 @@
                     <a href="{% url 'editarVehiculo' vehiculo.patente %}" class="btn btn-sm btn-warning flex-fill">
                         <i class="bi bi-pencil-square me-1"></i>Editar
                     </a>
+                    {% if vehiculo.estado != 'Fuera de Servicio' %}
                     <button type="button" class="btn btn-sm btn-outline-danger flex-fill"
                             data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.patente }}">
-                        <i class="bi bi-trash me-1"></i>Eliminar
+                        <i class="bi bi-slash-circle me-1"></i>Dar de baja
                     </button>
+                    {% endif %}
                 </div>
 
                 <div class="collapse mt-2" id="confirmar-{{ vehiculo.patente }}">
                     <div class="border rounded-3 p-2 bg-light">
-                        <p class="small mb-2">¿Eliminar el vehículo "{{ vehiculo.patente }}"?</p>
+                        <p class="small mb-2">¿Dar de baja el vehículo "{{ vehiculo.patente }}"? Queda fuera de servicio y se puede reactivar editando su estado.</p>
                         <div class="d-flex gap-2">
-                            <form method="post" action="{% url 'eliminarVehiculo' vehiculo.patente %}" class="flex-fill">
+                            <form method="post" action="{% url 'bajaVehiculo' vehiculo.patente %}" class="flex-fill">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-danger w-100">Sí, eliminar</button>
+                                <button type="submit" class="btn btn-sm btn-danger w-100">Sí, dar de baja</button>
                             </form>
                             <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
                                     data-bs-toggle="collapse" data-bs-target="#confirmar-{{ vehiculo.patente }}">

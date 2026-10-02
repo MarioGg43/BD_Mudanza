@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FF5E08">
+<link rel="icon" href="img/icono.png">
+<link rel="apple-touch-icon" href="img/icono.png">
+</head>
+<body>
+<title>App Mudanzas Salta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+
+<main class="stage" id="stage">
+  <div class="device-wrap">
+    <div class="device">
+      <div class="phone" id="phone">
+        <div class="notch" aria-hidden="true"></div>
+        <div class="app" id="app"></div>
+        <div class="home-ind" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="demo" id="demo" aria-label="Controles de la demo">
+    <section class="panel">
+      <img src="img/logo-color.png" alt="Logo de Mudanzas Salta" style="width:150px">
+      <h1>App Mudanzas Salta</h1>
+      <p>Prototipo navegable de la app móvil de Mudanzas y Fletes Salta. Grupo 5 · Desarrollo Móvil.</p>
+      <p class="small">Sesión: <b data-quien>Nadie inició sesión</b></p>
+    </section>
+
+    <section class="panel">
+      <h2>Entrar como</h2>
+      <div class="who">
+        <button data-dni="35123456"><span class="av">CS</span><span><b>Carlos Sarmiento</b><small>Administrador</small></span></button>
+        <button data-dni="40987654"><span class="av Chofer">LF</span><span><b>Luciana Fernández</b><small>Chofer</small></span></button>
+        <button data-dni="38999888"><span class="av Ayudante">LR</span><span><b>Lucas Romero</b><small>Ayudante de carga · clave temporal</small></span></button>
+        <button data-dni="29876543"><span class="av Cliente">MG</span><span><b>María Gómez</b><small>Cliente</small></span></button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Para escribirlos en el login</h2>
+      <table class="creds">
+        <thead><tr><th>Usuario</th><th>Contraseña</th></tr></thead>
+        <tbody>
+          <tr><td>sarmientoc</td><td>Admin123!</td></tr>
+          <tr><td>fernandezl</td><td>Usuario123!</td></tr>
+          <tr><td>romerol</td><td>Temporal123!</td></tr>
+          <tr><td>gomezm</td><td>Cliente123!</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Son cuentas de prueba de la demo.</p>
+    </section>
+
+    <section class="panel">
+      <div class="btns">
+        <button class="btn primary sm" data-demo="galeria">Ver todas las pantallas</button>
+        <a class="btn ghost sm" href="#figma">Pantallas para Figma</a>
+        <button class="btn ghost sm" data-demo="salir">Cerrar sesión</button>
+        <button class="btn ghost sm" data-demo="reiniciar">Reiniciar demo</button>
+      </div>
+      <p class="note">Lo que cambies queda guardado en este navegador. "Reiniciar demo" vuelve a los datos de ejemplo.</p>
+    </section>
+  </aside>
+</main>
+
+<div class="gallery" id="gallery" hidden></div>
+
+<script src="logic.js"></script>
+<script src="data.js"></script>
+<script src="store.js"></script>
+<script src="ui.js"></script>
+<script src="screens-auth.js"></script>
+<script src="screens-cliente.js"></script>
+<script src="screens-admin.js"></script>
+<script src="screens-empleado.js"></script>
+<script src="gallery.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
