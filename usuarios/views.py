@@ -77,6 +77,7 @@ def login_view(request):
 
         # Guardar sesión
         usuario.registrar_acceso()
+        request.session.cycle_key()
         request.session['usuario_dni'] = usuario.DNI
         request.session['usuario_rol'] = usuario.idRol.nom_rol
 
@@ -128,6 +129,7 @@ def cambiar_clave_obligatoria(request):
 
     # Iniciar sesión directamente
     usuario.registrar_acceso()
+    request.session.cycle_key()
     request.session['usuario_dni'] = usuario.DNI
     request.session['usuario_rol'] = usuario.idRol.nom_rol
 

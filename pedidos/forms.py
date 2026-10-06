@@ -35,6 +35,12 @@ class FiltroPedidosForm(forms.Form):
             del self.fields['cliente']
         con_bootstrap(self)
 
+    def clean(self):
+        d = super().clean()
+        if d.get('desde') and d.get('hasta') and d['desde'] > d['hasta']:
+            self.add_error('hasta', 'La fecha «Hasta» no puede ser anterior a «Desde».')
+        return d
+
     def filtros(self):
         d = self.cleaned_data
         return {'desde': d.get('desde'), 'hasta': d.get('hasta'), 'estado': d.get('estado') or None,

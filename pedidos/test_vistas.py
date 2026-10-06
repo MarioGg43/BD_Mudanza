@@ -266,3 +266,31 @@ class RegistroClienteTest(BaseVistas):
 
     def test_el_login_ofrece_crear_cuenta(self):
         self.assertContains(self.client.get('/login/'), '/registro/')
+
+
+class RevisionFinalTest(BaseVistas):
+    def test_el_filtro_rechaza_un_rango_invertido(self):
+        self.entrar(ADMIN)
+        hoy = timezone.localdate()
+        r = self.client.get('/pedidos/', {'desde': hoy + timedelta(days=5), 'hasta': hoy + timedelta(days=1)})
+        self.assertIn('hasta', r.context['form'].errors)
+
+    def test_no_se_ofrece_anular_un_pedido_ya_anulado(self):
+        p = self.pedido_de(self.cliente)
+        reglas.anular(p.pk, Usuario.objects.get(DNI=ADMIN), 'Pedido duplicado')
+        self.entrar(ADMIN)
+        self.assertRedirects(self.client.get(f'/pedidos/{p.pk}/anular/'), f'/pedidos/{p.pk}/')
+
+    def test_registro_con_sesion_abierta_redirige(self):
+        self.entrar(CLIENTE)
+        self.assertRedirects(self.client.get('/registro/'), '/pedidos/')
+
+    def test_registro_rota_la_sesion(self):
+        s = self.client.session
+        s['visita'] = 1
+        s.save()
+        antes = self.client.session.session_key
+        datos = RegistroClienteTest.datos(self, dni='33444555')
+        self.client.post('/registro/', datos)
+        self.assertNotEqual(self.client.session.session_key, antes)
+        self.assertEqual(self.client.session['usuario_dni'], 33444555)

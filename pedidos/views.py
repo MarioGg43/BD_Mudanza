@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido
+from usuarios.views import get_usuario_actual, redirigir_segun_rol
 from . import reglas
 from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm, RegistroClienteForm
 from .permisos import requiere_permiso, tiene_permiso
@@ -123,6 +124,9 @@ def finalizar(request, id_pedido):
 @requiere_permiso('PED_ANULAR')
 def anular(request, id_pedido):
     pedido = get_object_or_404(Pedido, pk=id_pedido)
+    if pedido.estado not in Pedido.ACTIVOS:
+        messages.error(request, f'El pedido N° {id_pedido} está {pedido.estado.lower()} y no se puede anular.')
+        return redirect('pedidos_detalle', id_pedido=id_pedido)
     form = AnularForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         try:
@@ -147,10 +151,14 @@ def comprobante(request, id_pedido):
 
 def registro(request):
     """Alta pública de clientes: queda con el rol Cliente e inicia sesión."""
+    usuario = get_usuario_actual(request)
+    if usuario:
+        return redirigir_segun_rol(usuario)
     form = RegistroClienteForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         cliente = form.crear_cliente()
         cliente.registrar_acceso()
+        request.session.cycle_key()
         request.session['usuario_dni'] = cliente.DNI
         request.session['usuario_rol'] = cliente.idRol.nom_rol
         messages.success(request, f'¡Bienvenida/o! Tu usuario es {cliente.NombreUsuario}.')
