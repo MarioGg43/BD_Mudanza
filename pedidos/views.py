@@ -4,6 +4,7 @@ from datetime import date
 from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido
@@ -136,3 +137,9 @@ def anular(request, id_pedido):
             messages.success(request, f'Pedido N° {id_pedido} anulado.')
             return redirect('pedidos_detalle', id_pedido=id_pedido)
     return render(request, 'pedidos/anular.html', {'pedido': pedido, 'form': form})
+
+
+@requiere_permiso('PED_COMPROBANTE')
+def comprobante(request, id_pedido):
+    pedido = _pedido_visible(request, id_pedido)
+    return render(request, 'pedidos/comprobante.html', {'pedido': pedido, 'emitido': timezone.localtime()})

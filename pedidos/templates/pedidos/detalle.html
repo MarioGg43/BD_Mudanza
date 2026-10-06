@@ -6,6 +6,9 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
         <h1 class="h3 fw-bold mb-0">Pedido N° {{ pedido.id_pedido }} {% include 'pedidos/_estado.html' with estado=pedido.estado %}</h1>
         <div class="d-flex flex-wrap gap-2">
+            {% if puede_comprobante %}
+            <a href="{% url 'pedidos_comprobante' pedido.id_pedido %}" class="btn btn-outline-secondary" target="_blank"><i class="bi bi-printer me-1"></i>Comprobante</a>
+            {% endif %}
             {% if puede_gestionar and pedido.estado == 'Pendiente' %}
             <form method="post" action="{% url 'pedidos_confirmar' pedido.id_pedido %}">{% csrf_token %}
                 <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Confirmar</button></form>

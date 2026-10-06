@@ -206,3 +206,32 @@ class AccionesTest(BaseVistas):
         r = self.client.get(f'/pedidos/{self.p.pk}/')
         self.assertNotContains(r, '/confirmar/')
         self.assertNotContains(r, '/anular/')
+
+
+class ComprobanteTest(BaseVistas):
+    def setUp(self):
+        self.p = self.pedido_de(self.cliente)
+
+    def test_el_cliente_imprime_el_suyo(self):
+        self.entrar(CLIENTE)
+        r = self.client.get(f'/pedidos/{self.p.pk}/comprobante/')
+        self.assertContains(r, f'Pedido N° {self.p.pk}')
+        self.assertContains(r, 'Mudanza local')
+        self.assertContains(r, '185.000,00')
+        self.assertContains(r, 'window.print()')
+
+    def test_el_comprobante_ajeno_da_404(self):
+        ajeno = self.pedido_de(self.otro, dias=2)
+        self.entrar(CLIENTE)
+        self.assertEqual(self.client.get(f'/pedidos/{ajeno.pk}/comprobante/').status_code, 404)
+
+    def test_muestra_la_anulacion(self):
+        reglas.anular(self.p.pk, Usuario.objects.get(DNI=ADMIN), 'Pedido duplicado')
+        self.entrar(ADMIN)
+        r = self.client.get(f'/pedidos/{self.p.pk}/comprobante/')
+        self.assertContains(r, 'ANULADO')
+        self.assertContains(r, 'Pedido duplicado')
+
+    def test_el_chofer_no_emite(self):
+        self.entrar(CHOFER)
+        self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/comprobante/').status_code, 403)

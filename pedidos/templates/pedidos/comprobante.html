@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante — Pedido N° {{ pedido.id_pedido }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #1c1006; margin: 0; background: #f4f1ee; }
+        .hoja { background: #fff; max-width: 800px; margin: 24px auto; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ea580c; padding-bottom: 12px; }
+        header img { height: 56px; background: #1c1006; padding: 6px; border-radius: 6px; }
+        h1 { font-size: 20px; margin: 0; }
+        h2 { font-size: 13px; text-transform: uppercase; color: #7c6f64; margin: 20px 0 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { border-bottom: 1px solid #e7ddd3; padding: 6px; text-align: left; }
+        .num { text-align: right; }
+        .total td { font-weight: bold; border-top: 2px solid #1c1006; }
+        .datos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 14px; }
+        .anulado { border: 2px solid #b91c1c; color: #b91c1c; padding: 8px 12px; margin-top: 16px; font-weight: bold; }
+        .pie { font-size: 12px; color: #7c6f64; margin-top: 24px; }
+        .acciones { text-align: center; margin: 16px; }
+        .acciones button, .acciones a { font-size: 15px; padding: 8px 18px; margin: 0 4px; }
+        @media print {
+            body { background: #fff; }
+            .hoja { box-shadow: none; margin: 0; max-width: none; }
+            .acciones { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="acciones">
+    <button onclick="window.print()">Imprimir / Guardar PDF</button>
+    <a href="{% url 'pedidos_detalle' pedido.id_pedido %}">Volver al pedido</a>
+</div>
+<div class="hoja">
+    <header>
+        <img src="{% static 'img/logo.png' %}" alt="Mudanzas y Fletes Salta">
+        <div style="text-align:right">
+            <h1>Pedido N° {{ pedido.id_pedido }}</h1>
+            <div>Estado: <strong>{{ pedido.estado }}</strong></div>
+            <div>Registrado el {{ pedido.Fecha_pedido|date:"d/m/Y" }}</div>
+        </div>
+    </header>
+
+    {% if pedido.estado == 'Anulado' %}
+    <div class="anulado">ANULADO el {{ pedido.fecha_anulacion|date:"d/m/Y H:i" }} por {{ pedido.usuario_anulacion.Nombre }} {{ pedido.usuario_anulacion.Apellido }}. Motivo: {{ pedido.motivo_anulacion }}</div>
+    {% endif %}
+
+    <h2>Cliente</h2>
+    <div class="datos">
+        <div>{{ pedido.idUsuario.Apellido }}, {{ pedido.idUsuario.Nombre }}</div>
+        <div>DNI {{ pedido.idUsuario.DNI }}</div>
+        <div>{{ pedido.idUsuario.Correo }}</div>
+        <div>{{ pedido.idUsuario.Telefono|default:"" }}</div>
+    </div>
+
+    <h2>Mudanza</h2>
+    <div class="datos">
+        <div><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }}</div>
+        <div><strong>Vehículo:</strong> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</div>
+        <div><strong>Desde:</strong> {{ pedido.origen }}</div>
+        <div><strong>Hasta:</strong> {{ pedido.destino }}</div>
+    </div>
+
+    <h2>Servicios</h2>
+    <table>
+        <tr><th>Servicio</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
+        {% for d in pedido.detalles.all %}
+        <tr><td>{{ d.idServicio.Tipo_servicio }}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>
+        {% endfor %}
+        <tr class="total"><td colspan="2" class="num">TOTAL</td><td class="num">${{ pedido.total|floatformat:"2g" }}</td></tr>
+    </table>
+
+    <h2>Inventario</h2>
+    <table>
+        <tr><th>Objeto</th><th class="num">Cantidad</th><th class="num">Peso c/u</th><th>Frágil</th></tr>
+        {% for i in pedido.inventario.all %}
+        <tr><td>{{ i.Descripcion }}</td><td class="num">{{ i.Cantidad }}</td><td class="num">{{ i.Peso }} kg</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td></tr>
+        {% endfor %}
+        <tr class="total"><td colspan="2" class="num">Peso total</td><td class="num">{{ pedido.peso_total }} kg</td><td></td></tr>
+    </table>
+
+    <p class="pie">Mudanzas y Fletes Salta · Comprobante emitido el {{ emitido|date:"d/m/Y H:i" }}. No válido como factura.</p>
+</div>
+</body>
+</html>
