@@ -270,3 +270,128 @@ a:hover { color: var(--rojo-osc); }
 
 /* ---------- pie ---------- */
 .pie-marca { color: var(--tinta-2); border-top: 1px solid var(--linea); }
+
+/* =====================================================================
+ * Pantallas Tailwind (login, panel del administrador, portal del personal).
+ * Cargan esta hoja sin Bootstrap; las clases de abajo reemplazan a las de
+ * la vieja palette.css (tema oscuro) con los mismos tokens de la marca.
+ * ===================================================================== */
+
+/* textos */
+.texto-tinta { color: var(--tinta); }
+.texto-suave { color: var(--tinta-2); }
+.texto-blanco-suave { color: rgba(255, 255, 255, .92); }
+
+/* nombres heredados de palette.css, reasignados para leerse sobre fondo claro */
+.text-harvest-orange, .text-amber-gold, .text-orange-custom, .text-blazing-flame { color: var(--naranja-osc); }
+.text-racing-red { color: var(--rojo-osc); }
+.grad-brand, .grad-brand-header { background: var(--grad); color: #fff; }
+
+/* logo en pastilla blanca, versión grande para el login */
+.logo-pastilla-lg { border-radius: 16px; padding: 6px 12px; }
+.logo-pastilla-lg img { height: 56px; }
+
+/* encabezado sobre el degradé */
+.chip-degrade {
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .35);
+  color: #fff;
+}
+.enlace-degrade { color: #fff; text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.enlace-degrade:hover { color: #fff; opacity: .85; }
+.encabezado-marca a:focus-visible, .encabezado-marca button:focus-visible,
+.grad-brand a:focus-visible, .grad-brand button:focus-visible { outline-color: #fff; }
+
+/* botones */
+.btn-flame {
+  background: var(--grad);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: var(--sombra-btn);
+}
+.btn-primary:hover, .btn-flame:hover { background: var(--grad-osc); color: #fff; }
+.btn-sobre-degrade {
+  background: #fff;
+  color: var(--rojo-osc);
+  font-weight: 600;
+  box-shadow: 0 14px 28px -12px rgba(90, 20, 0, .55);
+}
+.btn-sobre-degrade:hover { background: var(--naranja-suave); color: var(--rojo-osc); }
+.btn-secundario {
+  background: var(--card);
+  color: var(--tinta);
+  border: 1.5px solid var(--linea);
+  font-weight: 500;
+}
+.btn-secundario:hover { background: var(--naranja-suave); color: var(--naranja-osc); border-color: var(--naranja); }
+.btn-salir {
+  background: var(--card);
+  color: var(--rojo-osc);
+  font-weight: 600;
+}
+.btn-salir:hover { background: var(--rojo-suave); color: var(--rojo-osc); }
+.enlace-marca { color: var(--naranja-osc); font-weight: 600; }
+.enlace-marca:hover { color: var(--rojo-osc); text-decoration: underline; }
+
+/* botones de acción de la tabla */
+.accion { border: 1px solid transparent; transition: background-color .15s, border-color .15s; }
+.accion-editar { background: var(--naranja-suave); color: var(--naranja-osc); }
+.accion-editar:hover { border-color: var(--naranja); }
+.accion-clave { background: var(--warn-bg); color: var(--warn); }
+.accion-clave:hover { border-color: #E5B53A; }
+.accion-baja { background: var(--rojo-suave); color: var(--rojo-osc); }
+.accion-baja:hover { border-color: var(--rojo); }
+.accion-reactivar { background: var(--ok-bg); color: var(--ok); }
+.accion-reactivar:hover { border-color: var(--ok); }
+.accion-neutra { background: var(--card); color: var(--tinta-2); border-color: var(--linea); }
+.accion-neutra:hover { color: var(--naranja-osc); border-color: var(--naranja); }
+
+/* campos */
+.campo {
+  background-color: var(--card);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-sm);
+  color: var(--tinta);
+}
+.campo::placeholder { color: var(--tinta-3); }
+.campo:focus { border-color: var(--naranja); box-shadow: var(--anillo); }
+.etiqueta { color: var(--tinta-2); font-weight: 600; }
+.icono-campo { color: var(--tinta-2); }
+input[type="checkbox"].casilla { accent-color: var(--naranja); }
+
+/* cajas y chips */
+.caja-suave { background: var(--fondo); border: 1px solid var(--linea); }
+.chip-marca { background: var(--naranja-suave); color: var(--naranja-osc); border: 1px solid #F8D9BC; }
+.linea-b { border-bottom: 1px solid var(--linea); }
+.linea-t { border-top: 1px solid var(--linea); }
+
+/* avisos */
+.aviso-error { background: var(--rojo-suave); color: var(--rojo-osc); border: 1px solid #F2C4C4; }
+.aviso-ok { background: var(--ok-bg); color: var(--ok); border: 1px solid #C6E6D3; }
+.aviso-ok .text-white, .aviso-ok .text-gray-300 { color: inherit; } /* textos que arma el JS */
+.aviso-atencion { background: var(--warn-bg); color: var(--warn); border: 1px solid #F6DE95; }
+.aviso-info { background: var(--naranja-suave); color: var(--tinta); border: 1px solid #F8D9BC; }
+.aviso-info .text-gray-500 { color: var(--tinta-2); } /* texto de ayuda que arma el JS */
+
+/* estados extra del panel */
+.estado-inactivo { background: var(--rojo-suave); color: var(--rojo-osc); }
+.estado-clave { background: var(--warn-bg); color: var(--warn); }
+
+/* tabla del panel */
+.tabla-marca thead tr { background: var(--naranja-suave); color: var(--tinta-2); }
+.tabla-marca tbody tr { border-bottom: 1px solid var(--linea); transition: background-color .15s; }
+.tabla-marca tbody tr:hover { background: var(--fondo); }
+.tabla-marca tbody tr.fila-baja { background: #FCF4F4; }
+
+/* modales: tarjeta blanca sobre un velo oscuro translúcido */
+.modal-overlay {
+  background-color: rgba(35, 26, 21, .55);
+}
+.modal-tarjeta {
+  background: var(--card);
+  border: 1px solid var(--linea);
+  border-radius: 20px;
+  box-shadow: 0 30px 60px -20px rgba(35, 26, 21, .45);
+}
+.grad-brand h1, .grad-brand h2, .grad-brand h3,
+.encabezado-marca h1, .encabezado-marca h2, .encabezado-marca h3 { color: #fff; }

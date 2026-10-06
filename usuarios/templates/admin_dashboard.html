@@ -3,27 +3,28 @@
 
 {% block content %}
 <!-- HEADER -->
-<header class="grad-brand-header px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+<header class="encabezado-marca px-6 py-4 flex flex-wrap justify-between items-center">
   <div class="flex items-center space-x-3">
-    <div class="h-10 w-16 flex items-center justify-center">
-      <img src="/static/img/logo.png" alt="Logo" class="h-9 w-auto object-contain drop-shadow">
-    </div>
+    <span class="logo-pastilla"><img src="/static/img/logo.png" alt="Logo" class="object-contain"></span>
     <div>
-      <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+      <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
         Mudanzas y Fletes Salta
       </h1>
-      <p class="text-xs text-gray-400">Panel de Administración General de Usuarios y Seguridad</p>
+      <p class="text-xs texto-blanco-suave">Panel de Administración General de Usuarios y Seguridad</p>
     </div>
   </div>
 
-  <div class="flex items-center gap-3 mt-3 sm:mt-0">
-    <div class="flex items-center gap-2 bg-[#1e2029] px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-300">
-      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-      <a href="/vehiculos/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a><a href="/pedidos/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-clipboard-list mr-1"></i> Pedidos</a><a href="/servicios/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-tags mr-1"></i> Servicios</a><span class="font-semibold text-white">Sesión: {{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }} ({{ usuario_actual.idRol.nom_rol }})</span>
-      <a href="{% url 'logout' %}" class="ml-2 text-xs text-racing-red hover:underline" title="Cerrar sesión">Salir</a>
+  <div class="flex flex-wrap items-center gap-3 mt-3 sm:mt-0">
+    <div class="menu-marca flex flex-wrap items-center gap-1 text-xs">
+      <a href="/vehiculos/" class="text-xs font-semibold"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a><a href="/pedidos/" class="text-xs font-semibold"><i class="fa-solid fa-clipboard-list mr-1"></i> Pedidos</a><a href="/servicios/" class="text-xs font-semibold"><i class="fa-solid fa-tags mr-1"></i> Servicios</a>
+    </div>
+    <div class="chip-degrade flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs">
+      <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+      <span class="font-semibold">Sesión: {{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }} ({{ usuario_actual.idRol.nom_rol }})</span>
+      <a href="{% url 'logout' %}" class="enlace-degrade ml-2 text-xs rounded" title="Cerrar sesión">Salir</a>
     </div>
 
-    <button id="btnAltaUsuarioNav" onclick="abrirModalAlta()" class="btn-primary px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+    <button id="btnAltaUsuarioNav" onclick="abrirModalAlta()" class="btn-sobre-degrade px-4 py-2 rounded-xl text-sm flex items-center gap-2">
       <i class="fa-solid fa-user-plus"></i>
       <span>Alta de Usuario</span>
     </button>
@@ -36,35 +37,35 @@
   <!-- PANEL: USUARIOS Y SEGURIDAD (HITO 2) -->
   <div id="panelUsuarios" class="space-y-6">
     <!-- TABLA CRUD USUARIOS -->
-    <div class="bg-[#1c1e24] rounded-2xl border border-gray-800 shadow-xl overflow-hidden">
-      
-      <div class="p-4 sm:p-5 border-b border-gray-800 flex flex-wrap justify-between items-center gap-4">
+    <div class="tarjeta overflow-hidden">
+
+      <div class="p-4 sm:p-5 linea-b flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-users-gear text-harvest-orange"></i>
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-users-gear text-marca"></i>
             Nómina de Usuarios del Sistema
           </h2>
-          <p class="text-xs text-gray-400">Administración de cuentas, roles y credenciales de acceso</p>
+          <p class="text-xs texto-suave">Administración de cuentas, roles y credenciales de acceso</p>
         </div>
 
       <div class="flex flex-wrap items-center gap-3">
-        <label class="flex items-center gap-2 text-xs text-gray-300 bg-[#252833] px-3 py-2 rounded-lg cursor-pointer border border-gray-700">
-          <input type="checkbox" id="chkSoloActivos" {% if solo_activos %}checked{% endif %} onchange="filtrarActivos(this)" class="accent-orange-500 rounded">
+        <label class="caja-suave flex items-center gap-2 text-xs texto-tinta px-3 py-2 rounded-lg cursor-pointer">
+          <input type="checkbox" id="chkSoloActivos" {% if solo_activos %}checked{% endif %} onchange="filtrarActivos(this)" class="casilla rounded">
           <span>Solo Activos</span>
         </label>
 
         <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-500 text-xs"></i>
-          <input type="text" id="txtBuscar" onkeyup="filtrarTabla()" placeholder="Buscar DNI, apellido, usuario..." 
-                 class="bg-[#252833] border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-harvest-orange w-64">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 icono-campo text-xs"></i>
+          <input type="text" id="txtBuscar" onkeyup="filtrarTabla()" placeholder="Buscar DNI, apellido, usuario..."
+                 class="campo pl-8 pr-3 py-1.5 text-xs w-64">
         </div>
       </div>
     </div>
 
     <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse text-xs sm:text-sm" id="tablaUsuarios">
+      <table class="tabla-marca w-full text-left border-collapse text-xs sm:text-sm" id="tablaUsuarios">
         <thead>
-          <tr class="bg-[#15171c] text-gray-400 uppercase text-[11px] tracking-wider border-b border-gray-800">
+          <tr class="uppercase text-[11px] tracking-wider">
             <th class="p-3 sm:p-4 font-semibold">DNI (PK)</th>
             <th class="p-3 sm:p-4 font-semibold">Apellido y Nombre</th>
             <th class="p-3 sm:p-4 font-semibold">NombreUsuario</th>
@@ -76,29 +77,29 @@
             <th class="p-3 sm:p-4 font-semibold text-right">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-800">
+        <tbody>
           {% for u in usuarios %}
-          <tr class="hover:bg-[#20232b] transition border-b border-gray-800 {% if not u.Activo %}opacity-60 bg-red-950/10{% endif %}">
-            <td class="p-3 sm:p-4 font-mono font-bold text-gray-300">{{ u.DNI }}</td>
-            <td class="p-3 sm:p-4 font-semibold text-white">{{ u.Apellido }}, {{ u.Nombre }}</td>
+          <tr class="{% if not u.Activo %}fila-baja{% endif %}">
+            <td class="p-3 sm:p-4 font-mono font-bold texto-suave">{{ u.DNI }}</td>
+            <td class="p-3 sm:p-4 font-semibold texto-tinta">{{ u.Apellido }}, {{ u.Nombre }}</td>
             <td class="p-3 sm:p-4">
-              <span class="font-mono text-xs px-2 py-1 rounded bg-[#252833] text-amber-gold border border-gray-700">{{ u.NombreUsuario }}</span>
+              <span class="chip-marca font-mono text-xs px-2 py-1 rounded">{{ u.NombreUsuario }}</span>
             </td>
-            <td class="p-3 sm:p-4 text-gray-300" id="correo-{{ u.DNI }}">{{ u.Correo }}</td>
+            <td class="p-3 sm:p-4 texto-suave" id="correo-{{ u.DNI }}">{{ u.Correo }}</td>
             <td class="p-3 sm:p-4">
               {% if u.DNI == usuario_actual.DNI %}
-              <span class="text-xs px-2 py-1 rounded bg-[#252833] text-harvest-orange border border-gray-700"
+              <span class="chip-marca text-xs px-2 py-1 rounded"
                     title="No podés cambiar tu propio rol">{{ u.idRol.nom_rol }}</span>
               {% else %}
               <div class="flex items-center gap-1">
                 <select id="rol-{{ u.DNI }}"
-                        class="text-xs bg-[#252833] text-harvest-orange border border-gray-700 rounded px-2 py-1 focus:outline-none focus:border-harvest-orange">
+                        class="campo text-xs px-2 py-1">
                   {% for r in roles %}
                   <option value="{{ r.id_rol }}" {% if r.id_rol == u.idRol_id %}selected{% endif %}>{{ r.nom_rol }}</option>
                   {% endfor %}
                 </select>
                 <button onclick="cambiarRol('{{ u.DNI }}')" title="Guardar el rol"
-                        class="text-xs px-2 py-1 rounded bg-[#252833] border border-gray-700 text-gray-300 hover:text-harvest-orange hover:border-harvest-orange transition">
+                        class="accion accion-neutra text-xs px-2 py-1 rounded-lg">
                   <i class="fa-solid fa-user-shield"></i>
                 </button>
               </div>
@@ -106,19 +107,19 @@
             </td>
             <td class="p-3 sm:p-4 text-center font-bold">
               {% if u.Activo %}
-              <span class="badge-active px-3 py-1 rounded-full text-xs">Sí</span>
+              <span class="estado estado-activo">Sí</span>
               {% else %}
-              <span class="badge-inactive px-3 py-1 rounded-full text-xs">No</span>
+              <span class="estado estado-inactivo">No</span>
               {% endif %}
             </td>
             <td class="p-3 sm:p-4 text-center">
               {% if u.DebeCambiarClave %}
-              <span class="badge-must-change px-2 py-0.5 rounded text-[11px] font-semibold" title="Debe cambiar contraseña en su próximo login"><i class="fa-solid fa-key mr-1"></i> Obligatorio</span>
+              <span class="estado estado-clave" title="Debe cambiar contraseña en su próximo login"><i class="fa-solid fa-key mr-1"></i> Obligatorio</span>
               {% else %}
-              <span class="text-xs text-gray-500"><i class="fa-solid fa-check text-green-500 mr-1"></i> Actualizada</span>
+              <span class="text-xs texto-suave"><i class="fa-solid fa-check mr-1" style="color: var(--ok);"></i> Actualizada</span>
               {% endif %}
             </td>
-            <td class="p-3 sm:p-4 text-xs text-gray-400">
+            <td class="p-3 sm:p-4 text-xs texto-suave">
               <div>{{ u.FechaUltimaModificacion|date:"d/m/Y H:i" }}</div>
               {% if u.FechaBaja %}
               <div class="text-[10px] text-racing-red font-semibold">Baja: {{ u.FechaBaja|date:"d/m/Y H:i" }}</div>
@@ -127,20 +128,20 @@
             <td class="p-3 sm:p-4 text-right">
               <div class="flex justify-end gap-1.5">
                 <!-- Modificar Correo -->
-                <button onclick="abrirModalModificar('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.Correo }}')" class="p-1.5 rounded-lg bg-amber-gold/20 hover:bg-amber-gold/30 text-amber-gold transition text-xs" title="Modificar Correo">
+                <button onclick="abrirModalModificar('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.Correo }}')" class="accion accion-editar p-1.5 rounded-lg text-xs" title="Modificar Correo">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
                 <!-- Restablecer Clave -->
-                <button onclick="abrirModalRestablecer('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.NombreUsuario }}')" class="p-1.5 rounded-lg bg-blazing-flame/20 hover:bg-blazing-flame/30 text-blazing-flame transition text-xs" title="Restablecer Clave">
+                <button onclick="abrirModalRestablecer('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.NombreUsuario }}')" class="accion accion-clave p-1.5 rounded-lg text-xs" title="Restablecer Clave">
                   <i class="fa-solid fa-key"></i>
                 </button>
                 <!-- Baja o Reactivar -->
                 {% if u.Activo %}
-                <button onclick="abrirModalBaja('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}')" class="p-1.5 rounded-lg bg-racing-red/20 hover:bg-racing-red/30 text-racing-red transition text-xs" title="Dar de Baja">
+                <button onclick="abrirModalBaja('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}')" class="accion accion-baja p-1.5 rounded-lg text-xs" title="Dar de Baja">
                   <i class="fa-solid fa-user-slash"></i>
                 </button>
                 {% else %}
-                <button onclick="reactivarUsuario('{{ u.DNI }}')" class="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 transition text-xs" title="Reactivar Usuario">
+                <button onclick="reactivarUsuario('{{ u.DNI }}')" class="accion accion-reactivar p-1.5 rounded-lg text-xs" title="Reactivar Usuario">
                   <i class="fa-solid fa-user-check"></i>
                 </button>
                 {% endif %}
@@ -149,7 +150,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="9" class="p-6 text-center text-gray-500">No se encontraron usuarios registrados.</td>
+            <td colspan="9" class="p-6 text-center texto-suave">No se encontraron usuarios registrados.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -162,25 +163,25 @@
 
 <!-- MODAL: ALTA DE USUARIO -->
 <div id="modalAlta" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
-  <div class="bg-[#1c1e24] border border-gray-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-    <div class="grad-brand p-4 text-white flex justify-between items-center">
+  <div class="modal-tarjeta w-full max-w-lg overflow-hidden flex flex-col">
+    <div class="grad-brand p-4 flex justify-between items-center">
       <h3 class="font-bold text-lg flex items-center gap-2">
         <i class="fa-solid fa-user-plus"></i>
         Alta de Usuario
       </h3>
-      <button onclick="cerrarModalAlta()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <button onclick="cerrarModalAlta()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
 
     <form id="formAltaUsuario" onsubmit="guardarAltaUsuario(event)" class="p-6 space-y-4 text-xs sm:text-sm">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label class="block text-gray-400 mb-1 font-semibold">DNI (Numérico) *</label>
+          <label class="etiqueta block mb-1">DNI (Numérico) *</label>
           <input type="number" id="altaDNI" required placeholder="Ej: 42123456"
-                 class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-harvest-orange">
+                 class="campo w-full p-2.5">
         </div>
         <div>
-          <label class="block text-gray-400 mb-1 font-semibold">Rol Asignado *</label>
-          <select id="altaPerfil" required class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-harvest-orange">
+          <label class="etiqueta block mb-1">Rol Asignado *</label>
+          <select id="altaPerfil" required class="campo w-full p-2.5">
             <option value="">-- Seleccionar Rol --</option>
             {% for p in roles %}
             <option value="{{ p.id_rol }}">{{ p.nom_rol }}</option>
@@ -191,47 +192,47 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label class="block text-gray-400 mb-1 font-semibold">Apellido *</label>
+          <label class="etiqueta block mb-1">Apellido *</label>
           <input type="text" id="altaApellido" required oninput="actualizarPreviewUsuario()" placeholder="Ej: Gomez"
-                 class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-harvest-orange">
+                 class="campo w-full p-2.5">
         </div>
         <div>
-          <label class="block text-gray-400 mb-1 font-semibold">Nombre *</label>
+          <label class="etiqueta block mb-1">Nombre *</label>
           <input type="text" id="altaNombre" required oninput="actualizarPreviewUsuario()" placeholder="Ej: Juan"
-                 class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-harvest-orange">
+                 class="campo w-full p-2.5">
         </div>
       </div>
 
       <!-- Preview de Usuario automático -->
-      <div class="bg-[#252833] p-3 rounded-xl border border-amber-gold/40 flex items-center justify-between">
+      <div class="aviso-info p-3 rounded-xl flex items-center justify-between gap-2">
         <div>
-          <span class="text-[11px] text-gray-400 block font-semibold">Nombre de Usuario (Automático del sistema):</span>
+          <span class="text-[11px] texto-suave block font-semibold">Nombre de Usuario (Automático del sistema):</span>
           <span id="previewUsername" class="text-sm font-mono font-bold text-amber-gold">Complete Apellido y Nombre...</span>
         </div>
-        <span class="text-xs text-gray-400 bg-[#191b22] px-2 py-1 rounded border border-gray-700">Apellido + 1ra letra</span>
+        <span class="text-xs texto-suave bg-white px-2 py-1 rounded border" style="border-color: var(--linea);">Apellido + 1ra letra</span>
       </div>
 
       <div>
-        <label class="block text-gray-400 mb-1 font-semibold">Correo Electrónico *</label>
+        <label class="etiqueta block mb-1">Correo Electrónico *</label>
         <input type="email" id="altaCorreo" required placeholder="Ej: juan.gomez@mudanzassalta.com"
-               class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-harvest-orange">
+               class="campo w-full p-2.5">
       </div>
 
       <div>
-        <label class="block text-gray-400 mb-1 font-semibold">Clave Inicial (Cifrada con Hash SHA-256) *</label>
+        <label class="etiqueta block mb-1">Clave Inicial (Cifrada con Hash SHA-256) *</label>
         <input type="password" id="altaClave" required minlength="8" placeholder="Mínimo 8 caracteres (Mayús, Minús, Núm y Símbolo)"
-               class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-harvest-orange">
-        <div class="mt-1.5 p-2 bg-[#1c1e24] rounded border border-gray-700 text-[11px] text-gray-400 space-y-0.5">
-          <span class="block text-amber-gold font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Requisitos de seguridad obligatorios:</span>
+               class="campo w-full p-2.5">
+        <div class="caja-suave mt-1.5 p-2 rounded-lg text-[11px] texto-suave space-y-0.5">
+          <span class="block text-marca font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Requisitos de seguridad obligatorios:</span>
           <span>• 8+ caracteres • 1 Mayúscula (A-Z) • 1 Minúscula (a-z) • 1 Número (0-9) • 1 Símbolo (!@#$%&*-_)</span>
         </div>
       </div>
 
-      <div id="altaError" class="hidden p-2.5 rounded bg-racing-red/20 border border-racing-red text-racing-red text-xs"></div>
+      <div id="altaError" class="hidden aviso-error p-2.5 rounded-lg text-xs" role="alert"></div>
 
-      <div class="flex justify-end gap-3 pt-3 border-t border-gray-700">
-        <button type="button" onclick="cerrarModalAlta()" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300">Cancelar</button>
-        <button type="submit" class="btn-primary px-5 py-2 rounded-lg">Registrar Usuario</button>
+      <div class="flex justify-end gap-3 pt-3 linea-t">
+        <button type="button" onclick="cerrarModalAlta()" class="btn-secundario px-4 py-2 rounded-xl">Cancelar</button>
+        <button type="submit" class="btn-primary px-5 py-2 rounded-xl">Registrar Usuario</button>
       </div>
     </form>
   </div>
@@ -239,33 +240,33 @@
 
 <!-- MODAL: MODIFICAR CORREO (SOLO CORREO POR REGLA ESTRICTA) -->
 <div id="modalModificar" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
-  <div class="bg-[#1c1e24] border border-gray-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-    <div class="bg-amber-gold p-4 text-black font-bold flex justify-between items-center">
+  <div class="modal-tarjeta w-full max-w-md overflow-hidden flex flex-col">
+    <div class="grad-brand p-4 font-bold flex justify-between items-center">
       <h3 class="text-base flex items-center gap-2">
         <i class="fa-solid fa-pen-to-square"></i>
         Modificación de Usuario
       </h3>
-      <button onclick="cerrarModalModificar()" class="text-black hover:opacity-75"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <button onclick="cerrarModalModificar()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
 
     <form onsubmit="guardarModificacionUsuario(event)" class="p-6 space-y-4 text-xs sm:text-sm">
-      <div class="bg-[#252833] p-3 rounded-lg border border-gray-700">
-        <p class="text-gray-400 text-xs">Usuario seleccionado:</p>
-        <p id="modificarInfoUsuario" class="font-bold text-white text-sm mt-0.5"></p>
+      <div class="caja-suave p-3 rounded-lg">
+        <p class="texto-suave text-xs">Usuario seleccionado:</p>
+        <p id="modificarInfoUsuario" class="font-bold texto-tinta text-sm mt-0.5"></p>
         <input type="hidden" id="modificarDNI">
       </div>
 
       <div>
-        <label class="block text-gray-300 mb-1 font-semibold">Correo Electrónico *</label>
-        <input type="email" id="modificarCorreo" required 
-               class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-gold">
+        <label class="etiqueta block mb-1">Correo Electrónico *</label>
+        <input type="email" id="modificarCorreo" required
+               class="campo w-full p-2.5">
       </div>
 
-      <div id="modificarError" class="hidden p-2.5 rounded bg-racing-red/20 border border-racing-red text-racing-red text-xs"></div>
+      <div id="modificarError" class="hidden aviso-error p-2.5 rounded-lg text-xs" role="alert"></div>
 
-      <div class="flex justify-end gap-3 pt-3 border-t border-gray-700">
-        <button type="button" onclick="cerrarModalModificar()" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300">Cancelar</button>
-        <button type="submit" class="btn-warning px-5 py-2 rounded-lg">Guardar Modificación</button>
+      <div class="flex justify-end gap-3 pt-3 linea-t">
+        <button type="button" onclick="cerrarModalModificar()" class="btn-secundario px-4 py-2 rounded-xl">Cancelar</button>
+        <button type="submit" class="btn-primary px-5 py-2 rounded-xl">Guardar Modificación</button>
       </div>
     </form>
   </div>
@@ -273,34 +274,34 @@
 
 <!-- MODAL: RESTABLECER CLAVE -->
 <div id="modalRestablecer" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
-  <div class="bg-[#1c1e24] border border-gray-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-    <div class="bg-blazing-flame p-4 text-white font-bold flex justify-between items-center">
+  <div class="modal-tarjeta w-full max-w-md overflow-hidden flex flex-col">
+    <div class="grad-brand p-4 font-bold flex justify-between items-center">
       <h3 class="text-base flex items-center gap-2">
         <i class="fa-solid fa-key"></i>
         Restablecer Clave de Usuario
       </h3>
-      <button onclick="cerrarModalRestablecer()" class="text-white hover:opacity-75"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <button onclick="cerrarModalRestablecer()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
 
     <form onsubmit="guardarRestablecerClave(event)" class="p-6 space-y-4 text-xs sm:text-sm">
-      <div class="bg-[#252833] p-3 rounded-lg border border-gray-700">
-        <p class="text-gray-400 text-xs">Restableciendo contraseña para:</p>
-        <p id="restablecerInfoUsuario" class="font-bold text-white text-sm mt-0.5"></p>
+      <div class="caja-suave p-3 rounded-lg">
+        <p class="texto-suave text-xs">Restableciendo contraseña para:</p>
+        <p id="restablecerInfoUsuario" class="font-bold texto-tinta text-sm mt-0.5"></p>
         <input type="hidden" id="restablecerDNI">
       </div>
 
       <div>
-        <label class="block text-gray-300 mb-1 font-semibold">Nueva Clave Provisoria (Opcional - dejar vacío para autogenerar)</label>
-        <input type="text" id="restablecerNuevaClave" placeholder="Ej: Temporal2026!" 
-               class="w-full bg-[#252833] border border-gray-700 rounded-lg p-2.5 text-white font-mono text-xs focus:outline-none focus:border-blazing-flame">
+        <label class="etiqueta block mb-1">Nueva Clave Provisoria (Opcional - dejar vacío para autogenerar)</label>
+        <input type="text" id="restablecerNuevaClave" placeholder="Ej: Temporal2026!"
+               class="campo w-full p-2.5 font-mono text-xs">
       </div>
 
-      <div id="restablecerResultado" class="hidden p-3 rounded-lg bg-green-900/30 border border-green-500 text-green-300 text-xs"></div>
-      <div id="restablecerError" class="hidden p-2.5 rounded bg-racing-red/20 border border-racing-red text-racing-red text-xs"></div>
+      <div id="restablecerResultado" class="hidden aviso-ok p-3 rounded-lg text-xs"></div>
+      <div id="restablecerError" class="hidden aviso-error p-2.5 rounded-lg text-xs" role="alert"></div>
 
-      <div class="flex justify-end gap-3 pt-3 border-t border-gray-700">
-        <button type="button" onclick="cerrarModalRestablecer()" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300">Cerrar</button>
-        <button type="submit" id="btnSubmitRestablecer" class="btn-flame px-5 py-2 rounded-lg">Aplicar Restablecimiento</button>
+      <div class="flex justify-end gap-3 pt-3 linea-t">
+        <button type="button" onclick="cerrarModalRestablecer()" class="btn-secundario px-4 py-2 rounded-xl">Cerrar</button>
+        <button type="submit" id="btnSubmitRestablecer" class="btn-primary px-5 py-2 rounded-xl">Aplicar Restablecimiento</button>
       </div>
     </form>
   </div>

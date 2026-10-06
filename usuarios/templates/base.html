@@ -6,11 +6,14 @@
   <title>{% block title %}Mudanzas y Fletes Salta{% endblock %}</title>
   <link rel="icon" type="image/png" href="/static/img/logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/static/css/palette.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/marca.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#121316] text-gray-100 flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen">
   {% block content %}{% endblock %}
   {% block extra_js %}{% endblock %}
 </body>
