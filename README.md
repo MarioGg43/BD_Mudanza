@@ -7,6 +7,7 @@ en un solo proyecto:
 - **Hito 2** — usuarios, roles y permisos: alta, modificación, baja,
   restablecimiento de clave y cambio obligatorio en el próximo ingreso
   (app `usuarios`).
+- **Hito 3** — proceso completo del pedido de mudanza: registro por el cliente, consulta con filtros, confirmación, anulación y comprobante; ABM de servicios (app `pedidos`).
 - **App móvil** — prototipo navegable de 35 pantallas para Desarrollo Móvil
   (carpeta `app-movil/`, independiente de Django).
 
@@ -38,6 +39,10 @@ docker compose down
 | http://localhost:8002/ | Portada del sistema |
 | http://localhost:8002/vehiculos/ | CRUD de vehículos (Hito 1, solo administrador) |
 | http://localhost:8002/login/ | Ingreso al sistema (Hito 2) |
+| http://localhost:8002/registro/ | Crear cuenta de cliente |
+| http://localhost:8002/pedidos/ | Pedidos: el cliente ve los suyos y el admin todos |
+| http://localhost:8002/pedidos/nuevo/ | Pedir una mudanza (solo clientes) |
+| http://localhost:8002/servicios/ | ABM de servicios (solo admin) |
 | http://localhost:8002/panel/ | Panel del administrador |
 | http://localhost:8002/portal/ | Portal del personal operativo |
 | http://localhost:8002/admin/ | Admin de Django |
@@ -50,6 +55,7 @@ docker compose down
 | `sarmientoc` | `Admin123!` | Administrador | El panel completo |
 | `fernandezl` | `Usuario123!` | Chofer | El portal del personal |
 | `romerol` | `Temporal123!` | Ayudante de Carga | Le exige cambiar la clave al entrar |
+| `gomezm` | `Cliente123!` | Cliente | Sus pedidos; puede pedir mudanzas |
 
 ## Reglas del Hito 2
 
@@ -72,6 +78,34 @@ docker compose down
 - La **baja es lógica**: el vehículo pasa a «Fuera de Servicio» y conserva sus
   pedidos. Se reactiva editando el estado.
 - Como **chofer asignado** solo se puede elegir un usuario activo con rol Chofer.
+
+## Reglas del Hito 3
+
+- El pedido tiene **cuatro estados**: Pendiente, Confirmado, Finalizado y Anulado.
+- Un **vehículo está libre** en una fecha si está «Disponible» y no tiene otro pedido
+  Pendiente o Confirmado ese día. Un vehículo hace un solo pedido por día.
+- Al **registrar** se valida del lado del servidor: fecha de hoy a un año, origen y
+  destino distintos, al menos un servicio activo y un objeto, y que el peso total no
+  supere la capacidad del vehículo. Todo va en una transacción: si algo falla, no se
+  guarda nada.
+- Las **transiciones** son: confirmar (Pendiente a Confirmado), finalizar (Confirmado a
+  Finalizado) y anular (Pendiente o Confirmado a Anulado). Cualquier otra se rechaza.
+- La **anulación no borra**: exige un motivo de 5 a 200 caracteres, guarda fecha y
+  usuario, y libera el vehículo para ese día. Nunca se elimina un pedido.
+- El cliente solo ve sus propios pedidos; si pide uno ajeno recibe 404.
+- Los **servicios** se dan de baja de forma lógica: no se ofrecen en pedidos nuevos,
+  pero los pedidos viejos los conservan.
+
+| Permiso | Administrador | Cliente |
+|---|---|---|
+| `PED_REGISTRAR` | | Sí |
+| `PED_CONSULTAR` | Sí (todos) | Sí (solo los suyos) |
+| `PED_GESTIONAR` (confirmar y finalizar) | Sí | |
+| `PED_ANULAR` | Sí | |
+| `PED_COMPROBANTE` | Sí | Sí (solo los suyos) |
+| `SRV_GESTIONAR` | Sí | |
+
+Chofer y Ayudante de Carga no tienen permisos sobre pedidos.
 
 ## Pruebas
 
@@ -116,8 +150,10 @@ mudanzas_django/
 │   ├── management/commands/init_data.py
 │   ├── static/             # Logo y paleta de colores
 │   └── templates/
+├── pedidos/                # Hito 3: reglas.py, permisos.py, vistas y ABM de servicios
 ├── app-movil/              # Prototipo de la app móvil (HTML + JS)
 └── docs/
+    ├── sql/                # Script del esquema para la entrega
     ├── diagramas/          # DER y DFDs
     └── superpowers/        # Especificaciones de diseño
 ```
