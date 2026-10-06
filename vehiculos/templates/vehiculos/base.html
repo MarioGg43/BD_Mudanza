@@ -48,23 +48,24 @@
             <a href="{% url 'inicio' %}" class="text-white text-decoration-none fs-4 fw-bold d-flex align-items-center">
                 <img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta" class="me-2" style="height: 42px; width: auto;">Mudanzas y Fletes Salta
             </a>
-            <div class="d-flex align-items-center gap-3">
-                <a href="{% url 'lista_vehiculos' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
-                    Ver Vehículos
-                </a>
-                {% if request.session.usuario_dni %}
-                <a href="{% url 'admin_dashboard' %}" class="text-white-50 small text-uppercase fw-semibold text-decoration-none">
-                    Panel
-                </a>
-                <a href="{% url 'logout' %}" class="text-white small text-uppercase fw-semibold text-decoration-none">
-                    Salir <i class="bi bi-box-arrow-right ms-1"></i>
-                </a>
-                {% else %}
-                <a href="{% url 'login' %}" class="text-white small text-uppercase fw-semibold text-decoration-none">
-                    Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i>
-                </a>
+            <nav class="d-flex flex-wrap align-items-center gap-3 small text-uppercase fw-semibold">
+                {% with rol=request.session.usuario_rol %}
+                {% if rol == 'Administrador' %}
+                <a href="{% url 'admin_dashboard' %}" class="text-white-50 text-decoration-none">Panel</a>
+                <a href="{% url 'lista_vehiculos' %}" class="text-white-50 text-decoration-none">Vehículos</a>
+                <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Pedidos</a>
+                {% elif rol == 'Cliente' %}
+                <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Mis pedidos</a>
+                {% elif rol %}
+                <a href="{% url 'usuario_portal' %}" class="text-white-50 text-decoration-none">Portal</a>
                 {% endif %}
-            </div>
+                {% if request.session.usuario_dni %}
+                <a href="{% url 'logout' %}" class="text-white text-decoration-none">Salir <i class="bi bi-box-arrow-right ms-1"></i></a>
+                {% else %}
+                <a href="{% url 'login' %}" class="text-white text-decoration-none">Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i></a>
+                {% endif %}
+                {% endwith %}
+            </nav>
         </div>
     </header>
 

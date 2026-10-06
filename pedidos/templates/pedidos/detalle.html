@@ -1,0 +1,61 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Pedido N° {{ pedido.id_pedido }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 900px;">
+    <a href="{% url 'pedidos_lista' %}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Volver a pedidos</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
+        <h1 class="h3 fw-bold mb-0">Pedido N° {{ pedido.id_pedido }} {% include 'pedidos/_estado.html' with estado=pedido.estado %}</h1>
+        <div class="d-flex flex-wrap gap-2">{% block acciones %}{% endblock %}</div>
+    </div>
+
+    {% if pedido.estado == 'Anulado' %}
+    <div class="alert alert-secondary">
+        <strong>Anulado</strong> el {{ pedido.fecha_anulacion|date:"d/m/Y H:i" }}
+        por {{ pedido.usuario_anulacion.Nombre }} {{ pedido.usuario_anulacion.Apellido }}.
+        Motivo: {{ pedido.motivo_anulacion }}
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6"><div class="card-panel bg-white p-3 h-100">
+            <h2 class="h6 fw-bold text-uppercase text-muted">Mudanza</h2>
+            <p class="mb-1"><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }}</p>
+            <p class="mb-1"><strong>Desde:</strong> {{ pedido.origen }}</p>
+            <p class="mb-1"><strong>Hasta:</strong> {{ pedido.destino }}</p>
+            <p class="mb-0"><strong>Vehículo:</strong> {{ pedido.patente_vehiculo.patente }} · {{ pedido.patente_vehiculo.marca_modelo }}</p>
+        </div></div>
+        <div class="col-md-6"><div class="card-panel bg-white p-3 h-100">
+            <h2 class="h6 fw-bold text-uppercase text-muted">Cliente</h2>
+            <p class="mb-1">{{ pedido.idUsuario.Nombre }} {{ pedido.idUsuario.Apellido }} (DNI {{ pedido.idUsuario.DNI }})</p>
+            <p class="mb-1">{{ pedido.idUsuario.Correo }}</p>
+            <p class="mb-0 text-muted small">Registrado el {{ pedido.Fecha_pedido|date:"d/m/Y" }}</p>
+        </div></div>
+    </div>
+
+    <div class="card-panel bg-white p-3 mb-3">
+        <h2 class="h6 fw-bold text-uppercase text-muted">Servicios</h2>
+        <table class="table mb-0">
+            <thead><tr><th>Servicio</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr></thead>
+            <tbody>
+                {% for d in pedido.detalles.all %}
+                <tr><td>{{ d.idServicio.Tipo_servicio }}</td><td class="text-end">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="text-end">${{ d.subtotal|floatformat:"2g" }}</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot><tr><th colspan="2" class="text-end">Total</th><th class="text-end">${{ pedido.total|floatformat:"2g" }}</th></tr></tfoot>
+        </table>
+    </div>
+
+    <div class="card-panel bg-white p-3">
+        <h2 class="h6 fw-bold text-uppercase text-muted">Inventario</h2>
+        <table class="table mb-0">
+            <thead><tr><th>Objeto</th><th class="text-end">Cantidad</th><th class="text-end">Peso c/u</th><th>Frágil</th></tr></thead>
+            <tbody>
+                {% for i in pedido.inventario.all %}
+                <tr><td>{{ i.Descripcion }}</td><td class="text-end">{{ i.Cantidad }}</td><td class="text-end">{{ i.Peso }} kg</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot><tr><th colspan="2" class="text-end">Peso total</th><th class="text-end">{{ pedido.peso_total }} kg</th><th></th></tr></tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

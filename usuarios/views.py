@@ -33,6 +33,16 @@ def solo_admin(request):
     return actual, None
 
 
+def redirigir_segun_rol(usuario):
+    """A dónde va cada uno después de iniciar sesión."""
+    rol = usuario.idRol.nom_rol.lower()
+    if rol == 'administrador':
+        return redirect('admin_dashboard')
+    if rol == 'cliente':
+        return redirect('pedidos_lista')
+    return redirect('usuario_portal')
+
+
 # ---- LOGIN Y AUTENTICACIÓN ----
 def login_view(request):
     if request.method == 'POST':
@@ -69,10 +79,7 @@ def login_view(request):
         request.session['usuario_dni'] = usuario.DNI
         request.session['usuario_rol'] = usuario.idRol.nom_rol
 
-        if usuario.idRol.nom_rol.lower() == 'administrador':
-            return redirect('admin_dashboard')
-        else:
-            return redirect('usuario_portal')
+        return redirigir_segun_rol(usuario)
 
     return render(request, 'login.html')
 
@@ -123,10 +130,7 @@ def cambiar_clave_obligatoria(request):
     request.session['usuario_dni'] = usuario.DNI
     request.session['usuario_rol'] = usuario.idRol.nom_rol
 
-    if usuario.idRol.nom_rol.lower() == 'administrador':
-        return redirect('admin_dashboard')
-    else:
-        return redirect('usuario_portal')
+    return redirigir_segun_rol(usuario)
 
 def logout_view(request):
     request.session.flush()
@@ -198,7 +202,9 @@ def usuario_portal(request):
     usuario_actual = get_usuario_actual(request)
     if not usuario_actual:
         return redirect('login')
-    
+    if usuario_actual.idRol.nom_rol.lower() == 'cliente':
+        return redirect('pedidos_lista')
+
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
     return render(request, 'usuario_portal.html', {
