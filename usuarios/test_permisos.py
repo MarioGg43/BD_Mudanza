@@ -59,3 +59,18 @@ class MigracionDatosTest(TestCase):
         self.assertTrue({'USR_CONSULTAR', 'USR_CAMBIAR_ROL', 'ROL_GESTIONAR', 'VEH_GESTIONAR'}
                         <= permisos_del_rol('Administrador'))
         self.assertEqual(Permiso.objects.count(), 15)
+
+    def test_mudanzas_admin_junto_a_veh_gestionar(self):
+        call_command('init_data', stdout=io.StringIO())
+        # base intermedia: ya existe VEH_GESTIONAR y quedó MUDANZAS_ADMIN asignado a otro rol
+        viejo = Permiso.objects.create(nom_permiso='MUDANZAS_ADMIN', desc_permiso='Viejo')
+        chofer = Rol.objects.get(nom_rol='Chofer')
+        PermisoRol.objects.create(idRol=chofer, idPermiso=viejo)
+        PermisoRol.objects.create(idRol=Rol.objects.get(nom_rol='Administrador'), idPermiso=viejo)
+        migracion = importlib.import_module('usuarios.migrations.0006_permisos_editables')
+        migracion.adelante(apps, None)
+        self.assertFalse(Permiso.objects.filter(nom_permiso='MUDANZAS_ADMIN').exists())
+        self.assertIn('VEH_GESTIONAR', permisos_del_rol('Chofer'))
+        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador',
+                                                   idPermiso__nom_permiso='VEH_GESTIONAR').count(), 1)
+        self.assertEqual(Permiso.objects.count(), 15)

@@ -70,11 +70,14 @@ docker compose down
   operación consulta la tabla PERMISOS_ROLES del lado del servidor. El menú y los
   botones del panel muestran solo lo que el rol tiene habilitado.
 - Los **roles se editan en `/roles/`**: se crean roles nuevos y se tildan sus permisos.
-  Administrador, Cliente y Chofer son roles del sistema (se editan sus permisos, no su
-  nombre); un rol solo se elimina si no tiene usuarios.
+  Administrador, Cliente, Chofer y Ayudante de Carga son roles del sistema (se editan sus
+  permisos, no su nombre); un rol solo se elimina si no tiene usuarios.
 - **Candados:** nadie se da de baja ni se cambia el rol a sí mismo, nadie se quita el
   permiso de gestionar roles, y siempre queda al menos un usuario activo que pueda
   gestionar roles.
+- **Sin escalada de privilegios:** quien no tiene ROL_GESTIONAR no puede crear, editar,
+  dar de baja ni restablecer la clave de un usuario cuyo rol tenga permisos
+  administrativos que él no tiene, ni asignarle ese rol a nadie.
 
 | Permiso | Habilita | Administrador | Cliente | Chofer / Ayudante |
 |---|---|---|---|---|
@@ -141,6 +144,11 @@ lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
 | `SRV_GESTIONAR` | Sí | |
 
 Chofer y Ayudante de Carga no tienen permisos sobre pedidos.
+
+## Limitaciones conocidas
+
+- «Olvidé mi clave» es público y devuelve una clave provisoria para cualquier usuario.
+  Viene del Hito 2 y el grupo todavía tiene que decidir qué hacer con él.
 
 ## Pruebas
 

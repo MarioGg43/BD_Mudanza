@@ -15,14 +15,22 @@
     </div>
   </div>
 
-  <div class="flex items-center gap-3 mt-3 sm:mt-0">
+  <div class="flex flex-wrap items-center gap-3 mt-3 sm:mt-0">
+    <nav class="menu-marca flex flex-wrap items-center gap-1 text-xs" aria-label="Menú principal">
+      {% if 'USR_CONSULTAR' in permisos %}<a href="/panel/" class="text-xs font-semibold"><i class="fa-solid fa-users-gear mr-1"></i> Usuarios</a>{% endif %}
+      {% if 'ROL_GESTIONAR' in permisos %}<a href="/roles/" class="text-xs font-semibold"><i class="fa-solid fa-user-shield mr-1"></i> Roles</a>{% endif %}
+      {% if 'VEH_GESTIONAR' in permisos %}<a href="/vehiculos/" class="text-xs font-semibold"><i class="fa-solid fa-truck-moving mr-1"></i> Vehículos</a>{% endif %}
+      {% if 'PED_CONSULTAR' in permisos %}<a href="/pedidos/" class="text-xs font-semibold"><i class="fa-solid fa-clipboard-list mr-1"></i> {% if 'PED_GESTIONAR' in permisos %}Pedidos{% else %}Mis pedidos{% endif %}</a>{% endif %}
+      {% if 'PED_REGISTRAR' in permisos %}<a href="/pedidos/nuevo/" class="text-xs font-semibold"><i class="fa-solid fa-box-open mr-1"></i> Pedir mudanza</a>{% endif %}
+      {% if 'SRV_GESTIONAR' in permisos %}<a href="/servicios/" class="text-xs font-semibold"><i class="fa-solid fa-tags mr-1"></i> Servicios</a>{% endif %}
+    </nav>
     <div class="chip-degrade flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs">
       <i class="fa-solid fa-user-check"></i>
       <span class="font-semibold">{{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }}</span>
     </div>
     <a href="{% url 'logout' %}" class="btn-salir px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5">
       <i class="fa-solid fa-right-from-bracket"></i>
-      <span>Cerrar Sesión</span>
+      <span>Salir</span>
     </a>
   </div>
 </header>

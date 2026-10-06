@@ -4,7 +4,8 @@ from django.db import transaction
 from .models import Permiso, PermisoRol, Rol, Usuario
 from .permisos import CATALOGO
 
-ROLES_DEL_SISTEMA = ('Administrador', 'Cliente', 'Chofer')
+# init_data vuelve a crear por nombre estos cuatro roles, así que no se renombran ni eliminan
+ROLES_DEL_SISTEMA = ('Administrador', 'Cliente', 'Chofer', 'Ayudante de Carga')
 MENSAJE_SIN_GESTOR = 'El sistema tiene que quedar con al menos un usuario activo que pueda gestionar roles.'
 
 

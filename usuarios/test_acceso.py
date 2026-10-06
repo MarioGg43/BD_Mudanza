@@ -212,3 +212,56 @@ class EscaladaDePrivilegiosTest(BaseAcceso):
         self.assertTrue(puede_actuar_sobre_rol(recepcion, Rol.objects.get(nom_rol='Cliente')))
         self.assertTrue(puede_actuar_sobre_rol(recepcion, self.recepcion))
         self.assertTrue(puede_actuar_sobre_rol(Usuario.objects.get(DNI=ADMIN), self.admin_rol))
+
+
+class NavegacionYCasosBordeTest(BaseAcceso):
+    def dar(self, rol, *codigos):
+        for c in codigos:
+            PermisoRol.objects.create(idRol=rol, idPermiso=Permiso.objects.get(nom_permiso=c))
+
+    def test_el_portal_muestra_los_enlaces_de_sus_permisos(self):
+        self.dar(self.vacio, 'MUDANZAS_OPERAR', 'VEH_GESTIONAR')
+        self.entrar(20333444)
+        r = self.client.get('/portal/')
+        self.assertContains(r, 'href="/vehiculos/"')
+        self.assertNotContains(r, 'href="/panel/"')
+        self.assertContains(r, 'href="/logout/"')
+
+    def test_el_panel_ofrece_pedir_mudanza_y_portal(self):
+        self.dar(self.recepcion, 'PED_REGISTRAR', 'MUDANZAS_OPERAR')
+        self.entrar(20111222)
+        r = self.client.get('/panel/')
+        self.assertContains(r, 'href="/pedidos/nuevo/"')
+        self.assertContains(r, 'href="/portal/"')
+        self.entrar(ADMIN)
+        r = self.client.get('/panel/')
+        self.assertNotContains(r, 'href="/pedidos/nuevo/"')  # el admin no tiene PED_REGISTRAR
+        self.assertContains(r, 'href="/portal/"')  # pero sí MUDANZAS_OPERAR
+
+    def test_solo_servicios_va_a_servicios(self):
+        self.dar(self.vacio, 'SRV_GESTIONAR')
+        self.entrar(20333444)
+        self.assertRedirects(self.client.get('/'), '/servicios/')
+
+    def test_solo_vehiculos_y_solo_roles(self):
+        self.dar(self.vacio, 'ROL_GESTIONAR')
+        self.entrar(20333444)
+        self.assertRedirects(self.client.get('/'), '/roles/')
+        self.dar(self.vacio, 'VEH_GESTIONAR')
+        self.assertRedirects(self.client.get('/'), '/vehiculos/')
+
+    def test_el_panel_no_ofrece_darse_de_baja_a_uno_mismo(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/panel/')
+        self.assertNotContains(r, f"abrirModalBaja('{ADMIN}'")
+        self.assertContains(r, f"abrirModalBaja('{CHOFER}'")
+
+    def test_ayudante_de_carga_es_rol_del_sistema(self):
+        from usuarios.reglas_roles import ROLES_DEL_SISTEMA, ErrorRol, eliminar_rol, guardar_rol
+        self.assertIn('Ayudante de Carga', ROLES_DEL_SISTEMA)
+        ayudante = Rol.objects.get(nom_rol='Ayudante de Carga')
+        with self.assertRaises(ErrorRol):
+            guardar_rol(ayudante, 'Peón', '', ['MUDANZAS_OPERAR'], Usuario.objects.get(DNI=ADMIN))
+        Usuario.objects.filter(idRol=ayudante).update(idRol=Rol.objects.get(nom_rol='Chofer'))
+        with self.assertRaises(ErrorRol):
+            eliminar_rol(ayudante)

@@ -117,4 +117,10 @@ def pantalla_inicio(usuario):
         return redirect('pedidos_nuevo')
     if 'MUDANZAS_OPERAR' in p:
         return redirect('usuario_portal')
+    if 'VEH_GESTIONAR' in p:
+        return redirect('lista_vehiculos')
+    if 'SRV_GESTIONAR' in p:
+        return redirect('servicios_lista')
+    if 'ROL_GESTIONAR' in p:
+        return redirect('roles_lista')
     return redirect('sin_permisos')

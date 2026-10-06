@@ -91,7 +91,10 @@ Todo vive en `usuarios/permisos.py`:
   2. `pedidos_lista`, si tiene PED_CONSULTAR;
   3. `pedidos_nuevo`, si tiene PED_REGISTRAR;
   4. `usuario_portal`, si tiene MUDANZAS_OPERAR;
-  5. si no tiene ninguno, `sin_permisos`.
+  5. `lista_vehiculos`, si tiene VEH_GESTIONAR;
+  6. `servicios_lista`, si tiene SRV_GESTIONAR;
+  7. `roles_lista`, si tiene ROL_GESTIONAR;
+  8. si no tiene ninguno, `sin_permisos`.
 
 `pedidos/permisos.py` pasa a reexportar `tiene_permiso` y `requiere_permiso` desde
 `usuarios.permisos`.
@@ -120,7 +123,7 @@ botón Salir.
 - Un procesador de contexto, `usuarios.context_processors.seguridad`, pone en todas
   las plantillas `permisos` (el conjunto de códigos del usuario, o vacío sin sesión) y
   `usuario_sesion`.
-- El menú de `vehiculos/base.html` y el encabezado del panel muestran cada opción
+- El menú de `vehiculos/base.html` y los encabezados del panel y del portal muestran cada opción
   según el permiso:
   - Usuarios → USR_CONSULTAR;
   - Roles → ROL_GESTIONAR;
@@ -155,7 +158,8 @@ Vive en `usuarios/roles.py` (vistas), `usuarios/forms.py` (RolForm) y las planti
 
 **Candados** (en `usuarios/reglas_roles.py`; se muestran como errores del formulario
 o como mensaje):
-1. `ROLES_DEL_SISTEMA = ('Administrador', 'Cliente', 'Chofer')`: se les pueden editar
+1. `ROLES_DEL_SISTEMA = ('Administrador', 'Cliente', 'Chofer', 'Ayudante de Carga')`
+   (los cuatro que `init_data` vuelve a crear por nombre): se les pueden editar
    la descripción y los permisos, pero no el nombre, y no se pueden eliminar.
 2. Nadie puede quitarle ROL_GESTIONAR a su propio rol: «No podés quitarte el permiso
    de gestionar roles».
