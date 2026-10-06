@@ -137,7 +137,7 @@ toca porque ya está probado.
 | PED_GESTIONAR (confirmar y finalizar) | ✓ | | |
 | PED_ANULAR | ✓ | | |
 | PED_COMPROBANTE | ✓ | ✓ (solo los suyos) | |
-| SRV_ABM | ✓ | | |
+| SRV_GESTIONAR | ✓ | | |
 
 «Ver todos» frente a «solo los suyos» no es un permiso aparte: quien tiene
 PED_GESTIONAR ve todos, y el resto solo los propios. Si un cliente pide el detalle o el
