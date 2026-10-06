@@ -154,3 +154,55 @@ class RegistrarPantallaTest(BaseVistas):
         self.assertEqual([v['patente'] for v in r['vehiculos']], ['AE-123-CD'])
         self.assertEqual(r['vehiculos'][0]['capacidad_kg'], 5000.0)
         self.assertEqual(self.client.get('/pedidos/vehiculos-libres/', {'fecha': 'mal'}).json(), {'vehiculos': []})
+
+
+class AccionesTest(BaseVistas):
+    def setUp(self):
+        self.p = self.pedido_de(self.cliente)
+
+    def test_el_admin_confirma_y_finaliza(self):
+        self.entrar(ADMIN)
+        self.assertRedirects(self.client.post(f'/pedidos/{self.p.pk}/confirmar/'), f'/pedidos/{self.p.pk}/')
+        self.client.post(f'/pedidos/{self.p.pk}/finalizar/')
+        self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Finalizado')
+
+    def test_transicion_invalida_muestra_el_error(self):
+        self.entrar(ADMIN)
+        r = self.client.post(f'/pedidos/{self.p.pk}/finalizar/', follow=True)
+        self.assertContains(r, 'No se puede finalizar')
+        self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Pendiente')
+
+    def test_las_acciones_son_solo_por_post(self):
+        self.entrar(ADMIN)
+        self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/confirmar/').status_code, 405)
+
+    def test_el_admin_anula_con_motivo(self):
+        self.entrar(ADMIN)
+        self.assertContains(self.client.get(f'/pedidos/{self.p.pk}/anular/'), 'Motivo')
+        r = self.client.post(f'/pedidos/{self.p.pk}/anular/', {'motivo': 'Pedido duplicado'})
+        self.assertRedirects(r, f'/pedidos/{self.p.pk}/')
+        p = Pedido.objects.get(pk=self.p.pk)
+        self.assertEqual((p.estado, p.motivo_anulacion, p.usuario_anulacion.DNI), ('Anulado', 'Pedido duplicado', ADMIN))
+
+    def test_motivo_corto(self):
+        self.entrar(ADMIN)
+        r = self.client.post(f'/pedidos/{self.p.pk}/anular/', {'motivo': 'no'})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('motivo', r.context['form'].errors)
+        self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Pendiente')
+
+    def test_el_cliente_no_confirma_ni_anula(self):
+        self.entrar(CLIENTE)
+        self.assertEqual(self.client.post(f'/pedidos/{self.p.pk}/confirmar/').status_code, 403)
+        self.assertEqual(self.client.post(f'/pedidos/{self.p.pk}/anular/', {'motivo': 'Me arrepentí'}).status_code, 403)
+        self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Pendiente')
+
+    def test_botones_segun_el_perfil(self):
+        self.entrar(ADMIN)
+        r = self.client.get(f'/pedidos/{self.p.pk}/')
+        self.assertContains(r, 'Confirmar')
+        self.assertContains(r, 'Anular')
+        self.entrar(CLIENTE)
+        r = self.client.get(f'/pedidos/{self.p.pk}/')
+        self.assertNotContains(r, '/confirmar/')
+        self.assertNotContains(r, '/anular/')

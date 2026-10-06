@@ -4,11 +4,11 @@ from datetime import date
 from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido
 from . import reglas
-from .forms import FiltroPedidosForm, InventarioFormSet, PedidoForm
+from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -95,3 +95,44 @@ def vehiculos_libres(request):
         {'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
          'capacidad_kg': float(v.capacidad_kg)}
         for v in reglas.vehiculos_libres(fecha)]})
+
+
+def _accion(request, id_pedido, funcion, hecho):
+    get_object_or_404(Pedido, pk=id_pedido)
+    try:
+        funcion(id_pedido)
+        messages.success(request, f'Pedido N° {id_pedido} {hecho}.')
+    except reglas.ErrorPedido as e:
+        messages.error(request, str(e))
+    return redirect('pedidos_detalle', id_pedido=id_pedido)
+
+
+@requiere_permiso('PED_GESTIONAR')
+@require_POST
+def confirmar(request, id_pedido):
+    return _accion(request, id_pedido, reglas.confirmar, 'confirmado')
+
+
+@requiere_permiso('PED_GESTIONAR')
+@require_POST
+def finalizar(request, id_pedido):
+    return _accion(request, id_pedido, reglas.finalizar, 'finalizado')
+
+
+@requiere_permiso('PED_ANULAR')
+def anular(request, id_pedido):
+    pedido = get_object_or_404(Pedido, pk=id_pedido)
+    form = AnularForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            reglas.anular(id_pedido, request.usuario, form.cleaned_data['motivo'])
+        except reglas.ErrorPedido as e:
+            if 'motivo' in e.errores:
+                form.add_error('motivo', e.errores['motivo'])
+            else:
+                messages.error(request, str(e))
+                return redirect('pedidos_detalle', id_pedido=id_pedido)
+        else:
+            messages.success(request, f'Pedido N° {id_pedido} anulado.')
+            return redirect('pedidos_detalle', id_pedido=id_pedido)
+    return render(request, 'pedidos/anular.html', {'pedido': pedido, 'form': form})

@@ -79,3 +79,8 @@ class ItemInventarioForm(forms.Form):
 
 InventarioFormSet = forms.formset_factory(ItemInventarioForm, extra=0, min_num=1,
                                           validate_min=True, max_num=50, validate_max=True)
+
+
+class AnularForm(forms.Form):
+    motivo = forms.CharField(min_length=5, max_length=200, label='Motivo de la anulación',
+                             widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}))
