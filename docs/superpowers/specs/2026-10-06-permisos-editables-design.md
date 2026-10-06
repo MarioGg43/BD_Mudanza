@@ -227,3 +227,6 @@ personal son cuentas separadas:
 - **Permisos del rol Cliente:** solo puede tener PED_REGISTRAR, PED_CONSULTAR, PED_ANULAR
   y PED_COMPROBANTE, que operan sobre sus propios pedidos. Así nadie puede darle acceso
   administrativo a todos los clientes desde `/roles/`.
+- **Restablecer clave:** la empresa no restablece claves de clientes (error 400 «La clave de un
+  cliente no la restablece la empresa: el cliente la recupera desde «Olvidé mi clave».»). El
+  botón no aparece en la fila de un cliente. «Olvidé mi clave» queda como está por ahora.

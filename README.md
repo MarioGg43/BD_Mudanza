@@ -75,6 +75,8 @@ docker compose down
 - **Clientes y personal son cuentas separadas:** un cliente no puede pasar a otro rol, ni
   alguien del personal a Cliente, y al rol Cliente solo se le pueden dar permisos sobre
   sus propios pedidos (registrar, consultar, anular y comprobante).
+- La **clave de un cliente no la restablece la empresa**: el botón no aparece en su fila
+  y el servidor lo rechaza. El cliente la recupera desde «Olvidé mi clave».
 - **Candados:** nadie se da de baja ni se cambia el rol a sí mismo, nadie se quita el
   permiso de gestionar roles, y siempre queda al menos un usuario activo que pueda
   gestionar roles.

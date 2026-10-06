@@ -300,3 +300,17 @@ class ClientesSeparadosTest(BaseAcceso):
         fila_chofer = html[html.index(f'id="rol-{CHOFER}"'):]
         fila_chofer = fila_chofer[:fila_chofer.index('</select>')]
         self.assertNotIn('>Cliente<', fila_chofer)
+
+    def test_no_se_restablece_la_clave_de_un_cliente(self):
+        antes = Usuario.objects.get(DNI=CLIENTE).Clave
+        r = self.client.post(f'/usuarios/{CLIENTE}/restablecer-clave/')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()['error'], 'La clave de un cliente no la restablece la empresa: '
+                                            'el cliente la recupera desde «Olvidé mi clave».')
+        self.assertEqual(Usuario.objects.get(DNI=CLIENTE).Clave, antes)
+        self.assertTrue(self.client.post(f'/usuarios/{CHOFER}/restablecer-clave/').json()['ok'])
+
+    def test_en_el_panel_el_cliente_no_tiene_boton_de_restablecer(self):
+        html = self.client.get('/panel/').content.decode()
+        self.assertNotIn(f"abrirModalRestablecer('{CLIENTE}'", html)
+        self.assertIn(f"abrirModalRestablecer('{CHOFER}'", html)

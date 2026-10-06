@@ -106,3 +106,14 @@ def error_cruce_cliente(usuario, nuevo_rol):
     if (usuario.idRol.nom_rol == ROL_CLIENTE) != (nuevo_rol.nom_rol == ROL_CLIENTE):
         return MENSAJE_CRUCE_CLIENTE
     return None
+
+
+MENSAJE_CLAVE_CLIENTE = ('La clave de un cliente no la restablece la empresa: '
+                         'el cliente la recupera desde «Olvidé mi clave».')
+
+
+def error_restablecer_clave(usuario):
+    """La empresa no conoce ni genera claves de clientes."""
+    if usuario.idRol.nom_rol == ROL_CLIENTE:
+        return MENSAJE_CLAVE_CLIENTE
+    return None

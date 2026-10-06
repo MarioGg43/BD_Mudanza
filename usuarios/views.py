@@ -9,7 +9,9 @@ from .permisos import (  # noqa: F401
     get_usuario_actual, pantalla_inicio, puede_actuar_sobre_rol, requiere_permiso, requiere_permiso_api,
     tiene_permiso,
 )
-from .reglas_roles import error_baja_gestor, error_cambio_rol_gestor, error_cruce_cliente
+from .reglas_roles import (
+    error_baja_gestor, error_cambio_rol_gestor, error_cruce_cliente, error_restablecer_clave,
+)
 from .utils import (
     hash_password, generate_username, validate_strong_password, generate_temp_password,
     nombre_usuario_libre,
@@ -309,6 +311,9 @@ def restablecer_clave(request, dni):
     usuario = get_object_or_404(Usuario, DNI=dni)
     if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
         return _rol_superior()
+    error = error_restablecer_clave(usuario)
+    if error:
+        return JsonResponse({'ok': False, 'error': error}, status=400)
     nueva = request.POST.get('nueva_clave', '').strip()
     if nueva:
         valida, msg = validate_strong_password(nueva)

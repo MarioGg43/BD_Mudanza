@@ -141,7 +141,7 @@
                 </button>
                 {% endif %}
                 <!-- Restablecer Clave -->
-                {% if 'USR_RESET_CLAVE' in permisos %}
+                {% if 'USR_RESET_CLAVE' in permisos and u.idRol.nom_rol != 'Cliente' %}
                 <button onclick="abrirModalRestablecer('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.NombreUsuario }}')" class="accion accion-clave p-1.5 rounded-lg text-xs" title="Restablecer Clave">
                   <i class="fa-solid fa-key"></i>
                 </button>
