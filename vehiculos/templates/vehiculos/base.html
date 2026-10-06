@@ -20,19 +20,26 @@
                 <span class="logo-pastilla me-2"><img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta"></span>Mudanzas y Fletes Salta
             </a>
             <nav class="menu-marca d-flex flex-wrap align-items-center gap-1 small text-uppercase fw-semibold">
-                {% with rol=request.session.usuario_rol ruta=request.path vista=request.resolver_match.url_name %}
-                {% if rol == 'Administrador' %}
-                <a href="{% url 'admin_dashboard' %}">Panel</a>
+                {% with ruta=request.path vista=request.resolver_match.url_name %}
+                {% if 'USR_CONSULTAR' in permisos %}
+                <a href="{% url 'admin_dashboard' %}">Usuarios</a>
+                {% endif %}
+                {% if 'VEH_GESTIONAR' in permisos %}
                 <a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}>Vehículos</a>
-                <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta %} class="activo" aria-current="page"{% endif %}>Pedidos</a>
-                <a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}>Servicios</a>
-                {% elif rol == 'Cliente' %}
-                <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta and vista != 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>Mis pedidos</a>
+                {% endif %}
+                {% if 'PED_CONSULTAR' in permisos %}
+                <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta and vista != 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>{% if 'PED_GESTIONAR' in permisos %}Pedidos{% else %}Mis pedidos{% endif %}</a>
+                {% endif %}
+                {% if 'PED_REGISTRAR' in permisos %}
                 <a href="{% url 'pedidos_nuevo' %}"{% if vista == 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>Pedir mudanza</a>
-                {% elif rol %}
+                {% endif %}
+                {% if 'SRV_GESTIONAR' in permisos %}
+                <a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}>Servicios</a>
+                {% endif %}
+                {% if 'MUDANZAS_OPERAR' in permisos %}
                 <a href="{% url 'usuario_portal' %}">Portal</a>
                 {% endif %}
-                {% if request.session.usuario_dni %}
+                {% if usuario_sesion %}
                 <a href="{% url 'logout' %}">Salir <i class="bi bi-box-arrow-right ms-1"></i></a>
                 {% else %}
                 <a href="{% url 'registro_cliente' %}">Crear cuenta</a>

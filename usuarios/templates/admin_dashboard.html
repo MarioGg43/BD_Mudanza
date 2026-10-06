@@ -16,7 +16,7 @@
 
   <div class="flex flex-wrap items-center gap-3 mt-3 sm:mt-0">
     <div class="menu-marca flex flex-wrap items-center gap-1 text-xs">
-      <a href="/vehiculos/" class="text-xs font-semibold"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a><a href="/pedidos/" class="text-xs font-semibold"><i class="fa-solid fa-clipboard-list mr-1"></i> Pedidos</a><a href="/servicios/" class="text-xs font-semibold"><i class="fa-solid fa-tags mr-1"></i> Servicios</a>
+      {% if 'VEH_GESTIONAR' in permisos %}<a href="/vehiculos/" class="text-xs font-semibold"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a>{% endif %}{% if 'PED_CONSULTAR' in permisos %}<a href="/pedidos/" class="text-xs font-semibold"><i class="fa-solid fa-clipboard-list mr-1"></i> Pedidos</a>{% endif %}{% if 'SRV_GESTIONAR' in permisos %}<a href="/servicios/" class="text-xs font-semibold"><i class="fa-solid fa-tags mr-1"></i> Servicios</a>{% endif %}
     </div>
     <div class="chip-degrade flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs">
       <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
@@ -24,10 +24,12 @@
       <a href="{% url 'logout' %}" class="enlace-degrade ml-2 text-xs rounded" title="Cerrar sesión">Salir</a>
     </div>
 
+    {% if 'USR_CREAR' in permisos %}
     <button id="btnAltaUsuarioNav" onclick="abrirModalAlta()" class="btn-sobre-degrade px-4 py-2 rounded-xl text-sm flex items-center gap-2">
       <i class="fa-solid fa-user-plus"></i>
       <span>Alta de Usuario</span>
     </button>
+    {% endif %}
   </div>
 </header>
 
@@ -90,6 +92,8 @@
               {% if u.DNI == usuario_actual.DNI %}
               <span class="chip-marca text-xs px-2 py-1 rounded"
                     title="No podés cambiar tu propio rol">{{ u.idRol.nom_rol }}</span>
+              {% elif 'USR_CAMBIAR_ROL' not in permisos %}
+              <span class="chip-marca text-xs px-2 py-1 rounded">{{ u.idRol.nom_rol }}</span>
               {% else %}
               <div class="flex items-center gap-1">
                 <select id="rol-{{ u.DNI }}"
@@ -128,14 +132,19 @@
             <td class="p-3 sm:p-4 text-right">
               <div class="flex justify-end gap-1.5">
                 <!-- Modificar Correo -->
+                {% if 'USR_EDITAR_CORREO' in permisos %}
                 <button onclick="abrirModalModificar('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.Correo }}')" class="accion accion-editar p-1.5 rounded-lg text-xs" title="Modificar Correo">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
+                {% endif %}
                 <!-- Restablecer Clave -->
+                {% if 'USR_RESET_CLAVE' in permisos %}
                 <button onclick="abrirModalRestablecer('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.NombreUsuario }}')" class="accion accion-clave p-1.5 rounded-lg text-xs" title="Restablecer Clave">
                   <i class="fa-solid fa-key"></i>
                 </button>
+                {% endif %}
                 <!-- Baja o Reactivar -->
+                {% if 'USR_BAJA' in permisos %}
                 {% if u.Activo %}
                 <button onclick="abrirModalBaja('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}')" class="accion accion-baja p-1.5 rounded-lg text-xs" title="Dar de Baja">
                   <i class="fa-solid fa-user-slash"></i>
@@ -144,6 +153,7 @@
                 <button onclick="reactivarUsuario('{{ u.DNI }}')" class="accion accion-reactivar p-1.5 rounded-lg text-xs" title="Reactivar Usuario">
                   <i class="fa-solid fa-user-check"></i>
                 </button>
+                {% endif %}
                 {% endif %}
               </div>
             </td>

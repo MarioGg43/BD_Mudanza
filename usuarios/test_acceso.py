@@ -124,3 +124,30 @@ class InicioParcialTest(BaseAcceso):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.json()['error'],
                          'El sistema tiene que quedar con al menos un usuario activo que pueda gestionar roles.')
+
+
+class MenuYBotonesTest(BaseAcceso):
+    def test_menu_del_recepcionista(self):
+        self.entrar(20111222)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, 'href="/panel/"')
+        self.assertContains(r, 'href="/pedidos/"')
+        self.assertNotContains(r, 'href="/vehiculos/"')
+        self.assertNotContains(r, 'href="/servicios/"')
+        self.assertNotContains(r, 'href="/pedidos/nuevo/"')
+
+    def test_menu_del_cliente(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, 'Mis pedidos')
+        self.assertContains(r, 'href="/pedidos/nuevo/"')
+        self.assertNotContains(r, 'href="/panel/"')
+
+    def test_panel_sin_usr_baja_no_muestra_baja(self):
+        self.entrar(20111222)
+        r = self.client.get('/panel/')
+        self.assertContains(r, 'Alta de Usuario')
+        self.assertNotContains(r, 'abrirModalBaja(\'')
+        self.assertNotContains(r, 'abrirModalRestablecer(\'')
+        self.entrar(ADMIN)
+        self.assertContains(self.client.get('/panel/'), 'abrirModalBaja(\'')
