@@ -29,6 +29,23 @@ class VehiculosTest(TestCase):
     def test_inicio_es_publico(self):
         self.assertEqual(self.client.get('/').status_code, 200)
 
+    def test_la_portada_es_para_clientes(self):
+        r = self.client.get('/')
+        self.assertContains(r, 'Pedí tu mudanza')
+        self.assertContains(r, 'href="/registro/"')
+        self.assertContains(r, 'href="/login/"')
+        self.assertNotContains(r, 'href="/vehiculos/"')  # la flota es interna
+        self.assertNotContains(r, 'Ver Vehículos')
+
+    def test_la_portada_muestra_los_servicios_activos_con_precio(self):
+        from usuarios.models import Servicio
+        Servicio.objects.filter(Tipo_servicio='Mudanza nacional').update(Activo=False)
+        r = self.client.get('/')
+        self.assertContains(r, 'Mudanza local')
+        self.assertContains(r, '185.000')
+        self.assertContains(r, 'Mantas, film y cintas')
+        self.assertNotContains(r, 'Mudanza nacional')
+
     def test_con_sesion_la_portada_lleva_a_la_pantalla_de_cada_rol(self):
         # la portada (Ver vehículos / Ingresar) es solo para visitantes
         for dni, destino in ((29876543, '/pedidos/'), (ADMIN, '/panel/'), (CHOFER, '/portal/')):

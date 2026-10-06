@@ -6,7 +6,7 @@ from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_POST
 
 from pedidos.reglas import tiene_pedidos_activos
-from usuarios.models import Vehiculo
+from usuarios.models import Servicio, Vehiculo
 from usuarios.views import get_usuario_actual, redirigir_segun_rol
 from .forms import VehiculoForm
 
@@ -31,7 +31,8 @@ def inicio(request):
     actual = get_usuario_actual(request)
     if actual:
         return redirigir_segun_rol(actual)
-    return render(request, 'vehiculos/inicio.html')
+    servicios = Servicio.objects.filter(Activo=True).prefetch_related('recursos').order_by('Precio_base')
+    return render(request, 'vehiculos/inicio.html', {'servicios': servicios})
 
 
 @solo_admin_pagina

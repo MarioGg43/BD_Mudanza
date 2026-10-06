@@ -3,25 +3,24 @@
 {% block title %}Mudanzas y Fletes Salta{% endblock %}
 {% block content %}
 
-<div class="heroe-marca p-4 p-md-5 mb-4">
+<section class="heroe-marca p-4 p-md-5 mb-5">
     <div class="row align-items-center g-4">
         <div class="col-lg-8">
-            <span class="etiqueta-blanca mb-3">
-                <i class="bi bi-truck me-1"></i>Sistema de Gestión de Vehículos
-            </span>
-            <h1 class="display-6 fw-bold mb-3">Mudanzas y Fletes Salta</h1>
+            <span class="etiqueta-blanca mb-3"><i class="bi bi-geo-alt"></i>Mudanzas y fletes en Salta</span>
+            <h1 class="display-6 fw-bold mb-3">Pedí tu mudanza sin llamar ni esperar</h1>
             <p class="fs-5 mb-4 texto-suave">
-                Control centralizado de los vehículos de la empresa: qué camiones y utilitarios hay,
-                cuánto pueden cargar y en qué estado están.
+                Elegí el día y la hora, contanos qué hay que llevar y la empresa te confirma el pedido.
+                Después seguís el estado desde tu cuenta.
             </p>
             <div class="d-flex flex-wrap gap-2">
-                <a href="{% url 'lista_vehiculos' %}" class="btn btn-blanco fw-bold px-4">
-                    Ver Vehículos <i class="bi bi-arrow-right ms-1"></i>
+                <a href="{% url 'registro_cliente' %}" class="btn btn-blanco fw-bold px-4">
+                    Pedí tu mudanza <i class="bi bi-arrow-right ms-1"></i>
                 </a>
                 <a href="{% url 'login' %}" class="btn btn-outline-light fw-bold px-4">
-                    <i class="bi bi-person-lock me-1"></i> Ingresar al sistema
+                    <i class="bi bi-person me-1"></i> Ya tengo cuenta
                 </a>
             </div>
+            <p class="small mt-3 mb-0 texto-suave">Para pedir una mudanza necesitás una cuenta: se crea en un minuto.</p>
         </div>
         <div class="col-lg-4 text-center d-none d-lg-block">
             <div class="bg-white rounded-4 d-inline-flex align-items-center justify-content-center shadow p-4">
@@ -29,36 +28,70 @@
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<div class="row g-4">
-    <div class="col-md-4">
-        <div class="card-panel p-4 h-100">
-            <span class="icono-marca mb-3"><i class="bi bi-clipboard-check fs-4"></i></span>
-            <h2 class="h6 fw-bold">Registro de Unidades</h2>
-            <p class="text-muted small mb-0">
-                Patente, marca, modelo y tipo de cada vehículo, en un solo lugar.
-            </p>
+<section class="mb-5" aria-labelledby="como-funciona">
+    <h2 id="como-funciona" class="h4 fw-bold mb-3">Cómo funciona</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card-panel p-4 h-100">
+                <span class="icono-marca mb-3 fw-bold">1</span>
+                <h3 class="h6 fw-bold">Creá tu cuenta</h3>
+                <p class="text-muted small mb-0">Con tu DNI, nombre, correo y una clave. Tu usuario se genera solo.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-panel p-4 h-100">
+                <span class="icono-marca mb-3 fw-bold">2</span>
+                <h3 class="h6 fw-bold">Cargá el pedido</h3>
+                <p class="text-muted small mb-0">Fecha, hora, desde dónde y hasta dónde, el servicio y lo que hay que llevar.
+                    Podés avisar si algo es frágil o se desarma.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-panel p-4 h-100">
+                <span class="icono-marca mb-3 fw-bold">3</span>
+                <h3 class="h6 fw-bold">Seguí el estado</h3>
+                <p class="text-muted small mb-0">Tu pedido pasa de Pendiente a Confirmado cuando la empresa lo acepta,
+                    y a Finalizado cuando se hace la mudanza. Tenés el comprobante en todo momento.</p>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card-panel p-4 h-100">
-            <span class="icono-marca mb-3"><i class="bi bi-speedometer2 fs-4"></i></span>
-            <h2 class="h6 fw-bold">Capacidad de Carga</h2>
-            <p class="text-muted small mb-0">
-                Peso máximo (kg) y volumen (m³) de cada unidad, para planificar los traslados.
-            </p>
+</section>
+
+{% if servicios %}
+<section class="mb-5" aria-labelledby="servicios">
+    <h2 id="servicios" class="h4 fw-bold mb-1">Servicios</h2>
+    <p class="text-muted mb-3">Elegís uno por pedido.</p>
+    <div class="row g-4">
+        {% for s in servicios %}
+        <div class="col-md-4">
+            <div class="card-panel p-4 h-100 d-flex flex-column">
+                <h3 class="h6 fw-bold mb-1">{{ s.Tipo_servicio }}</h3>
+                <p class="h4 fw-bold text-marca mb-3">${{ s.Precio_base|floatformat:"0g" }}</p>
+                {% with materiales=s.recursos.all %}
+                {% if materiales %}
+                <p class="text-muted small mb-0">Incluye: {% for r in materiales %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="card-panel p-4 mb-2">
+    <div class="row g-3 align-items-center">
+        <div class="col-md">
+            <p class="mb-1"><i class="bi bi-moon-stars text-marca me-2"></i><strong>A cualquier hora.</strong>
+                En el centro de la ciudad conviene mudarse de madrugada, y lo podés pedir así.</p>
+            <p class="mb-0 text-muted small">¿Trabajás en la empresa? Entrá con tu usuario desde «Ingresar».</p>
+        </div>
+        <div class="col-md-auto">
+            <a href="{% url 'registro_cliente' %}" class="btn btn-success fw-bold px-4">Crear mi cuenta</a>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card-panel p-4 h-100">
-            <span class="icono-marca mb-3"><i class="bi bi-geo-alt fs-4"></i></span>
-            <h2 class="h6 fw-bold">Estado en Tiempo Real</h2>
-            <p class="text-muted small mb-0">
-                Disponible, en viaje o en mantenimiento — sabé al instante qué unidad usar.
-            </p>
-        </div>
-    </div>
-</div>
+</section>
 
 {% endblock %}
