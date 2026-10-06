@@ -56,6 +56,7 @@
                 <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Pedidos</a>
                 {% elif rol == 'Cliente' %}
                 <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Mis pedidos</a>
+                <a href="{% url 'pedidos_nuevo' %}" class="text-white-50 text-decoration-none">Pedir mudanza</a>
                 {% elif rol %}
                 <a href="{% url 'usuario_portal' %}" class="text-white-50 text-decoration-none">Portal</a>
                 {% endif %}

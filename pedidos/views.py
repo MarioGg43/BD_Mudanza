@@ -1,10 +1,14 @@
 """Pantallas del pedido de mudanza (Hito 3). Las reglas viven en reglas.py."""
-from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from datetime import date
+
+from django.contrib import messages
+from django.http import Http404, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from usuarios.models import Pedido
 from . import reglas
-from .forms import FiltroPedidosForm
+from .forms import FiltroPedidosForm, InventarioFormSet, PedidoForm
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -47,3 +51,47 @@ def detalle(request, id_pedido):
         'puede_anular': tiene_permiso(request.usuario, 'PED_ANULAR'),
         'puede_comprobante': tiene_permiso(request.usuario, 'PED_COMPROBANTE'),
     })
+
+
+@requiere_permiso('PED_REGISTRAR')
+def nuevo(request):
+    if request.method == 'POST':
+        form = PedidoForm(request.POST)
+        items = InventarioFormSet(request.POST, prefix='inv')
+        if form.is_valid() and items.is_valid():
+            d = form.cleaned_data
+            try:
+                pedido = reglas.registrar_pedido(
+                    request.usuario, d['fecha_servicio'], d['origen'], d['destino'],
+                    [s.id_servicio for s in d['servicios']], d['vehiculo'].patente,
+                    [f.cleaned_data for f in items.forms if f.cleaned_data])
+            except reglas.ErrorPedido as e:
+                for campo, mensaje in e.errores.items():
+                    form.add_error(campo if campo in form.fields else None, mensaje)
+            else:
+                messages.success(request, f'Pedido N° {pedido.id_pedido} registrado. '
+                                          'Queda pendiente hasta que la empresa lo confirme.')
+                return redirect('pedidos_detalle', id_pedido=pedido.id_pedido)
+        messages.error(request, 'Revisá los datos marcados.')
+    else:
+        form = PedidoForm()
+        items = InventarioFormSet(prefix='inv')
+    return render(request, 'pedidos/nuevo.html', {
+        'form': form, 'items': items,
+        'servicios': form.fields['servicios'].queryset,
+        'elegidos': [str(v) for v in (form['servicios'].value() or [])],
+    })
+
+
+@requiere_permiso('PED_REGISTRAR')
+@require_GET
+def vehiculos_libres(request):
+    """Para el formulario: los vehículos libres en la fecha elegida."""
+    try:
+        fecha = date.fromisoformat(request.GET.get('fecha', ''))
+    except ValueError:
+        return JsonResponse({'vehiculos': []})
+    return JsonResponse({'vehiculos': [
+        {'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
+         'capacidad_kg': float(v.capacidad_kg)}
+        for v in reglas.vehiculos_libres(fecha)]})

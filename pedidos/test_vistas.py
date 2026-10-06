@@ -104,3 +104,53 @@ class ConsultaTest(BaseVistas):
     def test_el_admin_ve_cualquier_detalle(self):
         self.entrar(ADMIN)
         self.assertEqual(self.client.get(f'/pedidos/{self.ajeno.pk}/').status_code, 200)
+
+
+class RegistrarPantallaTest(BaseVistas):
+    def datos(self, **cambios):
+        manana = (timezone.localdate() + timedelta(days=1)).isoformat()
+        d = {'fecha_servicio': manana, 'origen': 'Av. Belgrano 100', 'destino': 'Mitre 50',
+             'servicios': [self.local.id_servicio], 'vehiculo': 'AD-321-JK',
+             'inv-TOTAL_FORMS': '2', 'inv-INITIAL_FORMS': '0', 'inv-MIN_NUM_FORMS': '1', 'inv-MAX_NUM_FORMS': '50',
+             'inv-0-descripcion': 'Heladera', 'inv-0-cantidad': '1', 'inv-0-peso': '80', 'inv-0-fragil': 'on',
+             'inv-1-descripcion': 'Cajas', 'inv-1-cantidad': '10', 'inv-1-peso': '12.5'}
+        d.update(cambios)
+        return d
+
+    def test_el_cliente_registra_y_va_al_detalle(self):
+        self.entrar(CLIENTE)
+        r = self.client.post('/pedidos/nuevo/', self.datos())
+        p = Pedido.objects.latest('id_pedido')
+        self.assertRedirects(r, f'/pedidos/{p.pk}/', fetch_redirect_response=False)
+        self.assertEqual((p.idUsuario, p.estado, p.total), (self.cliente, 'Pendiente', 185000))
+        self.assertEqual(p.inventario.count(), 2)
+        self.assertContains(self.client.get(r.url), f'Pedido N° {p.pk} registrado')
+
+    def test_error_de_reglas_vuelve_al_formulario_con_los_datos(self):
+        self.entrar(CLIENTE)
+        antes = Pedido.objects.count()
+        r = self.client.post('/pedidos/nuevo/', self.datos(**{'inv-0-peso': '1700'}))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('vehiculo', r.context['form'].errors)
+        self.assertContains(r, 'Av. Belgrano 100')
+        self.assertEqual(Pedido.objects.count(), antes)
+
+    def test_sin_objetos(self):
+        self.entrar(CLIENTE)
+        r = self.client.post('/pedidos/nuevo/', self.datos(**{
+            'inv-TOTAL_FORMS': '1', 'inv-0-descripcion': '', 'inv-0-cantidad': '', 'inv-0-peso': ''}))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.context['items'].non_form_errors() or r.context['items'].errors[0])
+
+    def test_el_admin_no_registra(self):
+        self.entrar(ADMIN)
+        self.assertEqual(self.client.get('/pedidos/nuevo/').status_code, 403)
+
+    def test_vehiculos_libres_en_json(self):
+        self.entrar(CLIENTE)
+        self.pedido_de(self.otro)  # ocupa AD-321-JK mañana
+        manana = (timezone.localdate() + timedelta(days=1)).isoformat()
+        r = self.client.get('/pedidos/vehiculos-libres/', {'fecha': manana}).json()
+        self.assertEqual([v['patente'] for v in r['vehiculos']], ['AE-123-CD'])
+        self.assertEqual(r['vehiculos'][0]['capacidad_kg'], 5000.0)
+        self.assertEqual(self.client.get('/pedidos/vehiculos-libres/', {'fecha': 'mal'}).json(), {'vehiculos': []})

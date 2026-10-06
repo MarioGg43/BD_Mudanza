@@ -1,0 +1,15 @@
+<div class="fila row g-2 align-items-end mb-2">
+    <div class="col-md-5">
+        <label class="form-label small mb-1">{{ f.descripcion.label }}</label>{{ f.descripcion }}
+    </div>
+    <div class="col-4 col-md-2">
+        <label class="form-label small mb-1">{{ f.cantidad.label }}</label>{{ f.cantidad }}
+    </div>
+    <div class="col-4 col-md-3">
+        <label class="form-label small mb-1">{{ f.peso.label }}</label>{{ f.peso }}
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="form-check mb-2">{{ f.fragil }} <label class="form-check-label small" for="{{ f.fragil.id_for_label }}">{{ f.fragil.label }}</label></div>
+    </div>
+    {% if f.errors %}<div class="col-12 invalid-feedback d-block">{% for e in f.errors.values %}{{ e.as_text }} {% endfor %}</div>{% endif %}
+</div>

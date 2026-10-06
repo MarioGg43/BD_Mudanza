@@ -1,0 +1,110 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Pedir una mudanza{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 900px;">
+    <h1 class="h3 fw-bold mb-1">Pedir una mudanza</h1>
+    <p class="text-muted mb-4">El pedido queda pendiente hasta que la empresa lo confirme.</p>
+
+    <form method="post" novalidate id="formPedido">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+        <div class="card-panel bg-white p-4 mb-3">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>1. Cuándo y dónde</h2>
+            <div class="row g-3">
+                {% for field in form %}{% if field.name == 'fecha_servicio' or field.name == 'origen' or field.name == 'destino' %}
+                <div class="col-md-4">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+                </div>
+                {% endif %}{% endfor %}
+            </div>
+        </div>
+
+        <div class="card-panel bg-white p-4 mb-3">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-list-check me-1"></i>2. Servicios</h2>
+            {% for s in servicios %}
+            <div class="form-check">
+                <input class="form-check-input servicio" type="checkbox" name="servicios" value="{{ s.id_servicio }}"
+                       id="srv{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}"
+                       {% if s.id_servicio|stringformat:'s' in elegidos %}checked{% endif %}>
+                <label class="form-check-label" for="srv{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }}</label>
+            </div>
+            {% endfor %}
+            {% if form.servicios.errors %}<div class="invalid-feedback d-block">{{ form.servicios.errors.as_text }}</div>{% endif %}
+            <p class="fw-bold mt-3 mb-0">Total: $<span id="total">0</span></p>
+        </div>
+
+        <div class="card-panel bg-white p-4 mb-3">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-box-seam me-1"></i>3. Qué hay que llevar</h2>
+            {{ items.management_form }}
+            {% if items.non_form_errors %}<div class="alert alert-danger py-2">{{ items.non_form_errors|join:" " }}</div>{% endif %}
+            <div id="filas">
+                {% for f in items %}{% include 'pedidos/_fila_inventario.html' with f=f %}{% endfor %}
+            </div>
+            <template id="filaVacia">{% include 'pedidos/_fila_inventario.html' with f=items.empty_form %}</template>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="agregarFila"><i class="bi bi-plus"></i> Agregar objeto</button>
+            <p class="fw-bold mt-3 mb-0">Peso total: <span id="pesoTotal">0</span> kg</p>
+        </div>
+
+        <div class="card-panel bg-white p-4 mb-4">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-truck me-1"></i>4. Vehículo</h2>
+            <label for="{{ form.vehiculo.id_for_label }}" class="form-label fw-semibold">{{ form.vehiculo.label }}</label>
+            {{ form.vehiculo }}
+            <div class="form-text" id="ayudaVehiculo">Se muestran solo los vehículos libres en la fecha elegida.</div>
+            {% if form.vehiculo.errors %}<div class="invalid-feedback d-block">{{ form.vehiculo.errors.as_text }}</div>{% endif %}
+        </div>
+
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% url 'pedidos_lista' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+            <button type="submit" class="btn btn-success px-4 fw-bold">Registrar pedido</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('formPedido');
+  const fmt = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+
+  function recalcular() {
+    let total = 0;
+    form.querySelectorAll('.servicio:checked').forEach((c) => { total += parseFloat(c.dataset.precio); });
+    document.getElementById('total').textContent = fmt(total);
+    let peso = 0;
+    document.querySelectorAll('#filas .fila').forEach((fila) => {
+      const cant = parseFloat(fila.querySelector('[name$="-cantidad"]').value) || 0;
+      const kg = parseFloat(fila.querySelector('[name$="-peso"]').value) || 0;
+      peso += cant * kg;
+    });
+    document.getElementById('pesoTotal').textContent = fmt(peso);
+  }
+
+  const total = form.querySelector('[name="inv-TOTAL_FORMS"]');
+  document.getElementById('agregarFila').addEventListener('click', () => {
+    const html = document.getElementById('filaVacia').innerHTML.replace(/__prefix__/g, total.value);
+    document.getElementById('filas').insertAdjacentHTML('beforeend', html);
+    total.value = parseInt(total.value, 10) + 1;
+  });
+  form.addEventListener('input', recalcular);
+  form.addEventListener('change', recalcular);
+
+  // Al cambiar la fecha se piden los vehículos libres ese día
+  const fecha = form.querySelector('[name="fecha_servicio"]');
+  const select = form.querySelector('[name="vehiculo"]');
+  async function cargarVehiculos() {
+    if (!fecha.value) return;
+    const elegido = select.value;
+    const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?fecha=" + encodeURIComponent(fecha.value));
+    const { vehiculos } = await r.json();
+    select.innerHTML = '<option value="">' + (vehiculos.length ? 'Elegí un vehículo' : 'No hay vehículos libres ese día') + '</option>' +
+      vehiculos.map((v) => '<option value="' + v.patente + '"' + (v.patente === elegido ? ' selected' : '') + '>' +
+        v.patente + ' · ' + v.descripcion + ' · hasta ' + fmt(v.capacidad_kg) + ' kg</option>').join('');
+  }
+  fecha.addEventListener('change', cargarVehiculos);
+  cargarVehiculos();
+  recalcular();
+})();
+</script>
+{% endblock %}
