@@ -5,36 +5,12 @@ from django.utils import timezone
 import json
 
 from .models import Usuario, Rol, Permiso, Vehiculo
-from .permisos import get_usuario_actual  # noqa: F401 (la importan otras apps)
+from .permisos import get_usuario_actual, pantalla_inicio, requiere_permiso, requiere_permiso_api, tiene_permiso  # noqa: F401
+from .reglas_roles import error_baja_gestor, error_cambio_rol_gestor
 from .utils import (
     hash_password, generate_username, validate_strong_password, generate_temp_password,
     nombre_usuario_libre,
 )
-
-def solo_admin(request):
-    """Controla que quien llama sea un administrador activo.
-
-    Devuelve (usuario, None) si puede seguir, o (None, respuesta de error).
-    Se usa en todas las operaciones del panel, porque las direcciones se
-    pueden llamar directo sin pasar por la pantalla.
-    """
-    actual = get_usuario_actual(request)
-    if not actual:
-        return None, JsonResponse({'ok': False, 'error': 'Debe iniciar sesion.'}, status=401)
-    if actual.idRol.nom_rol.lower() != 'administrador':
-        return None, JsonResponse({'ok': False, 'error': 'Se requiere el rol Administrador.'}, status=403)
-    return actual, None
-
-
-def redirigir_segun_rol(usuario):
-    """A dónde va cada uno después de iniciar sesión."""
-    rol = usuario.idRol.nom_rol.lower()
-    if rol == 'administrador':
-        return redirect('admin_dashboard')
-    if rol == 'cliente':
-        return redirect('pedidos_lista')
-    return redirect('usuario_portal')
-
 
 # ---- LOGIN Y AUTENTICACIÓN ----
 def login_view(request):
@@ -73,7 +49,7 @@ def login_view(request):
         request.session['usuario_dni'] = usuario.DNI
         request.session['usuario_rol'] = usuario.idRol.nom_rol
 
-        return redirigir_segun_rol(usuario)
+        return pantalla_inicio(usuario)
 
     return render(request, 'login.html')
 
@@ -125,7 +101,7 @@ def cambiar_clave_obligatoria(request):
     request.session['usuario_dni'] = usuario.DNI
     request.session['usuario_rol'] = usuario.idRol.nom_rol
 
-    return redirigir_segun_rol(usuario)
+    return pantalla_inicio(usuario)
 
 def logout_view(request):
     request.session.flush()
@@ -174,8 +150,8 @@ def admin_dashboard(request):
     usuario_actual = get_usuario_actual(request)
     if not usuario_actual:
         return redirect('login')
-    if usuario_actual.idRol.nom_rol.lower() != 'administrador':
-        return redirect('usuario_portal')
+    if not tiene_permiso(usuario_actual, 'USR_CONSULTAR'):
+        return pantalla_inicio(usuario_actual)
 
     solo_activos = request.GET.get('activos') == '1'
     usuarios = Usuario.objects.select_related('idRol')
@@ -197,23 +173,26 @@ def usuario_portal(request):
     usuario_actual = get_usuario_actual(request)
     if not usuario_actual:
         return redirect('login')
-    if usuario_actual.idRol.nom_rol.lower() == 'cliente':
-        return redirect('pedidos_lista')
+    if not tiene_permiso(usuario_actual, 'MUDANZAS_OPERAR'):
+        return pantalla_inicio(usuario_actual)
 
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
     return render(request, 'usuario_portal.html', {
         'usuario_actual': usuario_actual,
-        'permisos': permisos,
+        'permisos_rol': permisos,
         'vehiculos': vehiculos,
     })
 
+def sin_permisos(request):
+    if not get_usuario_actual(request):
+        return redirect('login')
+    return render(request, 'sin_permisos.html')
+
 # ---- OPERACIONES CRUD ----
 @require_POST
+@requiere_permiso_api('USR_CREAR')
 def alta_usuario(request):
-    _, err = solo_admin(request)
-    if err:
-        return err
     try:
         dni = int(request.POST.get('dni'))
         apellido = request.POST.get('apellido', '').strip()
@@ -254,10 +233,8 @@ def alta_usuario(request):
         return JsonResponse({'ok': False, 'error': str(e)}, status=400)
 
 @require_POST
+@requiere_permiso_api('USR_EDITAR_CORREO')
 def modificar_correo(request, dni):
-    _, err = solo_admin(request)
-    if err:
-        return err
     # Regla estricta Hito 2: La Modificación solo permite editar el Correo
     usuario = get_object_or_404(Usuario, DNI=dni)
     nuevo_correo = request.POST.get('correo', '').strip().lower()
@@ -270,27 +247,18 @@ def modificar_correo(request, dni):
     return JsonResponse({'ok': True, 'nuevo_correo': usuario.Correo})
 
 @require_POST
+@requiere_permiso_api('USR_BAJA')
 def baja_usuario(request, dni):
     # Regla estricta Hito 2: Cambiar Activo a (no) y asentar FechaBaja
-    actual, err = solo_admin(request)
-    if err:
-        return err
 
     usuario = get_object_or_404(Usuario, DNI=dni)
 
-    if usuario.DNI == actual.DNI:
+    if usuario.DNI == request.usuario.DNI:
         return JsonResponse({'ok': False, 'error': 'No podes darte de baja a vos mismo.'}, status=400)
 
-    # el sistema no puede quedarse sin administradores activos
-    if usuario.idRol.nom_rol.lower() == 'administrador':
-        quedan = Usuario.objects.filter(
-            idRol__nom_rol__iexact='Administrador', Activo=True
-        ).exclude(DNI=usuario.DNI).count()
-        if quedan == 0:
-            return JsonResponse({
-                'ok': False,
-                'error': 'No se puede dar de baja al ultimo administrador activo.'
-            }, status=400)
+    error = error_baja_gestor(usuario)
+    if error:
+        return JsonResponse({'ok': False, 'error': error}, status=400)
 
     from pedidos.reglas import tiene_pedidos_activos
     if tiene_pedidos_activos(idUsuario=usuario):
@@ -305,10 +273,8 @@ def baja_usuario(request, dni):
     return JsonResponse({'ok': True})
 
 @require_POST
+@requiere_permiso_api('USR_BAJA')
 def reactivar_usuario(request, dni):
-    _, err = solo_admin(request)
-    if err:
-        return err
     usuario = get_object_or_404(Usuario, DNI=dni)
     usuario.Activo = True
     usuario.FechaBaja = None
@@ -316,10 +282,8 @@ def reactivar_usuario(request, dni):
     return JsonResponse({'ok': True})
 
 @require_POST
+@requiere_permiso_api('USR_RESET_CLAVE')
 def restablecer_clave(request, dni):
-    _, err = solo_admin(request)
-    if err:
-        return err
     usuario = get_object_or_404(Usuario, DNI=dni)
     nueva = request.POST.get('nueva_clave', '').strip()
     if nueva:
@@ -341,16 +305,14 @@ def restablecer_clave(request, dni):
     })
 
 @require_POST
+@requiere_permiso_api('USR_CAMBIAR_ROL')
 def cambiar_rol(request, dni):
     """Asigna otro rol al usuario. Va aparte de la modificacion de correo,
     que por consigna solo puede editar el correo."""
-    actual, err = solo_admin(request)
-    if err:
-        return err
 
     usuario = get_object_or_404(Usuario, DNI=dni)
 
-    if usuario.DNI == actual.DNI:
+    if usuario.DNI == request.usuario.DNI:
         return JsonResponse({'ok': False, 'error': 'No podes cambiar tu propio rol.'}, status=400)
 
     try:
@@ -362,10 +324,9 @@ def cambiar_rol(request, dni):
     if anterior.id_rol == rol.id_rol:
         return JsonResponse({'ok': False, 'error': f'{usuario.NombreUsuario} ya tiene el rol {rol.nom_rol}.'}, status=400)
 
-    # Nota: no hace falta proteger al "ultimo administrador" aca. Quien ejecuta
-    # esta accion ya es administrador activo, y no puede cambiarse el rol a si
-    # mismo, asi que siempre queda al menos uno. El caso real de bloqueo se da
-    # en la baja, y ahi si esta contemplado.
+    error = error_cambio_rol_gestor(usuario, rol)
+    if error:
+        return JsonResponse({'ok': False, 'error': error}, status=400)
 
     usuario.idRol = rol
     usuario.save()
@@ -374,10 +335,8 @@ def cambiar_rol(request, dni):
                          'anterior': anterior.nom_rol, 'nuevo': rol.nom_rol})
 
 @require_GET
+@requiere_permiso_api('USR_CREAR')
 def preview_username_view(request):
-    _, err = solo_admin(request)
-    if err:
-        return err
     ape = request.GET.get('apellido', '')
     nom = request.GET.get('nombre', '')
     return JsonResponse({'NombreUsuario': generate_username(ape, nom)})

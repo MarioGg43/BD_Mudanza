@@ -1,28 +1,11 @@
-from functools import wraps
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_POST
 
 from pedidos.reglas import tiene_pedidos_activos
 from usuarios.models import Servicio, Vehiculo
-from usuarios.views import get_usuario_actual, redirigir_segun_rol
+from usuarios.permisos import get_usuario_actual, pantalla_inicio, requiere_permiso
 from .forms import VehiculoForm
-
-
-def solo_admin_pagina(vista):
-    """Igual que solo_admin del panel, pero para pantallas: sin sesión manda
-    al login y si el rol no es Administrador responde 403."""
-    @wraps(vista)
-    def envoltura(request, *args, **kwargs):
-        actual = get_usuario_actual(request)
-        if not actual:
-            return redirect('login')
-        if actual.idRol.nom_rol.lower() != 'administrador':
-            return HttpResponseForbidden('Se requiere el rol Administrador.')
-        return vista(request, *args, **kwargs)
-    return envoltura
 
 
 def inicio(request):
@@ -30,19 +13,19 @@ def inicio(request):
     (el cliente a sus pedidos, el administrador al panel, el personal al portal)."""
     actual = get_usuario_actual(request)
     if actual:
-        return redirigir_segun_rol(actual)
+        return pantalla_inicio(actual)
     servicios = Servicio.objects.filter(Activo=True).prefetch_related('recursos').order_by('Precio_base')
     return render(request, 'vehiculos/inicio.html', {'servicios': servicios})
 
 
-@solo_admin_pagina
+@requiere_permiso('VEH_GESTIONAR')
 def listaVehiculos(request):
     """Lista todos los vehículos."""
     vehiculos = Vehiculo.objects.select_related('chofer_asignado').order_by('patente')
     return render(request, 'vehiculos/lista_vehiculos.html', {'vehiculos': vehiculos})
 
 
-@solo_admin_pagina
+@requiere_permiso('VEH_GESTIONAR')
 def createVehiculo(request):
     if request.method == 'POST':
         form = VehiculoForm(request.POST)
@@ -58,7 +41,7 @@ def createVehiculo(request):
     return render(request, 'vehiculos/create_vehiculo.html', {'form': form})
 
 
-@solo_admin_pagina
+@requiere_permiso('VEH_GESTIONAR')
 def editarVehiculo(request, patente):
     """Edita un vehículo existente. La patente es la clave y no se modifica."""
     vehiculo = get_object_or_404(Vehiculo, pk=patente)
@@ -77,7 +60,7 @@ def editarVehiculo(request, patente):
     return render(request, 'vehiculos/edit_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
 
 
-@solo_admin_pagina
+@requiere_permiso('VEH_GESTIONAR')
 @require_POST
 def bajaVehiculo(request, patente):
     """Baja lógica: el vehículo queda 'Fuera de Servicio' y conserva su historial

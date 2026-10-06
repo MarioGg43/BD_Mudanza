@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido
-from usuarios.views import get_usuario_actual, redirigir_segun_rol
+from usuarios.permisos import pantalla_inicio
+from usuarios.views import get_usuario_actual
 from . import reglas
 from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm, RegistroClienteForm
 from .permisos import requiere_permiso, tiene_permiso
@@ -154,7 +155,7 @@ def registro(request):
     """Alta pública de clientes: queda con el rol Cliente e inicia sesión."""
     usuario = get_usuario_actual(request)
     if usuario:
-        return redirigir_segun_rol(usuario)
+        return pantalla_inicio(usuario)
     form = RegistroClienteForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         cliente = form.crear_cliente()
