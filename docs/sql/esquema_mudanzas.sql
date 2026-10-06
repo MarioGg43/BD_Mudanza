@@ -110,7 +110,7 @@ ALTER TABLE `PEDIDOS` ADD COLUMN `Fec_anulacion` datetime(6) NULL;
 --
 -- Add field fecha_servicio to pedido
 --
-ALTER TABLE `PEDIDOS` ADD COLUMN `Fecha_servicio` date DEFAULT '2026-10-05' NOT NULL;
+ALTER TABLE `PEDIDOS` ADD COLUMN `Fecha_servicio` date DEFAULT '2026-10-06' NOT NULL;
 ALTER TABLE `PEDIDOS` ALTER COLUMN `Fecha_servicio` DROP DEFAULT;
 --
 -- Add field motivo_anulacion to pedido
@@ -144,3 +144,7 @@ ALTER TABLE `INVENTARIO_DETALLES` DROP COLUMN `Peso`;
 --
 ALTER TABLE `PEDIDOS` ADD COLUMN `Hora_servicio` time(6) DEFAULT '09:00:00.000000' NOT NULL;
 ALTER TABLE `PEDIDOS` ALTER COLUMN `Hora_servicio` DROP DEFAULT;
+--
+-- Add field Observacion to inventariodetalle
+--
+ALTER TABLE `INVENTARIO_DETALLES` ADD COLUMN `Observacion` varchar(200) NULL;

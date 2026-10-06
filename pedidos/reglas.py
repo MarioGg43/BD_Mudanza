@@ -14,8 +14,9 @@ from usuarios.models import DetallePedido, InventarioDetalle, Pedido, Servicio, 
 MAX_DIAS_ADELANTO = 365
 MAX_CANTIDAD = 999
 MAX_DIRECCION = 200
-HORA_DESDE = time(7, 0)
-HORA_HASTA = time(20, 0)
+MAX_DESCRIPCION = 100
+MAX_OBSERVACION = 200
+# Sugerencias del formulario: el cliente puede elegir una o escribir otro objeto
 OBJETOS_INVENTARIO = (
     'Heladera', 'Cocina', 'Lavarropas', 'Microondas', 'Cama 1 plaza', 'Cama 2 plazas', 'Colchón',
     'Ropero', 'Cómoda', 'Mesa', 'Sillas', 'Sillón', 'Televisor', 'Escritorio', 'Biblioteca',
@@ -59,8 +60,6 @@ def _validar_fecha(fecha, errores):
 def _validar_hora(fecha, hora, errores):
     if not hora:
         errores['hora_servicio'] = 'Elegí la hora de inicio.'
-    elif not HORA_DESDE <= hora <= HORA_HASTA:
-        errores['hora_servicio'] = 'La mudanza puede empezar entre las 07:00 y las 20:00.'
     elif fecha == timezone.localdate() and hora <= timezone.localtime().time():
         errores['hora_servicio'] = 'Para hoy, elegí una hora que todavía no pasó.'
 
@@ -97,13 +96,18 @@ def _validar_items(items, errores):
         except (TypeError, ValueError):
             errores['inventario'] = f'Objeto {n}: la cantidad tiene que ser un número.'
             continue
-        if descripcion not in OBJETOS_INVENTARIO:
-            errores['inventario'] = f'Objeto {n}: elegilo de la lista.'
+        observacion = (item.get('observacion') or '').strip()
+        if not descripcion:
+            errores['inventario'] = f'Objeto {n}: escribí o elegí qué es.'
+        elif len(descripcion) > MAX_DESCRIPCION:
+            errores['inventario'] = f'Objeto {n}: el nombre puede tener hasta {MAX_DESCRIPCION} caracteres.'
+        elif len(observacion) > MAX_OBSERVACION:
+            errores['inventario'] = f'Objeto {n}: la observación puede tener hasta {MAX_OBSERVACION} caracteres.'
         elif not 1 <= cantidad <= MAX_CANTIDAD:
             errores['inventario'] = f'Objeto {n}: la cantidad va de 1 a {MAX_CANTIDAD}.'
         else:
             limpios.append({'descripcion': descripcion, 'cantidad': cantidad,
-                            'fragil': bool(item.get('fragil'))})
+                            'fragil': bool(item.get('fragil')), 'observacion': observacion or None})
     return limpios
 
 
@@ -139,7 +143,7 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
                                      precio_unitario=servicio.Precio_base, subtotal=servicio.Precio_base)
         InventarioDetalle.objects.bulk_create([
             InventarioDetalle(idPedido=pedido, Descripcion=i['descripcion'], Cantidad=i['cantidad'],
-                              Fragil=i['fragil'])
+                              Fragil=i['fragil'], Observacion=i['observacion'])
             for i in limpios])
     return pedido
 

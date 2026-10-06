@@ -82,6 +82,7 @@ def nuevo(request):
         'form': form, 'items': items,
         'servicios': form.fields['servicio'].queryset,
         'elegido': str(form['servicio'].value() or ''),
+        'objetos': reglas.OBJETOS_INVENTARIO,
     })
 
 

@@ -135,16 +135,21 @@ class RegistrarPantallaTest(BaseVistas):
         r = self.client.get('/pedidos/nuevo/')
         self.assertContains(r, 'type="radio"')
         self.assertContains(r, 'name="hora_servicio"')
-        self.assertContains(r, '<option value="Bolsos y valijas">Bolsos y valijas</option>', html=True)
+        self.assertContains(r, '<datalist id="objetos-sugeridos">')
+        self.assertContains(r, '<option value="Bolsos y valijas"></option>', html=True)
+        self.assertContains(r, 'list="objetos-sugeridos"')
+        self.assertContains(r, 'name="inv-0-observacion"')
         self.assertNotContains(r, 'Peso total')
 
-    def test_objeto_fuera_de_la_lista_no_pasa_el_formulario(self):
+    def test_objeto_escrito_a_mano_con_observacion(self):
         self.entrar(CLIENTE)
-        antes = Pedido.objects.count()
-        r = self.client.post('/pedidos/nuevo/', self.datos(**{'inv-0-descripcion': 'Piano'}))
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.context['items'].errors[0])
-        self.assertEqual(Pedido.objects.count(), antes)
+        r = self.client.post('/pedidos/nuevo/', self.datos(**{
+            'inv-0-descripcion': 'Piano', 'inv-0-observacion': 'Se desarma'}))
+        p = Pedido.objects.latest('id_pedido')
+        self.assertRedirects(r, f'/pedidos/{p.pk}/', fetch_redirect_response=False)
+        self.assertTrue(p.inventario.filter(Descripcion='Piano', Observacion='Se desarma').exists())
+        self.assertContains(self.client.get(r.url), 'Se desarma')
+        self.assertContains(self.client.get(f'/pedidos/{p.pk}/comprobante/'), 'Se desarma')
 
     def test_error_de_reglas_vuelve_al_formulario_con_los_datos(self):
         self.entrar(CLIENTE)

@@ -43,6 +43,8 @@
             <div id="filas">
                 {% for f in items %}{% include 'pedidos/_fila_inventario.html' with f=f %}{% endfor %}
             </div>
+            <datalist id="objetos-sugeridos">{% for o in objetos %}<option value="{{ o }}"></option>{% endfor %}</datalist>
+            <p class="form-text mt-0 mb-2">Elegí el objeto de la lista o escribilo si no está.</p>
             <template id="filaVacia">{% include 'pedidos/_fila_inventario.html' with f=items.empty_form %}</template>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="agregarFila"><i class="bi bi-plus"></i> Agregar objeto</button>
         </div>

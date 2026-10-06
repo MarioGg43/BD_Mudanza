@@ -77,28 +77,25 @@ class RegistrarPedidoTest(BaseReglas):
         self.assertRechaza('fecha_servicio', fecha_servicio=self.dia(366))
 
     def test_se_puede_para_hoy(self):
-        if timezone.localtime().time() >= reglas.HORA_HASTA:
-            self.skipTest('Después de las 20:00 ya no queda hora válida para hoy.')
-        p = self.registrar(fecha_servicio=self.dia(0), hora_servicio=reglas.HORA_HASTA)
+        if timezone.localtime().time() >= time(23, 59):
+            self.skipTest('A las 23:59 ya no queda hora válida para hoy.')
+        p = self.registrar(fecha_servicio=self.dia(0), hora_servicio=time(23, 59))
         self.assertEqual(p.estado, Pedido.PENDIENTE)
 
     def test_hora_vacia(self):
         self.assertRechaza('hora_servicio', 'Elegí la hora de inicio.', hora_servicio=None)
 
-    def test_hora_fuera_de_horario(self):
-        mensaje = 'La mudanza puede empezar entre las 07:00 y las 20:00.'
-        self.assertRechaza('hora_servicio', mensaje, hora_servicio=time(6, 59))
-        self.assertRechaza('hora_servicio', mensaje, hora_servicio=time(20, 1))
-
-    def test_hora_en_los_limites(self):
-        self.assertEqual(self.registrar(hora_servicio=time(7, 0)).hora_servicio, time(7, 0))
-        p = self.registrar(hora_servicio=time(20, 0), fecha_servicio=self.dia(2))
-        self.assertEqual(p.hora_servicio, time(20, 0))
+    def test_cualquier_hora_incluso_de_madrugada(self):
+        # el grupo pidió horario libre: en el centro conviene mudarse de madrugada
+        self.assertEqual(self.registrar(hora_servicio=time(3, 30)).hora_servicio, time(3, 30))
+        p = self.registrar(hora_servicio=time(23, 45), fecha_servicio=self.dia(2))
+        self.assertEqual(p.hora_servicio, time(23, 45))
 
     def test_para_hoy_una_hora_que_ya_paso(self):
-        hora = (timezone.localtime() - timedelta(hours=1)).time()
-        if not reglas.HORA_DESDE <= hora <= reglas.HORA_HASTA:
-            self.skipTest('Hace una hora estaba fuera del horario de mudanzas.')
+        ahora = timezone.localtime()
+        if ahora.hour == 0:
+            self.skipTest('Recién empezado el día no hay una hora anterior de hoy.')
+        hora = (ahora - timedelta(hours=1)).time()
         self.assertRechaza('hora_servicio', 'Para hoy, elegí una hora que todavía no pasó.',
                            fecha_servicio=self.dia(0), hora_servicio=hora)
 
@@ -130,12 +127,23 @@ class RegistrarPedidoTest(BaseReglas):
     def test_sin_objetos(self):
         self.assertRechaza('inventario', 'Agregá al menos un objeto.', items=[])
 
-    def test_objeto_fuera_de_la_lista(self):
-        self.assertRechaza('inventario', 'Objeto 2: elegilo de la lista.',
-                           items=[{'descripcion': 'Sillas', 'cantidad': 1},
-                                  {'descripcion': 'Piano', 'cantidad': 1}])
-        self.assertRechaza('inventario', 'Objeto 1: elegilo de la lista.',
-                           items=[{'descripcion': '', 'cantidad': 1}])
+    def test_objeto_escrito_a_mano_y_observacion(self):
+        p = self.registrar(items=[
+            {'descripcion': '  Piano vertical ', 'cantidad': 1, 'fragil': True,
+             'observacion': ' Se desarma; 3er piso sin ascensor '},
+            {'descripcion': 'Cajas', 'cantidad': 4}])
+        self.assertEqual(sorted((i.Descripcion, i.Observacion) for i in p.inventario.all()),
+                         [('Cajas', None), ('Piano vertical', 'Se desarma; 3er piso sin ascensor')])
+
+    def test_objeto_sin_nombre(self):
+        self.assertRechaza('inventario', 'Objeto 1: escribí o elegí qué es.',
+                           items=[{'descripcion': '   ', 'cantidad': 1}])
+
+    def test_textos_demasiado_largos(self):
+        self.assertRechaza('inventario', 'Objeto 1: el nombre puede tener hasta 100 caracteres.',
+                           items=[{'descripcion': 'x' * 101, 'cantidad': 1}])
+        self.assertRechaza('inventario', 'Objeto 1: la observación puede tener hasta 200 caracteres.',
+                           items=[{'descripcion': 'Mesa', 'cantidad': 1, 'observacion': 'x' * 201}])
 
     def test_cantidad_fuera_de_rango(self):
         self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 0}])

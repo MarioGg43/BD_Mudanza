@@ -70,3 +70,14 @@ Son los colores del manual de identidad, los mismos que usa `app-movil/styles.cs
 
 Que el cliente adjunte fotos de los objetos para que la empresa defina el precio
 final o si algo se desarma.
+
+## 7. Segunda ronda de ajustes (06/10/2026)
+
+- **Horario libre:** se quita el límite de 07:00 a 20:00. Las mudanzas en el centro
+  conviene hacerlas de madrugada. Se mantiene que, si la mudanza es para hoy, la hora
+  tiene que ser posterior a la actual.
+- **Objetos escritos a mano:** el campo «Objeto» es una caja de texto con sugerencias
+  (`<datalist>` con `reglas.OBJETOS_INVENTARIO`). Se puede elegir de la lista o escribir
+  cualquier objeto de hasta 100 caracteres.
+- **Observación por objeto:** INVENTARIO_DETALLES suma `Observacion` VARCHAR(200),
+  opcional. Se muestra en el detalle y en el comprobante.

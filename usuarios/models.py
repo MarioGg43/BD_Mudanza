@@ -241,6 +241,7 @@ class InventarioDetalle(models.Model):
     Descripcion = models.CharField(max_length=100, default='', verbose_name='Descripción')
     Cantidad = models.IntegerField()
     Fragil = models.BooleanField(default=False, verbose_name='Frágil')
+    Observacion = models.CharField(max_length=200, blank=True, null=True, verbose_name='Observación')
     idPedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, db_column='id_pedido',
                                  related_name='inventario', verbose_name='Pedido')
 

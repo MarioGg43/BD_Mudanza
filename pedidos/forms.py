@@ -76,10 +76,13 @@ class PedidoForm(forms.Form):
 
 
 class ItemInventarioForm(forms.Form):
-    descripcion = forms.ChoiceField(label='Objeto', choices=[('', 'Elegí un objeto')]
-                                    + [(o, o) for o in reglas.OBJETOS_INVENTARIO])
+    # Caja de texto con sugerencias (<datalist> en nuevo.html): se elige de la lista o se escribe
+    descripcion = forms.CharField(max_length=reglas.MAX_DESCRIPCION, label='Objeto', widget=forms.TextInput(
+        attrs={'list': 'objetos-sugeridos', 'placeholder': 'Elegí de la lista o escribilo', 'autocomplete': 'off'}))
     cantidad = forms.IntegerField(min_value=1, max_value=reglas.MAX_CANTIDAD, label='Cantidad')
     fragil = forms.BooleanField(required=False, label='Frágil')
+    observacion = forms.CharField(max_length=reglas.MAX_OBSERVACION, required=False, label='Observación',
+                                  widget=forms.TextInput(attrs={'placeholder': 'Ej.: se desarma, tiene vidrio'}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

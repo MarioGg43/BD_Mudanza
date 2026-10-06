@@ -85,14 +85,16 @@ docker compose down
 - Un **vehículo está libre** en una fecha si está «Disponible» y no tiene otro pedido
   Pendiente o Confirmado ese día. Un vehículo hace un solo pedido por día.
 - Al **registrar** se valida del lado del servidor: fecha de hoy a un año, hora de
-  inicio de 07:00 a 20:00 (si es para hoy, una hora que todavía no pasó), origen y
+  inicio libre, incluso de madrugada (si es para hoy, una hora que todavía no pasó), origen y
   destino distintos, **un solo servicio** activo (el total es su precio) y al menos un
   objeto. No se controla peso ni capacidad: la capacidad del vehículo se muestra solo
   como dato. Todo va en una transacción: si algo falla, no se guarda nada.
-- El **inventario** se elige de una lista fija (`reglas.OBJETOS_INVENTARIO`): Heladera,
-  Cocina, Lavarropas, Microondas, Cama 1 plaza, Cama 2 plazas, Colchón, Ropero, Cómoda,
-  Mesa, Sillas, Sillón, Televisor, Escritorio, Biblioteca, Cajas, Bolsos y valijas,
-  Bicicleta y Plantas. Cada fila lleva objeto, cantidad (1 a 999) y si es frágil.
+- En el **inventario**, cada objeto se elige de una lista de sugerencias
+  (`reglas.OBJETOS_INVENTARIO`: Heladera, Cocina, Lavarropas, Microondas, Cama 1 plaza,
+  Cama 2 plazas, Colchón, Ropero, Cómoda, Mesa, Sillas, Sillón, Televisor, Escritorio,
+  Biblioteca, Cajas, Bolsos y valijas, Bicicleta y Plantas) o se escribe a mano si no está.
+  Cada fila lleva objeto (hasta 100 caracteres), cantidad (1 a 999), si es frágil y una
+  observación opcional (hasta 200 caracteres, por ejemplo «se desarma»).
 - Las **transiciones** son: confirmar (Pendiente a Confirmado), finalizar (Confirmado a
   Finalizado) y anular (Pendiente o Confirmado a Anulado). Cualquier otra se rechaza.
 - La **anulación no borra**: exige un motivo de 5 a 200 caracteres, guarda fecha y
