@@ -54,6 +54,7 @@
                 <a href="{% url 'admin_dashboard' %}" class="text-white-50 text-decoration-none">Panel</a>
                 <a href="{% url 'lista_vehiculos' %}" class="text-white-50 text-decoration-none">Vehículos</a>
                 <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Pedidos</a>
+                <a href="{% url 'servicios_lista' %}" class="text-white-50 text-decoration-none">Servicios</a>
                 {% elif rol == 'Cliente' %}
                 <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Mis pedidos</a>
                 <a href="{% url 'pedidos_nuevo' %}" class="text-white-50 text-decoration-none">Pedir mudanza</a>

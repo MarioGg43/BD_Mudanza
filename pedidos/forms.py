@@ -1,8 +1,9 @@
 from decimal import Decimal
 
 from django import forms
+from django.db import transaction
 
-from usuarios.models import Pedido, Rol, Servicio, Usuario, Vehiculo
+from usuarios.models import Pedido, RecursoAsignado, Rol, Servicio, Usuario, Vehiculo
 from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
 
 
@@ -134,3 +135,42 @@ class RegistroClienteForm(forms.Form):
             Clave=hash_password(d['clave']), Activo=True,
             DebeCambiarClave=False,  # la clave la eligió el cliente
             idRol=Rol.objects.get(nom_rol='Cliente'))
+
+
+class ServicioForm(forms.ModelForm):
+    materiales = forms.CharField(required=False, label='Materiales que incluye',
+                                 help_text='Separados por coma. Ej.: Mantas, film, cintas')
+
+    class Meta:
+        model = Servicio
+        fields = ['Tipo_servicio', 'Precio_base', 'Activo']
+        labels = {'Tipo_servicio': 'Tipo de servicio', 'Precio_base': 'Precio base ($)'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['materiales'].initial = ', '.join(
+                self.instance.recursos.values_list('Materiales', flat=True))
+        con_bootstrap(self)
+        self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
+
+    def clean_Precio_base(self):
+        precio = self.cleaned_data['Precio_base']
+        if precio <= 0:
+            raise forms.ValidationError('El precio tiene que ser mayor a 0.')
+        return precio
+
+    def clean_materiales(self):
+        lista = [m.strip() for m in self.cleaned_data['materiales'].split(',') if m.strip()]
+        largos = [m for m in lista if len(m) > 50]
+        if largos:
+            raise forms.ValidationError(f'«{largos[0][:20]}…» supera los 50 caracteres.')
+        return lista
+
+    def save(self, commit=True):
+        with transaction.atomic():
+            servicio = super().save()
+            servicio.recursos.all().delete()  # los materiales se reemplazan; el servicio no se borra
+            RecursoAsignado.objects.bulk_create(
+                [RecursoAsignado(idServicio=servicio, Materiales=m) for m in self.cleaned_data['materiales']])
+        return servicio

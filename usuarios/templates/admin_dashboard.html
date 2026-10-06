@@ -19,7 +19,7 @@
   <div class="flex items-center gap-3 mt-3 sm:mt-0">
     <div class="flex items-center gap-2 bg-[#1e2029] px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-300">
       <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-      <a href="/vehiculos/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a><span class="font-semibold text-white">Sesión: {{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }} ({{ usuario_actual.idRol.nom_rol }})</span>
+      <a href="/vehiculos/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a><a href="/pedidos/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-clipboard-list mr-1"></i> Pedidos</a><a href="/servicios/" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#252833] border border-gray-700 text-amber-gold hover:text-white hover:border-amber-gold transition mr-3"><i class="fa-solid fa-tags mr-1"></i> Servicios</a><span class="font-semibold text-white">Sesión: {{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }} ({{ usuario_actual.idRol.nom_rol }})</span>
       <a href="{% url 'logout' %}" class="ml-2 text-xs text-racing-red hover:underline" title="Cerrar sesión">Salir</a>
     </div>
 
