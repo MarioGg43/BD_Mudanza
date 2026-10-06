@@ -81,11 +81,11 @@
     document.getElementById('pesoTotal').textContent = fmt(peso);
   }
 
-  const total = form.querySelector('[name="inv-TOTAL_FORMS"]');
+  const totalForms = form.querySelector('[name="inv-TOTAL_FORMS"]');
   document.getElementById('agregarFila').addEventListener('click', () => {
-    const html = document.getElementById('filaVacia').innerHTML.replace(/__prefix__/g, total.value);
+    const html = document.getElementById('filaVacia').innerHTML.replace(/__prefix__/g, totalForms.value);
     document.getElementById('filas').insertAdjacentHTML('beforeend', html);
-    total.value = parseInt(total.value, 10) + 1;
+    totalForms.value = parseInt(totalForms.value, 10) + 1;
   });
   form.addEventListener('input', recalcular);
   form.addEventListener('change', recalcular);
@@ -93,14 +93,27 @@
   // Al cambiar la fecha se piden los vehículos libres ese día
   const fecha = form.querySelector('[name="fecha_servicio"]');
   const select = form.querySelector('[name="vehiculo"]');
+  let ultimaPeticion = 0;
   async function cargarVehiculos() {
     if (!fecha.value) return;
     const elegido = select.value;
-    const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?fecha=" + encodeURIComponent(fecha.value));
-    const { vehiculos } = await r.json();
-    select.innerHTML = '<option value="">' + (vehiculos.length ? 'Elegí un vehículo' : 'No hay vehículos libres ese día') + '</option>' +
-      vehiculos.map((v) => '<option value="' + v.patente + '"' + (v.patente === elegido ? ' selected' : '') + '>' +
-        v.patente + ' · ' + v.descripcion + ' · hasta ' + fmt(v.capacidad_kg) + ' kg</option>').join('');
+    const numero = ++ultimaPeticion;
+    let vehiculos;
+    try {
+      const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?fecha=" + encodeURIComponent(fecha.value));
+      if (!r.ok) return;
+      ({ vehiculos } = await r.json());
+    } catch (e) {
+      return;
+    }
+    if (numero !== ultimaPeticion) return;
+    const opciones = [new Option(vehiculos.length ? 'Elegí un vehículo' : 'No hay vehículos libres ese día', '')];
+    vehiculos.forEach((v) => {
+      const o = new Option(v.patente + ' · ' + v.descripcion + ' · hasta ' + fmt(v.capacidad_kg) + ' kg', v.patente);
+      o.selected = v.patente === elegido;
+      opciones.push(o);
+    });
+    select.replaceChildren(...opciones);
   }
   fecha.addEventListener('change', cargarVehiculos);
   cargarVehiculos();
