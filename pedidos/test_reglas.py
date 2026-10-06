@@ -141,3 +141,84 @@ class VehiculosLibresTest(BaseReglas):
         p = self.registrar()
         Pedido.objects.filter(pk=p.pk).update(estado=Pedido.ANULADO)
         self.assertIn('AD-321-JK', self.patentes(self.dia()))
+
+
+class TransicionesTest(BaseReglas):
+    def test_confirmar_y_finalizar(self):
+        p = self.registrar()
+        self.assertEqual(reglas.confirmar(p.pk).estado, Pedido.CONFIRMADO)
+        self.assertEqual(reglas.finalizar(p.pk).estado, Pedido.FINALIZADO)
+        self.assertEqual(Pedido.objects.get(pk=p.pk).estado, Pedido.FINALIZADO)
+
+    def test_no_se_finaliza_un_pendiente(self):
+        p = self.registrar()
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.finalizar(p.pk)
+        self.assertEqual(Pedido.objects.get(pk=p.pk).estado, Pedido.PENDIENTE)
+
+    def test_no_se_confirma_dos_veces(self):
+        p = self.registrar()
+        reglas.confirmar(p.pk)
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.confirmar(p.pk)
+
+    def test_anular_guarda_fecha_motivo_y_usuario_y_libera_el_vehiculo(self):
+        p = self.registrar()
+        reglas.confirmar(p.pk)
+        reglas.anular(p.pk, self.admin, '  El cliente suspendió la mudanza  ')
+        p.refresh_from_db()
+        self.assertEqual(p.estado, Pedido.ANULADO)
+        self.assertEqual(p.motivo_anulacion, 'El cliente suspendió la mudanza')
+        self.assertEqual(p.usuario_anulacion, self.admin)
+        self.assertIsNotNone(p.fecha_anulacion)
+        self.assertIn('AD-321-JK', reglas.vehiculos_libres(p.fecha_servicio).values_list('patente', flat=True))
+        self.assertTrue(Pedido.objects.filter(pk=p.pk).exists())  # no se borra
+
+    def test_motivo_invalido(self):
+        p = self.registrar()
+        for motivo in ['', 'nop', 'x' * 201]:
+            with self.assertRaises(reglas.ErrorPedido) as ctx:
+                reglas.anular(p.pk, self.admin, motivo)
+            self.assertIn('motivo', ctx.exception.errores)
+        self.assertEqual(Pedido.objects.get(pk=p.pk).estado, Pedido.PENDIENTE)
+
+    def test_no_se_anula_un_finalizado_ni_un_anulado(self):
+        finalizado = Pedido.objects.get(estado=Pedido.FINALIZADO)  # el de init_data
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.anular(finalizado.pk, self.admin, 'Motivo de prueba')
+        p = self.registrar()
+        reglas.anular(p.pk, self.admin, 'Motivo de prueba')
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.anular(p.pk, self.admin, 'Otra vez')
+
+
+class FiltrarPedidosTest(BaseReglas):
+    def setUp(self):
+        self.p1 = self.registrar(fecha_servicio=self.dia(1), ids_servicios=[self.local.id_servicio])
+        self.p2 = self.registrar(fecha_servicio=self.dia(5), ids_servicios=[self.flete.id_servicio])
+        reglas.confirmar(self.p2.pk)
+        self.viejo = Pedido.objects.get(estado=Pedido.FINALIZADO)  # 20/09/2026, Mudanza local
+
+    def ids(self, **filtros):
+        return [p.pk for p in reglas.filtrar_pedidos(Pedido.objects.all(), **filtros)]
+
+    def test_sin_filtros_del_mas_nuevo_al_mas_viejo(self):
+        self.assertEqual(self.ids(), [self.p2.pk, self.p1.pk, self.viejo.pk])
+
+    def test_por_rango_de_fechas_del_servicio(self):
+        self.assertEqual(self.ids(desde=self.dia(2)), [self.p2.pk])
+        self.assertEqual(self.ids(hasta=self.dia(2)), [self.p1.pk, self.viejo.pk])
+        self.assertEqual(self.ids(desde=self.dia(0), hasta=self.dia(2)), [self.p1.pk])
+
+    def test_por_estado(self):
+        self.assertEqual(self.ids(estado=Pedido.CONFIRMADO), [self.p2.pk])
+
+    def test_por_servicio(self):
+        self.assertEqual(self.ids(id_servicio=self.local.id_servicio), [self.p1.pk, self.viejo.pk])
+
+    def test_por_cliente(self):
+        self.assertEqual(self.ids(id_cliente=self.admin.id_usuario), [])
+        self.assertEqual(len(self.ids(id_cliente=self.cliente.id_usuario)), 3)
+
+    def test_filtros_combinados(self):
+        self.assertEqual(self.ids(estado=Pedido.PENDIENTE, id_servicio=self.local.id_servicio), [self.p1.pk])

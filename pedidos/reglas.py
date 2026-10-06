@@ -107,6 +107,8 @@ def registrar_pedido(cliente, fecha_servicio, origen, destino, ids_servicios, pa
     with transaction.atomic():
         # Bloquea el vehículo: si dos clientes lo eligen para el mismo día, el segundo espera
         # a que el primero termine y después lo encuentra ocupado.
+        # Este bloqueo depende de que la función abra su propia transacción y no haya leído nada
+        # antes dentro de ella: quien la llame no debe envolverla en un atomic() externo que lea primero.
         vehiculo = Vehiculo.objects.select_for_update().filter(patente=patente).first()
         if not vehiculo or not vehiculos_libres(fecha_servicio).filter(patente=patente).exists():
             raise ErrorPedido({'vehiculo': 'Ese vehículo no está libre para esa fecha. Elegí otro.'})
@@ -127,3 +129,68 @@ def registrar_pedido(cliente, fecha_servicio, origen, destino, ids_servicios, pa
                               Peso=i['peso'], Fragil=i['fragil'])
             for i in limpios])
     return pedido
+
+
+# acción: (estados desde los que se puede, estado al que pasa)
+TRANSICIONES = {
+    'confirmar': ((Pedido.PENDIENTE,), Pedido.CONFIRMADO),
+    'finalizar': ((Pedido.CONFIRMADO,), Pedido.FINALIZADO),
+    'anular': (Pedido.ACTIVOS, Pedido.ANULADO),
+}
+
+
+def _pasar_a(id_pedido, accion):
+    """Bloquea el pedido y le cambia el estado en memoria; el que llama guarda."""
+    desde, hacia = TRANSICIONES[accion]
+    pedido = Pedido.objects.select_for_update().get(pk=id_pedido)
+    if pedido.estado not in desde:
+        raise ErrorPedido(f'No se puede {accion} un pedido en estado {pedido.estado}.')
+    pedido.estado = hacia
+    return pedido
+
+
+def confirmar(id_pedido):
+    with transaction.atomic():
+        pedido = _pasar_a(id_pedido, 'confirmar')
+        pedido.save(update_fields=['estado'])
+    return pedido
+
+
+def finalizar(id_pedido):
+    with transaction.atomic():
+        pedido = _pasar_a(id_pedido, 'finalizar')
+        pedido.save(update_fields=['estado'])
+    return pedido
+
+
+def anular(id_pedido, usuario, motivo):
+    """Anula sin borrar: guarda fecha, motivo y usuario. Como un pedido anulado ya no
+    cuenta como activo, el vehículo vuelve a estar libre ese día."""
+    motivo = (motivo or '').strip()
+    if not 5 <= len(motivo) <= 200:
+        raise ErrorPedido({'motivo': 'El motivo tiene que tener entre 5 y 200 caracteres.'})
+    with transaction.atomic():
+        pedido = _pasar_a(id_pedido, 'anular')
+        pedido.fecha_anulacion = timezone.now()
+        pedido.motivo_anulacion = motivo
+        pedido.usuario_anulacion = usuario
+        pedido.save(update_fields=['estado', 'fecha_anulacion', 'motivo_anulacion', 'usuario_anulacion'])
+    return pedido
+
+
+def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=None, id_cliente=None):
+    """Filtros de la consulta. Las fechas son de la mudanza (fecha_servicio)."""
+    if desde:
+        pedidos = pedidos.filter(fecha_servicio__gte=desde)
+    if hasta:
+        pedidos = pedidos.filter(fecha_servicio__lte=hasta)
+    if estado:
+        pedidos = pedidos.filter(estado=estado)
+    if id_servicio:
+        pedidos = pedidos.filter(detalles__idServicio_id=id_servicio)
+    if id_cliente:
+        pedidos = pedidos.filter(idUsuario_id=id_cliente)
+    return (pedidos.distinct()
+            .select_related('idUsuario', 'patente_vehiculo')
+            .prefetch_related('detalles__idServicio')
+            .order_by('-id_pedido'))
