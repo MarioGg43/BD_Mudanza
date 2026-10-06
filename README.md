@@ -43,6 +43,7 @@ docker compose down
 | http://localhost:8002/pedidos/ | Pedidos: el cliente ve los suyos y el admin todos |
 | http://localhost:8002/pedidos/nuevo/ | Pedir una mudanza (solo clientes) |
 | http://localhost:8002/servicios/ | ABM de servicios (solo admin) |
+| http://localhost:8002/roles/ | Roles y sus permisos (quien tenga `ROL_GESTIONAR`) |
 | http://localhost:8002/panel/ | Panel del administrador |
 | http://localhost:8002/portal/ | Portal del personal operativo |
 | http://localhost:8002/admin/ | Admin de Django |
@@ -65,10 +66,36 @@ docker compose down
   última modificación.
 - La **baja es lógica**: pasa `Estado_usuario` a falso y asienta la fecha de baja.
 - El **alta y el restablecimiento** exigen cambiar la clave en el próximo ingreso.
-- Hay **tres roles** con accesos distintos: Administrador, Chofer y Ayudante de Carga.
-- Cada operación valida del lado del servidor que quien la llama sea un
-  administrador activo.
-- No se puede dar de baja al **último administrador activo** ni a uno mismo.
+- El **acceso se decide por permisos**, no por el nombre del rol: cada pantalla y cada
+  operación consulta la tabla PERMISOS_ROLES del lado del servidor. El menú y los
+  botones del panel muestran solo lo que el rol tiene habilitado.
+- Los **roles se editan en `/roles/`**: se crean roles nuevos y se tildan sus permisos.
+  Administrador, Cliente y Chofer son roles del sistema (se editan sus permisos, no su
+  nombre); un rol solo se elimina si no tiene usuarios.
+- **Candados:** nadie se da de baja ni se cambia el rol a sí mismo, nadie se quita el
+  permiso de gestionar roles, y siempre queda al menos un usuario activo que pueda
+  gestionar roles.
+
+| Permiso | Habilita | Administrador | Cliente | Chofer / Ayudante |
+|---|---|---|---|---|
+| `USR_CONSULTAR` | Ver el panel de usuarios | Sí | | |
+| `USR_CREAR` | Dar de alta usuarios | Sí | | |
+| `USR_EDITAR_CORREO` | Modificar el correo | Sí | | |
+| `USR_CAMBIAR_ROL` | Cambiar el rol de un usuario | Sí | | |
+| `USR_BAJA` | Dar de baja y reactivar | Sí | | |
+| `USR_RESET_CLAVE` | Restablecer la clave | Sí | | |
+| `ROL_GESTIONAR` | Ver, crear y editar roles | Sí | | |
+| `VEH_GESTIONAR` | ABM de vehículos | Sí | | |
+| `MUDANZAS_OPERAR` | Portal del personal | Sí | | Sí |
+| `PED_REGISTRAR` | Registrar pedidos | | Sí | |
+| `PED_CONSULTAR` | Consultar pedidos | Sí (todos) | Sí (los suyos) | |
+| `PED_GESTIONAR` | Confirmar y finalizar pedidos | Sí | | |
+| `PED_ANULAR` | Anular pedidos | Sí | | |
+| `PED_COMPROBANTE` | Emitir el comprobante | Sí | Sí (los suyos) | |
+| `SRV_GESTIONAR` | ABM de servicios | Sí | | |
+
+Estos son los permisos iniciales. `init_data` los carga solo cuando crea cada rol, así que
+lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
 
 ## Reglas de vehículos
 
