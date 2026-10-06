@@ -6,6 +6,7 @@ Usan los datos de init_data (los mismos que levanta Docker):
   romerol    / Temporal123! Ayudante       DNI 38999888 (debe cambiar la clave)
 """
 import io
+from decimal import Decimal
 
 from django.core.management import call_command
 from django.db import connection
@@ -13,7 +14,7 @@ from django.test import TestCase
 
 from .models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Pedido,
-    DetallePedido, InventarioDetalle, Cobranza, DetalleCobranza,
+    DetallePedido, InventarioDetalle, Cobranza, DetalleCobranza, Servicio,
 )
 from .utils import generate_username, validate_strong_password, hash_password
 
@@ -33,8 +34,8 @@ class BaseHito2(TestCase):
         s.save()
 
     def alta(self, **datos):
-        base = {'dni': '30111222', 'apellido': 'Gómez', 'nombre': 'María José',
-                'correo': 'MGOMEZ@mail.com', 'clave': 'Cliente123!',
+        base = {'dni': '30111222', 'apellido': 'Pérez', 'nombre': 'Ana Laura',
+                'correo': 'APEREZ@mail.com', 'clave': 'Cliente123!',
                 'idRol': Rol.objects.get(nom_rol='Chofer').id_rol}
         base.update(datos)
         return self.client.post('/usuarios/alta/', base)
@@ -49,12 +50,12 @@ class EstructuraDERTest(BaseHito2):
         self.assertEqual(der - tablas, set())
 
     def test_datos_iniciales(self):
-        self.assertEqual(Rol.objects.count(), 3)
-        self.assertEqual(Usuario.objects.count(), 3)
+        self.assertEqual(Rol.objects.count(), 4)
+        self.assertEqual(Usuario.objects.count(), 4)
         self.assertEqual(Vehiculo.objects.count(), 4)
-        self.assertEqual(Permiso.objects.count(), 6)
-        # el administrador tiene todos los permisos; chofer y ayudante, uno
-        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador').count(), 6)
+        self.assertEqual(Permiso.objects.count(), 12)
+        # el administrador tiene todos los permisos menos registrar pedidos
+        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador').count(), 11)
         self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Chofer').count(), 1)
 
     def test_pedido_de_ejemplo_completo(self):
@@ -67,7 +68,7 @@ class EstructuraDERTest(BaseHito2):
 
     def test_init_data_se_puede_correr_dos_veces(self):
         call_command('init_data', stdout=io.StringIO())
-        self.assertEqual(Usuario.objects.count(), 3)
+        self.assertEqual(Usuario.objects.count(), 4)
         self.assertEqual(Pedido.objects.count(), 1)
 
 
@@ -160,9 +161,9 @@ class CrudUsuariosTest(BaseHito2):
 
     def test_alta_genera_usuario_y_exige_cambio(self):
         r = self.alta()
-        self.assertEqual(r.json(), {'ok': True, 'usuario': 'gomezm'})
+        self.assertEqual(r.json(), {'ok': True, 'usuario': 'pereza'})
         u = Usuario.objects.get(DNI=30111222)
-        self.assertEqual(u.Correo, 'mgomez@mail.com')
+        self.assertEqual(u.Correo, 'aperez@mail.com')
         self.assertTrue(u.DebeCambiarClave)
         self.assertTrue(u.verificar_clave('Cliente123!'))
         self.assertNotEqual(u.Clave, 'Cliente123!')
@@ -170,7 +171,7 @@ class CrudUsuariosTest(BaseHito2):
     def test_alta_usuario_repetido_suma_numero(self):
         self.alta()
         r = self.alta(dni='30111223', correo='otra@mail.com')
-        self.assertEqual(r.json()['usuario'], 'gomezm1')
+        self.assertEqual(r.json()['usuario'], 'pereza1')
 
     def test_alta_rechaza_dni_correo_y_clave(self):
         self.assertEqual(self.alta(dni=str(CHOFER)).status_code, 400)
@@ -221,8 +222,8 @@ class CrudUsuariosTest(BaseHito2):
 
     def test_panel_lista_usuarios_y_filtro_activos(self):
         Usuario.objects.filter(DNI=CHOFER).update(Activo=False)
-        self.assertEqual(len(self.client.get('/panel/').context['usuarios']), 3)
-        self.assertEqual(len(self.client.get('/panel/?activos=1').context['usuarios']), 2)
+        self.assertEqual(len(self.client.get('/panel/').context['usuarios']), 4)
+        self.assertEqual(len(self.client.get('/panel/?activos=1').context['usuarios']), 3)
 
 
 class CandadosTest(BaseHito2):
@@ -292,3 +293,35 @@ class OlvideClaveTest(BaseHito2):
         self.assertEqual(self.client.post('/olvide-clave/', {'identificador': 'nadie'}).status_code, 404)
         Usuario.objects.filter(DNI=CHOFER).update(Activo=False)
         self.assertEqual(self.client.post('/olvide-clave/', {'identificador': 'fernandezl'}).status_code, 403)
+
+
+class DatosHito3Test(BaseHito2):
+    def test_rol_cliente_y_permisos(self):
+        cliente = Rol.objects.get(nom_rol='Cliente')
+        self.assertEqual(
+            set(PermisoRol.objects.filter(idRol=cliente).values_list('idPermiso__nom_permiso', flat=True)),
+            {'PED_REGISTRAR', 'PED_CONSULTAR', 'PED_COMPROBANTE'})
+        admin = set(PermisoRol.objects.filter(idRol__nom_rol='Administrador')
+                    .values_list('idPermiso__nom_permiso', flat=True))
+        self.assertTrue({'PED_CONSULTAR', 'PED_GESTIONAR', 'PED_ANULAR',
+                         'PED_COMPROBANTE', 'SRV_GESTIONAR'} <= admin)
+        self.assertNotIn('PED_REGISTRAR', admin)
+
+    def test_clienta_de_prueba(self):
+        u = Usuario.objects.get(NombreUsuario='gomezm')
+        self.assertEqual((u.DNI, u.idRol.nom_rol, u.DebeCambiarClave), (29876543, 'Cliente', False))
+        self.assertTrue(u.verificar_clave('Cliente123!'))
+
+    def test_pedido_de_ejemplo_con_campos_nuevos(self):
+        p = Pedido.objects.get()
+        self.assertEqual(p.idUsuario.NombreUsuario, 'gomezm')
+        self.assertEqual(p.estado, Pedido.FINALIZADO)
+        self.assertEqual(p.total, 185000)
+        self.assertTrue(p.origen and p.destino)
+        detalle = p.detalles.get()
+        self.assertEqual((detalle.precio_unitario, detalle.subtotal), (185000, 185000))
+        self.assertEqual(p.inventario.get().Descripcion, 'Cajas de libros')
+        self.assertEqual(p.peso_total, 42 * Decimal('7.63'))
+
+    def test_servicios_activos_por_defecto(self):
+        self.assertFalse(Servicio.objects.filter(Activo=False).exists())

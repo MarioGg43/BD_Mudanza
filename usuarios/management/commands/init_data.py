@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
@@ -22,6 +23,12 @@ class Command(BaseCommand):
             ('USR_RESET_CLAVE', 'Permite restablecer contraseñas de usuarios'),
             ('MUDANZAS_ADMIN', 'Permite administrar mudanzas y fletes'),
             ('MUDANZAS_OPERAR', 'Permite operar y consultar servicios asignados'),
+            ('PED_REGISTRAR', 'Permite registrar pedidos de mudanza'),
+            ('PED_CONSULTAR', 'Permite consultar pedidos'),
+            ('PED_GESTIONAR', 'Permite confirmar y finalizar pedidos'),
+            ('PED_ANULAR', 'Permite anular pedidos'),
+            ('PED_COMPROBANTE', 'Permite emitir el comprobante del pedido'),
+            ('SRV_GESTIONAR', 'Permite dar de alta, modificar y dar de baja servicios'),
         ]
         permisos = {}
         for code, desc in permisos_data:
@@ -39,10 +46,18 @@ class Command(BaseCommand):
             nom_rol='Ayudante de Carga',
             defaults={'desc_rol': 'Personal operativo de carga, descarga y embalaje de bultos'})
 
-        for perm in permisos.values():
-            PermisoRol.objects.get_or_create(idRol=r_admin, idPermiso=perm)
+        r_cliente, _ = Rol.objects.get_or_create(
+            nom_rol='Cliente',
+            defaults={'desc_rol': 'Cliente que registra y sigue sus pedidos de mudanza'})
+
+        # el administrador gestiona todo, pero los pedidos los registra el cliente
+        for code, perm in permisos.items():
+            if code != 'PED_REGISTRAR':
+                PermisoRol.objects.get_or_create(idRol=r_admin, idPermiso=perm)
         PermisoRol.objects.get_or_create(idRol=r_chofer, idPermiso=permisos['MUDANZAS_OPERAR'])
         PermisoRol.objects.get_or_create(idRol=r_ayudante, idPermiso=permisos['MUDANZAS_OPERAR'])
+        for code in ('PED_REGISTRAR', 'PED_CONSULTAR', 'PED_COMPROBANTE'):
+            PermisoRol.objects.get_or_create(idRol=r_cliente, idPermiso=permisos[code])
 
         # 3. Sueldos
         sueldo_admin, _ = Sueldo.objects.get_or_create(Monto=980000, Fecha_pago=date(2026, 9, 5))
@@ -56,6 +71,8 @@ class Command(BaseCommand):
              '3875550101', 'Usuario123!', False, r_chofer, sueldo_oper),
             (38999888, 'Romero', 'Lucas', 'lucas.romero@mudanzassalta.com',
              '3875550202', 'Temporal123!', True, r_ayudante, sueldo_oper),
+            (29876543, 'Gómez', 'María', 'maria.gomez@ejemplo.com',
+             '3874112233', 'Cliente123!', False, r_cliente, None),
         ]
         for dni, ape, nom, correo, tel, clave, debe_cambiar, rol, sueldo in usuarios_data:
             if not Usuario.objects.filter(DNI=dni).exists():
@@ -103,15 +120,21 @@ class Command(BaseCommand):
                 RecursoAsignado.objects.create(idServicio=serv, Materiales=materiales)
                 self.stdout.write(self.style.SUCCESS(f'Servicio "{tipo}" creado.'))
 
-        # 7. Un pedido de ejemplo, con su detalle, inventario y cobranza
-        admin = Usuario.objects.filter(DNI=35123456).first()
+        # 7. Un pedido de ejemplo de la clienta, ya finalizado, con detalle, inventario y cobranza
+        cliente = Usuario.objects.filter(DNI=29876543).first()
         vehiculo = Vehiculo.objects.filter(patente='AE-123-CD').first()
-        if admin and vehiculo and not Pedido.objects.exists():
+        if cliente and vehiculo and not Pedido.objects.exists():
+            servicio = Servicio.objects.get(Tipo_servicio='Mudanza local')
             pedido = Pedido.objects.create(
-                patente_vehiculo=vehiculo, idUsuario=admin, Fecha_pedido=date(2026, 9, 20))
-            DetallePedido.objects.create(
-                idPedido=pedido, idServicio=Servicio.objects.get(Tipo_servicio='Mudanza local'))
-            InventarioDetalle.objects.create(idPedido=pedido, Peso=320.50, Cantidad=42, Fragil=True)
+                patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=date(2026, 9, 15),
+                fecha_servicio=date(2026, 9, 20), origen='Av. Belgrano 1250, Salta',
+                destino='Los Ceibos 340, Cerrillos', estado=Pedido.FINALIZADO,
+                total=servicio.Precio_base)
+            DetallePedido.objects.create(idPedido=pedido, idServicio=servicio,
+                                         precio_unitario=servicio.Precio_base,
+                                         subtotal=servicio.Precio_base)
+            InventarioDetalle.objects.create(idPedido=pedido, Descripcion='Cajas de libros',
+                                             Peso=Decimal('7.63'), Cantidad=42, Fragil=True)
             cobranza = Cobranza.objects.create(Monto_cob=185000, Met_pag_cob='Transferencia')
             DetalleCobranza.objects.create(idPedido=pedido, idCobranza=cobranza)
             self.stdout.write(self.style.SUCCESS(

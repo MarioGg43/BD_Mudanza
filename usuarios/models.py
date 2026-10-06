@@ -7,6 +7,7 @@ obligatorio, fecha de baja y de última modificación) se suman a USUARIOS.
 from django.db import models
 from django.utils import timezone
 import hashlib
+from decimal import Decimal
 
 
 class Permiso(models.Model):
@@ -155,6 +156,7 @@ class Servicio(models.Model):
     id_servicio = models.AutoField(primary_key=True)
     Tipo_servicio = models.CharField(max_length=100, verbose_name='Tipo de servicio')
     Precio_base = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Precio base')
+    Activo = models.BooleanField(default=True, db_column='Activo', verbose_name='Activo')
 
     class Meta:
         db_table = 'SERVICIOS'
@@ -181,12 +183,29 @@ class RecursoAsignado(models.Model):
 
 
 class Pedido(models.Model):
+    PENDIENTE, CONFIRMADO, FINALIZADO, ANULADO = 'Pendiente', 'Confirmado', 'Finalizado', 'Anulado'
+    ESTADOS = [(e, e) for e in (PENDIENTE, CONFIRMADO, FINALIZADO, ANULADO)]
+    ACTIVOS = (PENDIENTE, CONFIRMADO)  # ocupan el vehículo el día del servicio
+
     id_pedido = models.AutoField(primary_key=True)
     patente_vehiculo = models.ForeignKey(Vehiculo, on_delete=models.PROTECT, db_column='patente_vehiculos',
                                          related_name='pedidos', verbose_name='Vehículo')
     idUsuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column='id_usuario',
                                   related_name='pedidos', verbose_name='Usuario')
     Fecha_pedido = models.DateField(verbose_name='Fecha del pedido')
+
+    # --- Hito 3: datos del proceso completo ---
+    fecha_servicio = models.DateField(default=timezone.localdate, db_column='Fecha_servicio',
+                                      verbose_name='Fecha de la mudanza')
+    origen = models.CharField(max_length=200, default='', db_column='Direccion_origen', verbose_name='Desde')
+    destino = models.CharField(max_length=200, default='', db_column='Direccion_destino', verbose_name='Hasta')
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE, db_column='Estado_pedido')
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Total_pedido')
+    fecha_anulacion = models.DateTimeField(blank=True, null=True, db_column='Fec_anulacion')
+    motivo_anulacion = models.CharField(max_length=200, blank=True, null=True, db_column='Motivo_anulacion')
+    usuario_anulacion = models.ForeignKey(Usuario, on_delete=models.PROTECT, blank=True, null=True,
+                                          db_column='id_usuario_anulacion', related_name='pedidos_anulados',
+                                          verbose_name='Anulado por')
 
     class Meta:
         db_table = 'PEDIDOS'
@@ -196,6 +215,10 @@ class Pedido(models.Model):
     def __str__(self):
         return f'Pedido {self.id_pedido} - {self.Fecha_pedido}'
 
+    @property
+    def peso_total(self):
+        return sum((i.Cantidad * i.Peso for i in self.inventario.all()), Decimal('0'))
+
 
 class DetallePedido(models.Model):
     id_detalle_pedidos = models.AutoField(primary_key=True)
@@ -203,6 +226,9 @@ class DetallePedido(models.Model):
                                  related_name='detalles', verbose_name='Pedido')
     idServicio = models.ForeignKey(Servicio, on_delete=models.PROTECT, db_column='id_servicio',
                                    related_name='detalles', verbose_name='Servicio')
+    precio_unitario = models.DecimalField(max_digits=12, decimal_places=2, default=0,
+                                          db_column='Precio_unitario', verbose_name='Precio unitario')
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Subtotal')
 
     class Meta:
         db_table = 'DETALLE_PEDIDOS'
@@ -215,6 +241,7 @@ class DetallePedido(models.Model):
 
 class InventarioDetalle(models.Model):
     id_inventario = models.AutoField(primary_key=True)
+    Descripcion = models.CharField(max_length=100, default='', verbose_name='Descripción')
     Peso = models.DecimalField(max_digits=10, decimal_places=2)
     Cantidad = models.IntegerField()
     Fragil = models.BooleanField(default=False, verbose_name='Frágil')
