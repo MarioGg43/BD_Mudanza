@@ -174,8 +174,13 @@ def confirmar(id_pedido):
 
 
 def finalizar(id_pedido):
+    """Solo se finaliza una mudanza que ya empezó (desde su fecha y hora de inicio)."""
     with transaction.atomic():
         pedido = _pasar_a(id_pedido, 'finalizar')
+        if not pedido.ya_empezo:
+            inicio = timezone.localtime(pedido.inicio)
+            raise ErrorPedido(f'La mudanza todavía no empezó: se puede finalizar desde el '
+                              f'{inicio:%d/%m/%Y} a las {inicio:%H:%M}.')
         pedido.save(update_fields=['estado'])
     return pedido
 

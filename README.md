@@ -132,6 +132,8 @@ lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
   observación opcional (hasta 200 caracteres, por ejemplo «se desarma»).
 - Las **transiciones** son: confirmar (Pendiente a Confirmado), finalizar (Confirmado a
   Finalizado) y anular (Pendiente o Confirmado a Anulado). Cualquier otra se rechaza.
+- Un pedido **se finaliza recién cuando empezó la mudanza** (desde su fecha y hora de
+  inicio). Antes, el detalle muestra desde cuándo se va a poder finalizar.
 - La **anulación no borra**: exige un motivo de 5 a 200 caracteres, guarda fecha y
   usuario, y libera el vehículo para ese día. Nunca se elimina un pedido.
 - El cliente solo ve sus propios pedidos; si pide uno ajeno recibe 404.

@@ -7,7 +7,7 @@ obligatorio, fecha de baja y de última modificación) se suman a USUARIOS.
 from django.db import models
 from django.utils import timezone
 import hashlib
-from datetime import time
+from datetime import datetime, time
 
 
 class Permiso(models.Model):
@@ -215,6 +215,15 @@ class Pedido(models.Model):
 
     def __str__(self):
         return f'Pedido {self.id_pedido} - {self.Fecha_pedido}'
+
+    @property
+    def inicio(self):
+        """Fecha y hora en que empieza la mudanza (con zona horaria)."""
+        return timezone.make_aware(datetime.combine(self.fecha_servicio, self.hora_servicio))
+
+    @property
+    def ya_empezo(self):
+        return timezone.now() >= self.inicio
 
 
 class DetallePedido(models.Model):

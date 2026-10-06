@@ -1,6 +1,7 @@
 """Pruebas de las pantallas del pedido: permisos, consulta y detalle."""
 import io
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
+from unittest import mock
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -190,8 +191,21 @@ class AccionesTest(BaseVistas):
     def test_el_admin_confirma_y_finaliza(self):
         self.entrar(ADMIN)
         self.assertRedirects(self.client.post(f'/pedidos/{self.p.pk}/confirmar/'), f'/pedidos/{self.p.pk}/')
-        self.client.post(f'/pedidos/{self.p.pk}/finalizar/')
+        inicio = timezone.make_aware(datetime.combine(self.p.fecha_servicio, self.p.hora_servicio))
+        with mock.patch('django.utils.timezone.now', return_value=inicio + timedelta(hours=1)):
+            self.assertContains(self.client.get(f'/pedidos/{self.p.pk}/'), '/finalizar/')
+            self.client.post(f'/pedidos/{self.p.pk}/finalizar/')
         self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Finalizado')
+
+    def test_antes_de_la_mudanza_no_hay_boton_finalizar(self):
+        self.entrar(ADMIN)
+        reglas.confirmar(self.p.pk)
+        r = self.client.get(f'/pedidos/{self.p.pk}/')
+        self.assertNotContains(r, '/finalizar/')
+        self.assertContains(r, 'Se puede finalizar desde el')
+        r = self.client.post(f'/pedidos/{self.p.pk}/finalizar/', follow=True)
+        self.assertContains(r, 'La mudanza todavía no empezó')
+        self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Confirmado')
 
     def test_transicion_invalida_muestra_el_error(self):
         self.entrar(ADMIN)

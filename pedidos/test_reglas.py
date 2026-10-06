@@ -193,11 +193,30 @@ class VehiculosLibresTest(BaseReglas):
 
 
 class TransicionesTest(BaseReglas):
+    def despues_de(self, pedido, minutos):
+        # un reloj fijo a tantos minutos del inicio de la mudanza (negativo = antes)
+        inicio = timezone.make_aware(datetime.combine(pedido.fecha_servicio, pedido.hora_servicio))
+        return mock.patch('django.utils.timezone.now', return_value=inicio + timedelta(minutes=minutos))
+
     def test_confirmar_y_finalizar(self):
         p = self.registrar()
         self.assertEqual(reglas.confirmar(p.pk).estado, Pedido.CONFIRMADO)
-        self.assertEqual(reglas.finalizar(p.pk).estado, Pedido.FINALIZADO)
+        with self.despues_de(p, 60):
+            self.assertEqual(reglas.finalizar(p.pk).estado, Pedido.FINALIZADO)
         self.assertEqual(Pedido.objects.get(pk=p.pk).estado, Pedido.FINALIZADO)
+
+    def test_no_se_finaliza_antes_de_que_empiece_la_mudanza(self):
+        p = self.registrar(hora_servicio=time(17, 13))
+        reglas.confirmar(p.pk)
+        with self.despues_de(p, -1):
+            with self.assertRaises(reglas.ErrorPedido) as ctx:
+                reglas.finalizar(p.pk)
+        fecha = p.fecha_servicio.strftime('%d/%m/%Y')
+        self.assertEqual(str(ctx.exception),
+                         f'La mudanza todavía no empezó: se puede finalizar desde el {fecha} a las 17:13.')
+        self.assertEqual(Pedido.objects.get(pk=p.pk).estado, Pedido.CONFIRMADO)
+        with self.despues_de(p, 0):
+            self.assertEqual(reglas.finalizar(p.pk).estado, Pedido.FINALIZADO)
 
     def test_no_se_finaliza_un_pendiente(self):
         p = self.registrar()
