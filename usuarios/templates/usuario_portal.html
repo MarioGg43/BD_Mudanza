@@ -80,7 +80,7 @@
       <p class="text-xs texto-suave">Permisos que tu rol tiene habilitados según las reglas del sistema:</p>
       <div class="flex flex-wrap gap-2 pt-1">
         {% for perm in permisos %}
-        <span class="chip-marca px-2.5 py-1 rounded text-xs font-mono font-semibold">{{ perm.NombrePermiso }}</span>
+        <span class="chip-marca px-2.5 py-1 rounded text-xs font-mono font-semibold">{{ perm.nom_permiso }}</span>
         {% empty %}
         <span class="text-xs texto-suave">Sin permisos específicos</span>
         {% endfor %}

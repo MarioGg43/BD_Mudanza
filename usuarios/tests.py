@@ -349,3 +349,9 @@ class DatosHito3Test(BaseHito2):
 
     def test_servicios_activos_por_defecto(self):
         self.assertFalse(Servicio.objects.filter(Activo=False).exists())
+
+
+class PortalTest(BaseHito2):
+    def test_el_portal_muestra_el_nombre_de_los_permisos(self):
+        self.entrar(CHOFER)
+        self.assertContains(self.client.get('/portal/'), 'MUDANZAS_OPERAR')
