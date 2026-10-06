@@ -143,7 +143,7 @@ toca porque ya está probado.
 PED_GESTIONAR ve todos, y el resto solo los propios. Si un cliente pide el detalle o el
 comprobante de un pedido ajeno, recibe 404, para no revelar que el pedido existe.
 
-## 6. Reglas del negocio (`pedidos/servicios.py`)
+## 6. Reglas del negocio (`pedidos/reglas.py`)
 
 **Vehículo libre en una fecha:** su estado es «Disponible» y no tiene otro pedido
 en estado Pendiente o Confirmado con esa misma `Fecha_servicio`. Un vehículo hace un
