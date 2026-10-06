@@ -42,3 +42,13 @@ def generate_temp_password(length: int = 10) -> str:
         chars.append(secrets.choice(all_chars))
     secrets.SystemRandom().shuffle(chars)
     return ''.join(chars)
+
+
+def nombre_usuario_libre(apellido: str, nombre: str) -> str:
+    """Apellido + inicial; si ya existe, le suma un número (gomezm, gomezm1, ...)."""
+    from .models import Usuario  # import local: utils no depende de los modelos para lo demás
+    base = generate_username(apellido, nombre)
+    candidato, n = base, 1
+    while Usuario.objects.filter(NombreUsuario=candidato).exists():
+        candidato, n = f'{base}{n}', n + 1
+    return candidato

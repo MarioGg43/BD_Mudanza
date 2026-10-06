@@ -2,7 +2,8 @@ from decimal import Decimal
 
 from django import forms
 
-from usuarios.models import Pedido, Servicio, Usuario, Vehiculo
+from usuarios.models import Pedido, Rol, Servicio, Usuario, Vehiculo
+from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
 
 
 def con_bootstrap(form):
@@ -84,3 +85,52 @@ InventarioFormSet = forms.formset_factory(ItemInventarioForm, extra=0, min_num=1
 class AnularForm(forms.Form):
     motivo = forms.CharField(min_length=5, max_length=200, label='Motivo de la anulación',
                              widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}))
+
+
+class RegistroClienteForm(forms.Form):
+    dni = forms.IntegerField(label='DNI', min_value=1000000, max_value=99999999)
+    apellido = forms.CharField(max_length=100, label='Apellido')
+    nombre = forms.CharField(max_length=100, label='Nombre')
+    correo = forms.EmailField(max_length=150, label='Correo')
+    telefono = forms.CharField(max_length=30, required=False, label='Teléfono')
+    clave = forms.CharField(label='Clave', widget=forms.PasswordInput,
+                            help_text='8 o más caracteres, con mayúscula, minúscula, número y un caracter especial.')
+    clave2 = forms.CharField(label='Repetir clave', widget=forms.PasswordInput)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        con_bootstrap(self)
+
+    def clean_dni(self):
+        dni = self.cleaned_data['dni']
+        if Usuario.objects.filter(DNI=dni).exists():
+            raise forms.ValidationError('Ya hay una cuenta con ese DNI.')
+        return dni
+
+    def clean_correo(self):
+        correo = self.cleaned_data['correo'].strip().lower()
+        if Usuario.objects.filter(Correo=correo).exists():
+            raise forms.ValidationError('Ese correo ya está en uso.')
+        return correo
+
+    def clean_clave(self):
+        valida, mensaje = validate_strong_password(self.cleaned_data['clave'])
+        if not valida:
+            raise forms.ValidationError(mensaje)
+        return self.cleaned_data['clave']
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get('clave') and datos.get('clave2') and datos['clave'] != datos['clave2']:
+            self.add_error('clave2', 'Las claves no coinciden.')
+        return datos
+
+    def crear_cliente(self):
+        d = self.cleaned_data
+        return Usuario.objects.create(
+            DNI=d['dni'], Apellido=d['apellido'].strip(), Nombre=d['nombre'].strip(), Correo=d['correo'],
+            Telefono=d['telefono'] or None,
+            NombreUsuario=nombre_usuario_libre(d['apellido'], d['nombre']),
+            Clave=hash_password(d['clave']), Activo=True,
+            DebeCambiarClave=False,  # la clave la eligió el cliente
+            idRol=Rol.objects.get(nom_rol='Cliente'))

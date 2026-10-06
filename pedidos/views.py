@@ -9,7 +9,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido
 from . import reglas
-from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm
+from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm, RegistroClienteForm
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -143,3 +143,16 @@ def anular(request, id_pedido):
 def comprobante(request, id_pedido):
     pedido = _pedido_visible(request, id_pedido)
     return render(request, 'pedidos/comprobante.html', {'pedido': pedido, 'emitido': timezone.localtime()})
+
+
+def registro(request):
+    """Alta pública de clientes: queda con el rol Cliente e inicia sesión."""
+    form = RegistroClienteForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        cliente = form.crear_cliente()
+        cliente.registrar_acceso()
+        request.session['usuario_dni'] = cliente.DNI
+        request.session['usuario_rol'] = cliente.idRol.nom_rol
+        messages.success(request, f'¡Bienvenida/o! Tu usuario es {cliente.NombreUsuario}.')
+        return redirect('pedidos_lista')
+    return render(request, 'pedidos/registro.html', {'form': form})

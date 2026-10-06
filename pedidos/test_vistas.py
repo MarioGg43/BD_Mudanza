@@ -235,3 +235,34 @@ class ComprobanteTest(BaseVistas):
     def test_el_chofer_no_emite(self):
         self.entrar(CHOFER)
         self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/comprobante/').status_code, 403)
+
+
+class RegistroClienteTest(BaseVistas):
+    def datos(self, **cambios):
+        d = {'dni': '33444555', 'apellido': 'Herrera', 'nombre': 'Juan Pablo', 'correo': 'JP@Mail.com',
+             'telefono': '3874000000', 'clave': 'Cliente123!', 'clave2': 'Cliente123!'}
+        d.update(cambios)
+        return d
+
+    def test_crea_la_cuenta_y_entra(self):
+        r = self.client.post('/registro/', self.datos())
+        self.assertRedirects(r, '/pedidos/')
+        u = Usuario.objects.get(DNI=33444555)
+        self.assertEqual(u.NombreUsuario, 'herreraj1')  # herreraj ya existe
+        self.assertEqual((u.idRol.nom_rol, u.DebeCambiarClave, u.Correo), ('Cliente', False, 'jp@mail.com'))
+        self.assertTrue(u.verificar_clave('Cliente123!'))
+        self.assertNotEqual(u.Clave, 'Cliente123!')
+        self.assertEqual(self.client.session['usuario_dni'], 33444555)
+
+    def test_rechaza_repetidos_y_clave_debil(self):
+        for cambios, campo in [({'dni': str(CLIENTE)}, 'dni'),
+                               ({'correo': 'maria.gomez@ejemplo.com'}, 'correo'),
+                               ({'clave': 'debil', 'clave2': 'debil'}, 'clave'),
+                               ({'clave2': 'Otra123!'}, 'clave2')]:
+            r = self.client.post('/registro/', self.datos(**cambios))
+            self.assertEqual(r.status_code, 200, cambios)
+            self.assertIn(campo, r.context['form'].errors, cambios)
+        self.assertFalse(Usuario.objects.filter(DNI=33444555).exists())
+
+    def test_el_login_ofrece_crear_cuenta(self):
+        self.assertContains(self.client.get('/login/'), '/registro/')

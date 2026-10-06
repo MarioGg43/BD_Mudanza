@@ -6,7 +6,8 @@ import json
 
 from .models import Usuario, Rol, Permiso, Vehiculo
 from .utils import (
-    hash_password, generate_username, validate_strong_password, generate_temp_password
+    hash_password, generate_username, validate_strong_password, generate_temp_password,
+    nombre_usuario_libre,
 )
 
 def get_usuario_actual(request):
@@ -240,12 +241,7 @@ def alta_usuario(request):
         rol = get_object_or_404(Rol, id_rol=id_rol)
 
         # Regla: Apellido + primera letra del primer nombre
-        base_user = generate_username(apellido, nombre)
-        final_user = base_user
-        idx = 1
-        while Usuario.objects.filter(NombreUsuario=final_user).exists():
-            final_user = f"{base_user}{idx}"
-            idx += 1
+        final_user = nombre_usuario_libre(apellido, nombre)
 
         nuevo = Usuario.objects.create(
             DNI=dni,
