@@ -1,7 +1,6 @@
 """ABM de servicios (tabla maestra del Hito 3) con sus materiales."""
 import io
-from datetime import timedelta
-from decimal import Decimal
+from datetime import time, timedelta
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -67,8 +66,8 @@ class ServiciosTest(TestCase):
         self.assertTrue(s.detalles.exists())  # el pedido de ejemplo lo sigue teniendo
         with self.assertRaises(reglas.ErrorPedido):
             reglas.registrar_pedido(
-                Usuario.objects.get(DNI=CLIENTE), timezone.localdate() + timedelta(days=1), 'A 1', 'B 2',
-                [s.id_servicio], 'AD-321-JK', [{'descripcion': 'Caja', 'cantidad': 1, 'peso': Decimal('1')}])
+                Usuario.objects.get(DNI=CLIENTE), timezone.localdate() + timedelta(days=1), time(9, 0),
+                'A 1', 'B 2', s.id_servicio, 'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 1}])
 
     def test_el_cliente_no_entra(self):
         self.entrar(CLIENTE)

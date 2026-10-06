@@ -7,7 +7,7 @@ obligatorio, fecha de baja y de última modificación) se suman a USUARIOS.
 from django.db import models
 from django.utils import timezone
 import hashlib
-from decimal import Decimal
+from datetime import time
 
 
 class Permiso(models.Model):
@@ -197,6 +197,7 @@ class Pedido(models.Model):
     # --- Hito 3: datos del proceso completo ---
     fecha_servicio = models.DateField(default=timezone.localdate, db_column='Fecha_servicio',
                                       verbose_name='Fecha de la mudanza')
+    hora_servicio = models.TimeField(default=time(9, 0), db_column='Hora_servicio', verbose_name='Hora de inicio')
     origen = models.CharField(max_length=200, default='', db_column='Direccion_origen', verbose_name='Desde')
     destino = models.CharField(max_length=200, default='', db_column='Direccion_destino', verbose_name='Hasta')
     estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE, db_column='Estado_pedido')
@@ -214,10 +215,6 @@ class Pedido(models.Model):
 
     def __str__(self):
         return f'Pedido {self.id_pedido} - {self.Fecha_pedido}'
-
-    @property
-    def peso_total(self):
-        return sum((i.Cantidad * i.Peso for i in self.inventario.all()), Decimal('0'))
 
 
 class DetallePedido(models.Model):
@@ -242,7 +239,6 @@ class DetallePedido(models.Model):
 class InventarioDetalle(models.Model):
     id_inventario = models.AutoField(primary_key=True)
     Descripcion = models.CharField(max_length=100, default='', verbose_name='Descripción')
-    Peso = models.DecimalField(max_digits=10, decimal_places=2)
     Cantidad = models.IntegerField()
     Fragil = models.BooleanField(default=False, verbose_name='Frágil')
     idPedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, db_column='id_pedido',
@@ -254,7 +250,7 @@ class InventarioDetalle(models.Model):
         verbose_name_plural = 'Detalles de inventario'
 
     def __str__(self):
-        return f'{self.Cantidad} bultos - {self.Peso} kg'
+        return f'{self.Cantidad} x {self.Descripcion}'
 
 
 class Cobranza(models.Model):

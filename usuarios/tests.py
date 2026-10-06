@@ -6,7 +6,7 @@ Usan los datos de init_data (los mismos que levanta Docker):
   romerol    / Temporal123! Ayudante       DNI 38999888 (debe cambiar la clave)
 """
 import io
-from decimal import Decimal
+from datetime import time
 
 from django.core.management import call_command
 from django.db import connection
@@ -234,9 +234,9 @@ class BajaConPedidosActivosTest(BaseHito2):
         from pedidos import reglas
         self.reglas = reglas
         self.pedido = reglas.registrar_pedido(
-            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1),
-            'Origen 1', 'Destino 2', [Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio],
-            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'peso': Decimal('10'), 'fragil': False}])
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1), time(9, 0),
+            'Origen 1', 'Destino 2', Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio,
+            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'fragil': False}])
 
     def test_no_se_da_de_baja_con_pedido_activo(self):
         r = self.client.post('/usuarios/29876543/baja/')
@@ -342,8 +342,10 @@ class DatosHito3Test(BaseHito2):
         self.assertTrue(p.origen and p.destino)
         detalle = p.detalles.get()
         self.assertEqual((detalle.precio_unitario, detalle.subtotal), (185000, 185000))
-        self.assertEqual(p.inventario.get().Descripcion, 'Cajas de libros')
-        self.assertEqual(p.peso_total, 42 * Decimal('7.63'))
+        self.assertEqual(p.hora_servicio, time(9, 0))
+        item = p.inventario.get()
+        self.assertEqual((item.Descripcion, item.Cantidad, item.Fragil), ('Cajas', 42, True))
+        self.assertEqual(str(item), '42 x Cajas')
 
     def test_servicios_activos_por_defecto(self):
         self.assertFalse(Servicio.objects.filter(Activo=False).exists())

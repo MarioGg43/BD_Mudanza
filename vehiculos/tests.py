@@ -103,16 +103,15 @@ class PedidosActivosTest(TestCase):
     datos = VehiculosTest.datos
 
     def setUp(self):
-        from datetime import timedelta
-        from decimal import Decimal
+        from datetime import time, timedelta
         from django.utils import timezone
         from pedidos import reglas
         from usuarios.models import Servicio
         self.reglas = reglas
         self.pedido = reglas.registrar_pedido(
-            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1),
-            'Origen 1', 'Destino 2', [Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio],
-            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'peso': Decimal('10'), 'fragil': False}])
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1), time(9, 0),
+            'Origen 1', 'Destino 2', Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio,
+            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'fragil': False}])
         self.entrar(ADMIN)
 
     def test_la_baja_se_rechaza(self):

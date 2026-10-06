@@ -64,8 +64,8 @@ def nuevo(request):
             d = form.cleaned_data
             try:
                 pedido = reglas.registrar_pedido(
-                    request.usuario, d['fecha_servicio'], d['origen'], d['destino'],
-                    [s.id_servicio for s in d['servicios']], d['vehiculo'].patente,
+                    request.usuario, d['fecha_servicio'], d['hora_servicio'], d['origen'], d['destino'],
+                    d['servicio'].id_servicio, d['vehiculo'].patente,
                     [f.cleaned_data for f in items.forms if f.cleaned_data])
             except reglas.ErrorPedido as e:
                 for campo, mensaje in e.errores.items():
@@ -80,8 +80,8 @@ def nuevo(request):
         items = InventarioFormSet(prefix='inv')
     return render(request, 'pedidos/nuevo.html', {
         'form': form, 'items': items,
-        'servicios': form.fields['servicios'].queryset,
-        'elegidos': [str(v) for v in (form['servicios'].value() or [])],
+        'servicios': form.fields['servicio'].queryset,
+        'elegido': str(form['servicio'].value() or ''),
     })
 
 
@@ -95,7 +95,7 @@ def vehiculos_libres(request):
         return JsonResponse({'vehiculos': []})
     return JsonResponse({'vehiculos': [
         {'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
-         'capacidad_kg': float(v.capacidad_kg)}
+         'capacidad_kg': float(v.capacidad_kg), 'capacidad_m3': float(v.capacidad_m3)}
         for v in reglas.vehiculos_libres(fecha)]})
 
 

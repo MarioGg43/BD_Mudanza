@@ -1,17 +1,16 @@
-from decimal import Decimal
-
 from django import forms
 from django.db import transaction
 
 from usuarios.models import Pedido, RecursoAsignado, Rol, Servicio, Usuario, Vehiculo
 from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
+from . import reglas
 
 
 def con_bootstrap(form):
     """Las mismas clases que usa el CRUD de vehículos."""
     for field in form.fields.values():
         w = field.widget
-        if isinstance(w, (forms.CheckboxInput, forms.CheckboxSelectMultiple)):
+        if isinstance(w, (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect)):
             continue
         w.attrs.setdefault('class', 'form-select' if isinstance(w, forms.Select) else 'form-control')
 
@@ -50,34 +49,36 @@ class FiltroPedidosForm(forms.Form):
 
 class VehiculoField(forms.ModelChoiceField):
     def label_from_instance(self, v):
-        return f'{v.patente} · {v.tipo_vehiculo} · hasta {v.capacidad_kg:.0f} kg'
+        return (f'{v.patente} · {v.tipo_vehiculo} · {v.marca_modelo} · '
+                f'hasta {v.capacidad_kg:.0f} kg / {v.capacidad_m3:.0f} m³')
 
 
 class PedidoForm(forms.Form):
-    """Solo convierte tipos; las reglas (fechas, capacidad, disponibilidad) están en reglas.py."""
+    """Solo convierte tipos; las reglas (fecha, hora, disponibilidad) están en reglas.py."""
     fecha_servicio = forms.DateField(label='Fecha de la mudanza',
                                      widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
+    hora_servicio = forms.TimeField(label='Hora de inicio', widget=forms.TimeInput(
+        attrs={'type': 'time', 'step': 900}, format='%H:%M'))
     origen = forms.CharField(max_length=200, label='Desde', widget=forms.TextInput(
         attrs={'placeholder': 'Calle, número y ciudad'}))
     destino = forms.CharField(max_length=200, label='Hasta', widget=forms.TextInput(
         attrs={'placeholder': 'Calle, número y ciudad'}))
-    servicios = forms.ModelMultipleChoiceField(queryset=Servicio.objects.none(), label='Servicios',
-                                               widget=forms.CheckboxSelectMultiple)
+    servicio = forms.ModelChoiceField(queryset=Servicio.objects.none(), label='Servicio',
+                                      widget=forms.RadioSelect, empty_label=None)
     vehiculo = VehiculoField(queryset=Vehiculo.objects.none(), label='Vehículo',
                              empty_label='Elegí primero la fecha')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['servicios'].queryset = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio')
+        self.fields['servicio'].queryset = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio')
         self.fields['vehiculo'].queryset = Vehiculo.objects.filter(estado='Disponible').order_by('patente')
         con_bootstrap(self)
 
 
 class ItemInventarioForm(forms.Form):
-    descripcion = forms.CharField(max_length=100, label='Qué es')
-    cantidad = forms.IntegerField(min_value=1, max_value=999, label='Cantidad')
-    peso = forms.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'),
-                              max_value=Decimal('5000'), label='Peso c/u (kg)')
+    descripcion = forms.ChoiceField(label='Objeto', choices=[('', 'Elegí un objeto')]
+                                    + [(o, o) for o in reglas.OBJETOS_INVENTARIO])
+    cantidad = forms.IntegerField(min_value=1, max_value=reglas.MAX_CANTIDAD, label='Cantidad')
     fragil = forms.BooleanField(required=False, label='Frágil')
 
     def __init__(self, *args, **kwargs):

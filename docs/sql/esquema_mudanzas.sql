@@ -135,3 +135,12 @@ ALTER TABLE `PEDIDOS` ADD COLUMN `id_usuario_anulacion` integer NULL , ADD CONST
 --
 ALTER TABLE `SERVICIOS` ADD COLUMN `Activo` bool DEFAULT 1 NOT NULL;
 ALTER TABLE `SERVICIOS` ALTER COLUMN `Activo` DROP DEFAULT;
+--
+-- Remove field Peso from inventariodetalle
+--
+ALTER TABLE `INVENTARIO_DETALLES` DROP COLUMN `Peso`;
+--
+-- Add field hora_servicio to pedido
+--
+ALTER TABLE `PEDIDOS` ADD COLUMN `Hora_servicio` time(6) DEFAULT '09:00:00.000000' NOT NULL;
+ALTER TABLE `PEDIDOS` ALTER COLUMN `Hora_servicio` DROP DEFAULT;

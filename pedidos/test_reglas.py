@@ -2,8 +2,7 @@
 Mudanza local $185.000, Flete urbano $75.000; AD-321-JK (1600 kg) y AE-123-CD
 (5000 kg) disponibles; AC-789-GH en mantenimiento; AF-456-EF en viaje."""
 import io
-from datetime import timedelta
-from decimal import Decimal
+from datetime import datetime, time, timedelta
 from unittest import mock
 
 from django.core.management import call_command
@@ -31,19 +30,21 @@ class BaseReglas(TestCase):
 
     def registrar(self, **cambios):
         datos = dict(
-            cliente=self.cliente, fecha_servicio=self.dia(), origen='Av. Belgrano 100, Salta',
-            destino='Mitre 50, Cerrillos', ids_servicios=[self.local.id_servicio, self.flete.id_servicio],
-            patente='AD-321-JK',
-            items=[{'descripcion': 'Heladera', 'cantidad': 1, 'peso': Decimal('80'), 'fragil': True},
-                   {'descripcion': 'Cajas', 'cantidad': 10, 'peso': Decimal('12.5'), 'fragil': False}])
+            cliente=self.cliente, fecha_servicio=self.dia(), hora_servicio=time(9, 0),
+            origen='Av. Belgrano 100, Salta', destino='Mitre 50, Cerrillos',
+            id_servicio=self.local.id_servicio, patente='AD-321-JK',
+            items=[{'descripcion': 'Heladera', 'cantidad': 1, 'fragil': True},
+                   {'descripcion': 'Cajas', 'cantidad': 10, 'fragil': False}])
         datos.update(cambios)
         return reglas.registrar_pedido(**datos)
 
-    def assertRechaza(self, campo, **cambios):
+    def assertRechaza(self, campo, mensaje=None, **cambios):
         antes = Pedido.objects.count()
         with self.assertRaises(reglas.ErrorPedido) as ctx:
             self.registrar(**cambios)
         self.assertIn(campo, ctx.exception.errores)
+        if mensaje:
+            self.assertEqual(ctx.exception.errores[campo], mensaje)
         self.assertEqual(Pedido.objects.count(), antes)
 
 
@@ -53,12 +54,16 @@ class RegistrarPedidoTest(BaseReglas):
         self.assertEqual(p.estado, Pedido.PENDIENTE)
         self.assertEqual(p.Fecha_pedido, timezone.localdate())
         self.assertEqual(p.idUsuario, self.cliente)
-        self.assertEqual(p.total, Decimal('260000'))
-        self.assertEqual(
-            sorted((d.idServicio.Tipo_servicio, d.precio_unitario, d.subtotal) for d in p.detalles.all()),
-            [('Flete urbano', 75000, 75000), ('Mudanza local', 185000, 185000)])
-        self.assertEqual(sorted(i.Descripcion for i in p.inventario.all()), ['Cajas', 'Heladera'])
-        self.assertEqual(p.peso_total, Decimal('205'))
+        self.assertEqual(p.hora_servicio, time(9, 0))
+        self.assertEqual(sorted((i.Descripcion, i.Cantidad, i.Fragil) for i in p.inventario.all()),
+                         [('Cajas', 10, False), ('Heladera', 1, True)])
+
+    def test_un_solo_detalle_y_el_total_es_el_precio_del_servicio(self):
+        p = self.registrar(id_servicio=self.flete.id_servicio)
+        detalle = p.detalles.get()
+        self.assertEqual((detalle.idServicio, detalle.precio_unitario, detalle.subtotal),
+                         (self.flete, 75000, 75000))
+        self.assertEqual(p.total, self.flete.Precio_base)
 
     def test_el_precio_queda_fijo_en_el_pedido(self):
         p = self.registrar()
@@ -72,7 +77,39 @@ class RegistrarPedidoTest(BaseReglas):
         self.assertRechaza('fecha_servicio', fecha_servicio=self.dia(366))
 
     def test_se_puede_para_hoy(self):
-        self.assertEqual(self.registrar(fecha_servicio=self.dia(0)).estado, Pedido.PENDIENTE)
+        if timezone.localtime().time() >= reglas.HORA_HASTA:
+            self.skipTest('Después de las 20:00 ya no queda hora válida para hoy.')
+        p = self.registrar(fecha_servicio=self.dia(0), hora_servicio=reglas.HORA_HASTA)
+        self.assertEqual(p.estado, Pedido.PENDIENTE)
+
+    def test_hora_vacia(self):
+        self.assertRechaza('hora_servicio', 'Elegí la hora de inicio.', hora_servicio=None)
+
+    def test_hora_fuera_de_horario(self):
+        mensaje = 'La mudanza puede empezar entre las 07:00 y las 20:00.'
+        self.assertRechaza('hora_servicio', mensaje, hora_servicio=time(6, 59))
+        self.assertRechaza('hora_servicio', mensaje, hora_servicio=time(20, 1))
+
+    def test_hora_en_los_limites(self):
+        self.assertEqual(self.registrar(hora_servicio=time(7, 0)).hora_servicio, time(7, 0))
+        p = self.registrar(hora_servicio=time(20, 0), fecha_servicio=self.dia(2))
+        self.assertEqual(p.hora_servicio, time(20, 0))
+
+    def test_para_hoy_una_hora_que_ya_paso(self):
+        hora = (timezone.localtime() - timedelta(hours=1)).time()
+        if not reglas.HORA_DESDE <= hora <= reglas.HORA_HASTA:
+            self.skipTest('Hace una hora estaba fuera del horario de mudanzas.')
+        self.assertRechaza('hora_servicio', 'Para hoy, elegí una hora que todavía no pasó.',
+                           fecha_servicio=self.dia(0), hora_servicio=hora)
+
+    def test_para_hoy_con_el_reloj_fijo_a_las_15(self):
+        # La misma regla sin depender de la hora en que corre la prueba
+        ahora = timezone.make_aware(datetime.combine(timezone.localdate(), time(15, 0)))
+        with mock.patch('django.utils.timezone.now', return_value=ahora):
+            self.assertRechaza('hora_servicio', 'Para hoy, elegí una hora que todavía no pasó.',
+                               fecha_servicio=self.dia(0), hora_servicio=time(15, 0))
+            p = self.registrar(fecha_servicio=self.dia(0), hora_servicio=time(15, 15))
+        self.assertEqual(p.hora_servicio, time(15, 15))
 
     def test_origen_vacio(self):
         self.assertRechaza('origen', origen='   ')
@@ -80,35 +117,39 @@ class RegistrarPedidoTest(BaseReglas):
     def test_destino_igual_al_origen(self):
         self.assertRechaza('destino', destino='AV. BELGRANO 100, SALTA')
 
-    def test_sin_servicios(self):
-        self.assertRechaza('servicios', ids_servicios=[])
+    def test_sin_servicio(self):
+        self.assertRechaza('servicio', 'Elegí un servicio.', id_servicio=None)
+
+    def test_servicio_inexistente(self):
+        self.assertRechaza('servicio', 'Ese servicio ya no está disponible.', id_servicio=999999)
 
     def test_servicio_inactivo(self):
         Servicio.objects.filter(pk=self.flete.pk).update(Activo=False)
-        self.assertRechaza('servicios')
+        self.assertRechaza('servicio', 'Ese servicio ya no está disponible.', id_servicio=self.flete.id_servicio)
 
     def test_sin_objetos(self):
-        self.assertRechaza('inventario', items=[])
+        self.assertRechaza('inventario', 'Agregá al menos un objeto.', items=[])
 
-    def test_objeto_sin_descripcion(self):
-        self.assertRechaza('inventario', items=[{'descripcion': '', 'cantidad': 1, 'peso': 5}])
+    def test_objeto_fuera_de_la_lista(self):
+        self.assertRechaza('inventario', 'Objeto 2: elegilo de la lista.',
+                           items=[{'descripcion': 'Sillas', 'cantidad': 1},
+                                  {'descripcion': 'Piano', 'cantidad': 1}])
+        self.assertRechaza('inventario', 'Objeto 1: elegilo de la lista.',
+                           items=[{'descripcion': '', 'cantidad': 1}])
 
     def test_cantidad_fuera_de_rango(self):
-        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 0, 'peso': 5}])
-        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 1000, 'peso': 1}])
+        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 0}])
+        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 1000}])
 
-    def test_peso_fuera_de_rango(self):
-        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 1, 'peso': 0}])
-        self.assertRechaza('inventario', items=[{'descripcion': 'Piano', 'cantidad': 1, 'peso': 5001}])
+    def test_la_lista_fija_de_objetos(self):
+        self.assertEqual(len(reglas.OBJETOS_INVENTARIO), 19)
+        self.assertEqual((reglas.OBJETOS_INVENTARIO[0], reglas.OBJETOS_INVENTARIO[-1]), ('Heladera', 'Plantas'))
 
     def test_sin_vehiculo(self):
         self.assertRechaza('vehiculo', patente='')
 
     def test_vehiculo_en_mantenimiento(self):
         self.assertRechaza('vehiculo', patente='AC-789-GH')
-
-    def test_carga_supera_la_capacidad(self):
-        self.assertRechaza('vehiculo', items=[{'descripcion': 'Máquinas', 'cantidad': 2, 'peso': 850}])
 
     def test_vehiculo_ocupado_ese_dia(self):
         self.registrar()
@@ -194,8 +235,8 @@ class TransicionesTest(BaseReglas):
 
 class FiltrarPedidosTest(BaseReglas):
     def setUp(self):
-        self.p1 = self.registrar(fecha_servicio=self.dia(1), ids_servicios=[self.local.id_servicio])
-        self.p2 = self.registrar(fecha_servicio=self.dia(5), ids_servicios=[self.flete.id_servicio])
+        self.p1 = self.registrar(fecha_servicio=self.dia(1), id_servicio=self.local.id_servicio)
+        self.p2 = self.registrar(fecha_servicio=self.dia(5), id_servicio=self.flete.id_servicio)
         reglas.confirmar(self.p2.pk)
         self.viejo = Pedido.objects.get(estado=Pedido.FINALIZADO)  # 20/09/2026, Mudanza local
 

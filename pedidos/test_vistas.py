@@ -1,7 +1,6 @@
 """Pruebas de las pantallas del pedido: permisos, consulta y detalle."""
 import io
-from datetime import timedelta
-from decimal import Decimal
+from datetime import time, timedelta
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -34,9 +33,9 @@ class BaseVistas(TestCase):
 
     def pedido_de(self, cliente, dias=1, patente='AD-321-JK'):
         return reglas.registrar_pedido(
-            cliente, timezone.localdate() + timedelta(days=dias), 'Origen 1', 'Destino 2',
-            [self.local.id_servicio], patente,
-            [{'descripcion': 'Cajas', 'cantidad': 2, 'peso': Decimal('10'), 'fragil': False}])
+            cliente, timezone.localdate() + timedelta(days=dias), time(9, 0), 'Origen 1', 'Destino 2',
+            self.local.id_servicio, patente,
+            [{'descripcion': 'Cajas', 'cantidad': 2, 'fragil': False}])
 
 
 class PermisosTest(BaseVistas):
@@ -109,11 +108,11 @@ class ConsultaTest(BaseVistas):
 class RegistrarPantallaTest(BaseVistas):
     def datos(self, **cambios):
         manana = (timezone.localdate() + timedelta(days=1)).isoformat()
-        d = {'fecha_servicio': manana, 'origen': 'Av. Belgrano 100', 'destino': 'Mitre 50',
-             'servicios': [self.local.id_servicio], 'vehiculo': 'AD-321-JK',
+        d = {'fecha_servicio': manana, 'hora_servicio': '10:15', 'origen': 'Av. Belgrano 100',
+             'destino': 'Mitre 50', 'servicio': self.local.id_servicio, 'vehiculo': 'AD-321-JK',
              'inv-TOTAL_FORMS': '2', 'inv-INITIAL_FORMS': '0', 'inv-MIN_NUM_FORMS': '1', 'inv-MAX_NUM_FORMS': '50',
-             'inv-0-descripcion': 'Heladera', 'inv-0-cantidad': '1', 'inv-0-peso': '80', 'inv-0-fragil': 'on',
-             'inv-1-descripcion': 'Cajas', 'inv-1-cantidad': '10', 'inv-1-peso': '12.5'}
+             'inv-0-descripcion': 'Heladera', 'inv-0-cantidad': '1', 'inv-0-fragil': 'on',
+             'inv-1-descripcion': 'Cajas', 'inv-1-cantidad': '10'}
         d.update(cambios)
         return d
 
@@ -123,13 +122,35 @@ class RegistrarPantallaTest(BaseVistas):
         p = Pedido.objects.latest('id_pedido')
         self.assertRedirects(r, f'/pedidos/{p.pk}/', fetch_redirect_response=False)
         self.assertEqual((p.idUsuario, p.estado, p.total), (self.cliente, 'Pendiente', 185000))
+        self.assertEqual(p.hora_servicio, time(10, 15))
+        self.assertEqual(p.detalles.get().idServicio, self.local)
         self.assertEqual(p.inventario.count(), 2)
-        self.assertContains(self.client.get(r.url), f'Pedido N° {p.pk} registrado')
+        detalle = self.client.get(r.url)
+        self.assertContains(detalle, f'Pedido N° {p.pk} registrado')
+        self.assertContains(detalle, 'a las 10:15')
+        self.assertContains(self.client.get('/pedidos/'), '10:15')
+
+    def test_el_formulario_ofrece_un_servicio_y_la_lista_de_objetos(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/nuevo/')
+        self.assertContains(r, 'type="radio"')
+        self.assertContains(r, 'name="hora_servicio"')
+        self.assertContains(r, '<option value="Bolsos y valijas">Bolsos y valijas</option>', html=True)
+        self.assertNotContains(r, 'Peso total')
+
+    def test_objeto_fuera_de_la_lista_no_pasa_el_formulario(self):
+        self.entrar(CLIENTE)
+        antes = Pedido.objects.count()
+        r = self.client.post('/pedidos/nuevo/', self.datos(**{'inv-0-descripcion': 'Piano'}))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.context['items'].errors[0])
+        self.assertEqual(Pedido.objects.count(), antes)
 
     def test_error_de_reglas_vuelve_al_formulario_con_los_datos(self):
         self.entrar(CLIENTE)
+        self.pedido_de(self.otro)  # ocupa AD-321-JK mañana
         antes = Pedido.objects.count()
-        r = self.client.post('/pedidos/nuevo/', self.datos(**{'inv-0-peso': '1700'}))
+        r = self.client.post('/pedidos/nuevo/', self.datos())
         self.assertEqual(r.status_code, 200)
         self.assertIn('vehiculo', r.context['form'].errors)
         self.assertContains(r, 'Av. Belgrano 100')
@@ -138,7 +159,7 @@ class RegistrarPantallaTest(BaseVistas):
     def test_sin_objetos(self):
         self.entrar(CLIENTE)
         r = self.client.post('/pedidos/nuevo/', self.datos(**{
-            'inv-TOTAL_FORMS': '1', 'inv-0-descripcion': '', 'inv-0-cantidad': '', 'inv-0-peso': ''}))
+            'inv-TOTAL_FORMS': '1', 'inv-0-descripcion': '', 'inv-0-cantidad': ''}))
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.context['items'].non_form_errors() or r.context['items'].errors[0])
 
@@ -153,6 +174,7 @@ class RegistrarPantallaTest(BaseVistas):
         r = self.client.get('/pedidos/vehiculos-libres/', {'fecha': manana}).json()
         self.assertEqual([v['patente'] for v in r['vehiculos']], ['AE-123-CD'])
         self.assertEqual(r['vehiculos'][0]['capacidad_kg'], 5000.0)
+        self.assertIn('capacidad_m3', r['vehiculos'][0])
         self.assertEqual(self.client.get('/pedidos/vehiculos-libres/', {'fecha': 'mal'}).json(), {'vehiculos': []})
 
 
@@ -218,6 +240,8 @@ class ComprobanteTest(BaseVistas):
         self.assertContains(r, f'Pedido N° {self.p.pk}')
         self.assertContains(r, 'Mudanza local')
         self.assertContains(r, '185.000,00')
+        self.assertContains(r, 'a las 09:00')
+        self.assertNotContains(r, 'Peso total')
         self.assertContains(r, 'window.print()')
 
     def test_el_comprobante_ajeno_da_404(self):

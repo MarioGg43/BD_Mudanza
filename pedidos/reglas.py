@@ -4,8 +4,7 @@ Las vistas solo arman los datos y muestran el resultado: todo lo que decide si u
 pedido es válido, cuánto cuesta y a qué estado pasa vive acá. Cada operación que
 escribe corre en una transacción: o se guarda todo, o no se guarda nada.
 """
-from datetime import timedelta
-from decimal import Decimal, InvalidOperation
+from datetime import time, timedelta
 
 from django.db import transaction
 from django.utils import timezone
@@ -14,8 +13,14 @@ from usuarios.models import DetallePedido, InventarioDetalle, Pedido, Servicio, 
 
 MAX_DIAS_ADELANTO = 365
 MAX_CANTIDAD = 999
-MAX_PESO_UNITARIO = Decimal('5000')
 MAX_DIRECCION = 200
+HORA_DESDE = time(7, 0)
+HORA_HASTA = time(20, 0)
+OBJETOS_INVENTARIO = (
+    'Heladera', 'Cocina', 'Lavarropas', 'Microondas', 'Cama 1 plaza', 'Cama 2 plazas', 'Colchón',
+    'Ropero', 'Cómoda', 'Mesa', 'Sillas', 'Sillón', 'Televisor', 'Escritorio', 'Biblioteca',
+    'Cajas', 'Bolsos y valijas', 'Bicicleta', 'Plantas',
+)
 
 
 def tiene_pedidos_activos(**filtro):
@@ -51,6 +56,15 @@ def _validar_fecha(fecha, errores):
         errores['fecha_servicio'] = 'Se puede reservar con un año de anticipación como máximo.'
 
 
+def _validar_hora(fecha, hora, errores):
+    if not hora:
+        errores['hora_servicio'] = 'Elegí la hora de inicio.'
+    elif not HORA_DESDE <= hora <= HORA_HASTA:
+        errores['hora_servicio'] = 'La mudanza puede empezar entre las 07:00 y las 20:00.'
+    elif fecha == timezone.localdate() and hora <= timezone.localtime().time():
+        errores['hora_servicio'] = 'Para hoy, elegí una hora que todavía no pasó.'
+
+
 def _validar_direcciones(origen, destino, errores):
     for campo, valor, nombre in (('origen', origen, 'origen'), ('destino', destino, 'destino')):
         if not valor:
@@ -61,14 +75,14 @@ def _validar_direcciones(origen, destino, errores):
         errores['destino'] = 'El destino tiene que ser distinto del origen.'
 
 
-def _validar_servicios(ids_servicios, errores):
-    ids = {int(i) for i in ids_servicios or []}
-    servicios = list(Servicio.objects.filter(id_servicio__in=ids, Activo=True))
-    if not ids:
-        errores['servicios'] = 'Elegí al menos un servicio.'
-    elif len(servicios) != len(ids):
-        errores['servicios'] = 'Uno de los servicios elegidos ya no está disponible.'
-    return servicios
+def _validar_servicio(id_servicio, errores):
+    if id_servicio is None:
+        errores['servicio'] = 'Elegí un servicio.'
+        return None
+    servicio = Servicio.objects.filter(id_servicio=id_servicio, Activo=True).first()
+    if not servicio:
+        errores['servicio'] = 'Ese servicio ya no está disponible.'
+    return servicio
 
 
 def _validar_items(items, errores):
@@ -80,30 +94,28 @@ def _validar_items(items, errores):
         descripcion = (item.get('descripcion') or '').strip()
         try:
             cantidad = int(item.get('cantidad'))
-            peso = Decimal(str(item.get('peso')))
-        except (TypeError, ValueError, InvalidOperation):
-            errores['inventario'] = f'Objeto {n}: la cantidad y el peso tienen que ser números.'
+        except (TypeError, ValueError):
+            errores['inventario'] = f'Objeto {n}: la cantidad tiene que ser un número.'
             continue
-        if not descripcion:
-            errores['inventario'] = f'Objeto {n}: escribí qué es.'
+        if descripcion not in OBJETOS_INVENTARIO:
+            errores['inventario'] = f'Objeto {n}: elegilo de la lista.'
         elif not 1 <= cantidad <= MAX_CANTIDAD:
             errores['inventario'] = f'Objeto {n}: la cantidad va de 1 a {MAX_CANTIDAD}.'
-        elif not Decimal('0') < peso <= MAX_PESO_UNITARIO:
-            errores['inventario'] = f'Objeto {n}: el peso tiene que ser mayor a 0 y de hasta {MAX_PESO_UNITARIO} kg.'
         else:
-            limpios.append({'descripcion': descripcion[:100], 'cantidad': cantidad,
-                            'peso': peso, 'fragil': bool(item.get('fragil'))})
+            limpios.append({'descripcion': descripcion, 'cantidad': cantidad,
+                            'fragil': bool(item.get('fragil'))})
     return limpios
 
 
-def registrar_pedido(cliente, fecha_servicio, origen, destino, ids_servicios, patente, items):
-    """Registra el pedido completo (cabecera, servicios e inventario) en una sola
+def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente, items):
+    """Registra el pedido completo (cabecera, servicio e inventario) en una sola
     transacción y lo deja Pendiente. Si algo no es válido lanza ErrorPedido."""
     errores = {}
     origen, destino = (origen or '').strip(), (destino or '').strip()
     _validar_fecha(fecha_servicio, errores)
+    _validar_hora(fecha_servicio, hora_servicio, errores)
     _validar_direcciones(origen, destino, errores)
-    servicios = _validar_servicios(ids_servicios, errores)
+    servicio = _validar_servicio(id_servicio, errores)
     limpios = _validar_items(items, errores)
     if not patente:
         errores['vehiculo'] = 'Elegí un vehículo.'
@@ -118,21 +130,16 @@ def registrar_pedido(cliente, fecha_servicio, origen, destino, ids_servicios, pa
         vehiculo = Vehiculo.objects.select_for_update().filter(patente=patente).first()
         if not vehiculo or not vehiculos_libres(fecha_servicio).filter(patente=patente).exists():
             raise ErrorPedido({'vehiculo': 'Ese vehículo no está libre para esa fecha. Elegí otro.'})
-        peso_total = sum(i['cantidad'] * i['peso'] for i in limpios)
-        if peso_total > vehiculo.capacidad_kg:
-            raise ErrorPedido({'vehiculo': f'La carga ({peso_total} kg) supera la capacidad '
-                                           f'del vehículo ({vehiculo.capacidad_kg} kg).'})
 
         pedido = Pedido.objects.create(
             patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=timezone.localdate(),
-            fecha_servicio=fecha_servicio, origen=origen, destino=destino,
-            estado=Pedido.PENDIENTE, total=sum(s.Precio_base for s in servicios))
-        DetallePedido.objects.bulk_create([
-            DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=s.Precio_base, subtotal=s.Precio_base)
-            for s in servicios])
+            fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, origen=origen, destino=destino,
+            estado=Pedido.PENDIENTE, total=servicio.Precio_base)
+        DetallePedido.objects.create(idPedido=pedido, idServicio=servicio,
+                                     precio_unitario=servicio.Precio_base, subtotal=servicio.Precio_base)
         InventarioDetalle.objects.bulk_create([
             InventarioDetalle(idPedido=pedido, Descripcion=i['descripcion'], Cantidad=i['cantidad'],
-                              Peso=i['peso'], Fragil=i['fragil'])
+                              Fragil=i['fragil'])
             for i in limpios])
     return pedido
 

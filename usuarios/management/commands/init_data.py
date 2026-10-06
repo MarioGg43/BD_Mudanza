@@ -1,5 +1,4 @@
-from datetime import date
-from decimal import Decimal
+from datetime import date, time
 
 from django.core.management.base import BaseCommand
 
@@ -127,14 +126,13 @@ class Command(BaseCommand):
             servicio = Servicio.objects.get(Tipo_servicio='Mudanza local')
             pedido = Pedido.objects.create(
                 patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=date(2026, 9, 15),
-                fecha_servicio=date(2026, 9, 20), origen='Av. Belgrano 1250, Salta',
+                fecha_servicio=date(2026, 9, 20), hora_servicio=time(9, 0), origen='Av. Belgrano 1250, Salta',
                 destino='Los Ceibos 340, Cerrillos', estado=Pedido.FINALIZADO,
                 total=servicio.Precio_base)
             DetallePedido.objects.create(idPedido=pedido, idServicio=servicio,
                                          precio_unitario=servicio.Precio_base,
                                          subtotal=servicio.Precio_base)
-            InventarioDetalle.objects.create(idPedido=pedido, Descripcion='Cajas de libros',
-                                             Peso=Decimal('7.63'), Cantidad=42, Fragil=True)
+            InventarioDetalle.objects.create(idPedido=pedido, Descripcion='Cajas', Cantidad=42, Fragil=True)
             cobranza = Cobranza.objects.create(Monto_cob=185000, Met_pag_cob='Transferencia')
             DetalleCobranza.objects.create(idPedido=pedido, idCobranza=cobranza)
             self.stdout.write(self.style.SUCCESS(
