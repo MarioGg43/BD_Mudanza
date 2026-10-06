@@ -95,8 +95,10 @@ def pantalla_inicio(usuario):
     p = permisos_de(usuario)
     if 'USR_CONSULTAR' in p:
         return redirect('admin_dashboard')
-    if p & {'PED_GESTIONAR', 'PED_REGISTRAR', 'PED_CONSULTAR'}:
+    if 'PED_CONSULTAR' in p:
         return redirect('pedidos_lista')
+    if 'PED_REGISTRAR' in p:
+        return redirect('pedidos_nuevo')
     if 'MUDANZAS_OPERAR' in p:
         return redirect('usuario_portal')
     return redirect('sin_permisos')

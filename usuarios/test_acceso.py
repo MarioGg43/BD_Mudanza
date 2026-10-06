@@ -103,3 +103,24 @@ class GestorActivoTest(BaseAcceso):
         admin = Usuario.objects.get(DNI=ADMIN)
         self.assertEqual(error_baja_gestor(admin), MENSAJE_SIN_GESTOR)
         self.assertIsNone(error_baja_gestor(Usuario.objects.get(DNI=CHOFER)))
+
+
+class InicioParcialTest(BaseAcceso):
+    def test_solo_registrar_va_a_pedir_mudanza(self):
+        PermisoRol.objects.create(idRol=self.vacio, idPermiso=Permiso.objects.get(nom_permiso='PED_REGISTRAR'))
+        self.entrar(20333444)
+        self.assertRedirects(self.client.get('/'), '/pedidos/nuevo/')
+
+    def test_gestionar_sin_consultar_y_portal_va_al_portal(self):
+        for c in ('PED_GESTIONAR', 'MUDANZAS_OPERAR'):
+            PermisoRol.objects.create(idRol=self.vacio, idPermiso=Permiso.objects.get(nom_permiso=c))
+        self.entrar(20333444)
+        self.assertRedirects(self.client.get('/'), '/portal/')
+
+    def test_cambiar_rol_del_unico_gestor_por_http(self):
+        PermisoRol.objects.create(idRol=self.recepcion, idPermiso=Permiso.objects.get(nom_permiso='USR_CAMBIAR_ROL'))
+        self.entrar(20111222)
+        r = self.client.post(f'/usuarios/{ADMIN}/cambiar-rol/', {'idRol': Rol.objects.get(nom_rol='Chofer').id_rol})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()['error'],
+                         'El sistema tiene que quedar con al menos un usuario activo que pueda gestionar roles.')

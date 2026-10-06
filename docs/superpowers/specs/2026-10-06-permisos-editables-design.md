@@ -88,9 +88,10 @@ Todo vive en `usuarios/permisos.py`:
 - `pantalla_inicio(usuario)`: la redirección después del login. Elige la primera
   que corresponda:
   1. `admin_dashboard`, si tiene USR_CONSULTAR;
-  2. `pedidos_lista`, si tiene PED_GESTIONAR, PED_REGISTRAR o PED_CONSULTAR;
-  3. `usuario_portal`, si tiene MUDANZAS_OPERAR;
-  4. si no tiene ninguno, `sin_permisos`.
+  2. `pedidos_lista`, si tiene PED_CONSULTAR;
+  3. `pedidos_nuevo`, si tiene PED_REGISTRAR;
+  4. `usuario_portal`, si tiene MUDANZAS_OPERAR;
+  5. si no tiene ninguno, `sin_permisos`.
 
 `pedidos/permisos.py` pasa a reexportar `tiene_permiso` y `requiere_permiso` desde
 `usuarios.permisos`.
