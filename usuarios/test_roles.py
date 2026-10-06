@@ -102,3 +102,6 @@ class RolesTest(TestCase):
         with self.assertRaises(ErrorRol) as ctx:
             guardar_rol(gestor, 'Gestor', '', [], actor)
         self.assertEqual(ctx.exception.errores['permisos'], MENSAJE_SIN_GESTOR)
+
+    def test_el_panel_tiene_un_solo_enlace_a_roles(self):
+        self.assertEqual(self.client.get('/panel/').content.decode().count('href="/roles/"'), 1)

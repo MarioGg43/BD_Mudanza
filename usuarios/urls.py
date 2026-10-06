@@ -24,10 +24,6 @@ urlpatterns = [
     path('roles/<int:id_rol>/editar/', roles.editar, name='roles_editar'),
     path('roles/<int:id_rol>/eliminar/', roles.eliminar, name='roles_eliminar'),
 
-    path('roles/', roles.lista, name='roles_lista'),
-    path('roles/nuevo/', roles.crear, name='roles_crear'),
-    path('roles/<int:id_rol>/editar/', roles.editar, name='roles_editar'),
-    path('roles/<int:id_rol>/eliminar/', roles.eliminar, name='roles_eliminar'),
 
 ]
 
