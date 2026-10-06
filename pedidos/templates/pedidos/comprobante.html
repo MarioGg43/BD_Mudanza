@@ -5,26 +5,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprobante — Pedido N° {{ pedido.id_pedido }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; color: #1c1006; margin: 0; background: #f4f1ee; }
-        .hoja { background: #fff; max-width: 800px; margin: 24px auto; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ea580c; padding-bottom: 12px; }
-        header img { height: 56px; background: #1c1006; padding: 6px; border-radius: 6px; }
-        h1 { font-size: 20px; margin: 0; }
-        h2 { font-size: 13px; text-transform: uppercase; color: #7c6f64; margin: 20px 0 6px; }
+        :root {
+            --naranja: #FF7A00; --rojo: #E10E0E; --naranja-osc: #C04F00; --naranja-suave: #FFF0E2;
+            --grad: linear-gradient(128deg, #FF8A00 0%, #FF5E08 48%, #E10E0E 100%);
+            --tinta: #231A15; --tinta-2: #5E524B; --linea: #EEE4DD; --fondo: #FAF6F3;
+        }
+        body { font-family: 'Poppins', Arial, sans-serif; color: var(--tinta); margin: 0; background: var(--fondo); }
+        .hoja { background: #fff; max-width: 800px; margin: 24px auto; padding: 32px; border: 1px solid var(--linea); border-radius: 16px; box-shadow: 0 6px 18px -10px rgba(70, 30, 5, .25); }
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 4px solid var(--naranja); border-image: var(--grad) 1; }
+        header img { height: 56px; }
+        h1 { font-size: 20px; margin: 0; color: var(--tinta); }
+        h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--naranja-osc); margin: 22px 0 6px; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { border-bottom: 1px solid #e7ddd3; padding: 6px; text-align: left; }
+        th { color: var(--tinta-2); font-weight: 600; }
+        th, td { border-bottom: 1px solid var(--linea); padding: 6px; text-align: left; }
         .num { text-align: right; }
-        .total td { font-weight: bold; border-top: 2px solid #1c1006; }
+        .total td { font-weight: bold; border-top: 2px solid var(--tinta); }
         .datos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 14px; }
-        .anulado { border: 2px solid #b91c1c; color: #b91c1c; padding: 8px 12px; margin-top: 16px; font-weight: bold; }
-        .pie { font-size: 12px; color: #7c6f64; margin-top: 24px; }
+        .anulado { border: 2px solid var(--rojo); color: #B30B0B; padding: 8px 12px; margin-top: 16px; font-weight: bold; border-radius: 8px; }
+        .pie { font-size: 12px; color: var(--tinta-2); margin-top: 24px; }
         .acciones { text-align: center; margin: 16px; }
-        .acciones button, .acciones a { font-size: 15px; padding: 8px 18px; margin: 0 4px; }
+        .acciones button, .acciones a {
+            font-family: inherit; font-size: 15px; font-weight: 600; padding: 9px 20px; margin: 0 4px;
+            border-radius: 12px; cursor: pointer; text-decoration: none; display: inline-block;
+        }
+        .acciones button { background: var(--grad); color: #fff; border: none; }
+        .acciones a { background: #fff; color: var(--tinta); border: 1.5px solid var(--linea); }
+        .acciones a:hover { border-color: var(--naranja); background: var(--naranja-suave); color: var(--naranja-osc); }
+        :focus-visible { outline: 2.5px solid var(--naranja); outline-offset: 2px; }
         @media print {
-            body { background: #fff; }
-            .hoja { box-shadow: none; margin: 0; max-width: none; }
+            body { background: #fff; color: #000; }
+            .hoja { box-shadow: none; margin: 0; max-width: none; border: none; border-radius: 0; padding: 0; }
             .acciones { display: none; }
+            header { border-bottom: 3px solid var(--naranja-osc); border-image: none; }
+            h1, td { color: #000; }
+            h2 { color: var(--naranja-osc); }
+            th, .pie { color: #333; }
+            .anulado { color: #000; border-color: #000; }
         }
     </style>
 </head>

@@ -7,64 +7,35 @@
     <title>{% block title %}Mudanzas y Fletes Salta{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #ea580c;
-            --primary-dark: #c2410c;
-            --accent-gold: #faa307;
-            --secondary-color: #1c1006;
-            --bg-light: #fffaf5;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-light);
-        }
-        .navbar-brand-custom {
-            background: linear-gradient(135deg, #1c1006 0%, #431407 100%);
-        }
-        .btn-success {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        .btn-success:hover, .btn-success:focus {
-            background-color: var(--primary-dark);
-            border-color: var(--primary-dark);
-        }
-        a {
-            color: var(--primary-dark);
-        }
-        .card-panel {
-            border-radius: 1rem;
-            border: 1px solid #f1e4d8;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/marca.css' %}">
 </head>
 <body>
 
-    <header class="navbar-brand-custom text-white py-3 mb-4 shadow-sm">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="{% url 'inicio' %}" class="text-white text-decoration-none fs-4 fw-bold d-flex align-items-center">
-                <img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta" class="me-2" style="height: 42px; width: auto;">Mudanzas y Fletes Salta
+    <header class="navbar-brand-custom text-white py-3 mb-4">
+        <div class="container d-flex flex-wrap gap-3 justify-content-between align-items-center">
+            <a href="{% url 'inicio' %}" class="text-white text-decoration-none fs-5 fw-bold d-flex align-items-center">
+                <span class="logo-pastilla me-2"><img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta"></span>Mudanzas y Fletes Salta
             </a>
-            <nav class="d-flex flex-wrap align-items-center gap-3 small text-uppercase fw-semibold">
-                {% with rol=request.session.usuario_rol %}
+            <nav class="menu-marca d-flex flex-wrap align-items-center gap-1 small text-uppercase fw-semibold">
+                {% with rol=request.session.usuario_rol ruta=request.path vista=request.resolver_match.url_name %}
                 {% if rol == 'Administrador' %}
-                <a href="{% url 'admin_dashboard' %}" class="text-white-50 text-decoration-none">Panel</a>
-                <a href="{% url 'lista_vehiculos' %}" class="text-white-50 text-decoration-none">Vehículos</a>
-                <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Pedidos</a>
-                <a href="{% url 'servicios_lista' %}" class="text-white-50 text-decoration-none">Servicios</a>
+                <a href="{% url 'admin_dashboard' %}">Panel</a>
+                <a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}>Vehículos</a>
+                <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta %} class="activo" aria-current="page"{% endif %}>Pedidos</a>
+                <a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}>Servicios</a>
                 {% elif rol == 'Cliente' %}
-                <a href="{% url 'pedidos_lista' %}" class="text-white-50 text-decoration-none">Mis pedidos</a>
-                <a href="{% url 'pedidos_nuevo' %}" class="text-white-50 text-decoration-none">Pedir mudanza</a>
+                <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta and vista != 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>Mis pedidos</a>
+                <a href="{% url 'pedidos_nuevo' %}"{% if vista == 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>Pedir mudanza</a>
                 {% elif rol %}
-                <a href="{% url 'usuario_portal' %}" class="text-white-50 text-decoration-none">Portal</a>
+                <a href="{% url 'usuario_portal' %}">Portal</a>
                 {% endif %}
                 {% if request.session.usuario_dni %}
-                <a href="{% url 'logout' %}" class="text-white text-decoration-none">Salir <i class="bi bi-box-arrow-right ms-1"></i></a>
+                <a href="{% url 'logout' %}">Salir <i class="bi bi-box-arrow-right ms-1"></i></a>
                 {% else %}
-                <a href="{% url 'login' %}" class="text-white text-decoration-none">Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i></a>
+                <a href="{% url 'login' %}">Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i></a>
                 {% endif %}
                 {% endwith %}
             </nav>
@@ -84,7 +55,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="text-center text-muted small py-3 border-top">
+    <footer class="pie-marca text-center small py-3">
         <div class="container">
             &copy; 2026 Mudanzas y Fletes Salta - Grupo 5.
         </div>

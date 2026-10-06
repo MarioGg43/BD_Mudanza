@@ -1,1 +1,1 @@
-<span class="badge {% if estado == 'Pendiente' %}text-bg-warning{% elif estado == 'Confirmado' %}text-bg-primary{% elif estado == 'Finalizado' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ estado }}</span>
+<span class="estado {% if estado == 'Pendiente' %}estado-pendiente{% elif estado == 'Confirmado' %}estado-confirmado{% elif estado == 'Finalizado' %}estado-finalizado{% else %}estado-anulado{% endif %}">{{ estado }}</span>

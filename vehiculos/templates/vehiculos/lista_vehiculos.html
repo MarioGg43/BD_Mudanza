@@ -15,13 +15,13 @@
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for vehiculo in vehiculos %}
     <div class="col">
-        <div class="card-panel bg-white p-3 h-100 d-flex flex-column">
+        <div class="card-panel p-3 h-100 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
                     <h2 class="h5 fw-bold mb-0">{{ vehiculo.patente }}</h2>
                     <span class="text-muted small">{{ vehiculo.tipo_vehiculo }}</span>
                 </div>
-                <span class="small fw-semibold text-end {% if vehiculo.estado == 'Fuera de Servicio' %}text-danger{% endif %}">{{ vehiculo.estado }}</span>
+                <span class="estado {% if vehiculo.estado == 'Disponible' %}estado-activo{% elif vehiculo.estado == 'Fuera de Servicio' %}estado-baja{% elif vehiculo.estado == 'En Mantenimiento' %}estado-pendiente{% else %}estado-marca{% endif %}">{{ vehiculo.estado }}</span>
             </div>
 
             <p class="mb-1">{{ vehiculo.marca_modelo }}</p>
@@ -44,7 +44,7 @@
                 </div>
 
                 <div class="collapse mt-2" id="confirmar-{{ vehiculo.patente }}">
-                    <div class="border rounded-3 p-2 bg-light">
+                    <div class="border rounded-3 p-2 bg-fondo">
                         <p class="small mb-2">¿Dar de baja el vehículo "{{ vehiculo.patente }}"? Queda fuera de servicio y se puede reactivar editando su estado.</p>
                         <div class="d-flex gap-2">
                             <form method="post" action="{% url 'bajaVehiculo' vehiculo.patente %}" class="flex-fill">
@@ -63,8 +63,8 @@
     </div>
     {% empty %}
     <div class="col-12">
-        <div class="card-panel bg-white p-5 text-center text-muted">
-            <i class="bi bi-truck fs-1 d-block mb-2 text-secondary"></i>
+        <div class="card-panel p-5 text-center text-muted">
+            <i class="bi bi-truck fs-1 d-block mb-2 text-marca"></i>
             <p class="mb-2">No hay vehículos registrados todavía.</p>
             <a href="{% url 'createVehiculo' %}" class="btn btn-sm btn-success">
                 Registrar el primer vehículo

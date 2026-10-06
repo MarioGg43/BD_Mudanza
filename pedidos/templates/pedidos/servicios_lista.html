@@ -17,7 +17,7 @@
                 <td class="fw-semibold">{{ s.Tipo_servicio }}</td>
                 <td class="text-end">${{ s.Precio_base|floatformat:"2g" }}</td>
                 <td class="small">{% for r in s.recursos.all %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
-                <td>{% if s.Activo %}<span class="badge text-bg-success">Activo</span>{% else %}<span class="badge text-bg-secondary">Dado de baja</span>{% endif %}</td>
+                <td>{% if s.Activo %}<span class="estado estado-activo">Activo</span>{% else %}<span class="estado estado-baja">Dado de baja</span>{% endif %}</td>
                 <td class="text-end text-nowrap">
                     <a href="{% url 'servicios_editar' s.id_servicio %}" class="btn btn-sm btn-warning">Editar</a>
                     {% if s.Activo %}

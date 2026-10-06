@@ -1,0 +1,272 @@
+/*
+ * marca.css — identidad visual de Mudanzas y Fletes Salta.
+ * Mismos colores que la app móvil (app-movil/styles.css) y la sección 5 de la
+ * especificación de ajustes del Hito 3. Se carga después de Bootstrap (pantallas
+ * de vehículos y pedidos) y también sirve sola para las pantallas Tailwind.
+ */
+
+/* ---------- tokens ---------- */
+:root {
+  --naranja: #FF7A00;
+  --rojo: #E10E0E;
+  --coral: #FC7753;
+  --amarillo: #FFC107;
+  --grad: linear-gradient(128deg, #FF8A00 0%, #FF5E08 48%, #E10E0E 100%);
+  --grad-osc: linear-gradient(128deg, #F07F00 0%, #EE5200 48%, #C90C0C 100%);
+  --naranja-osc: #C04F00;
+  --naranja-suave: #FFF0E2;
+  --rojo-osc: #B30B0B;
+  --rojo-suave: #FDE9E9;
+
+  --tinta: #231A15;
+  --tinta-2: #5E524B;
+  --tinta-3: #9A8D85;
+  --linea: #EEE4DD;
+  --fondo: #FAF6F3;
+  --card: #FFFFFF;
+
+  /* estados */
+  --ok: #17784A;    --ok-bg: #E2F3E9;
+  --warn: #875600;  --warn-bg: #FFF2C9;
+  --info: #1E5BB8;  --info-bg: #E5EEFC;
+  --gris: #5E524B;  --gris-bg: #EFE9E4;
+
+  --font: 'Poppins', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  --radio: 16px;
+  --radio-sm: 12px;
+  --sombra: 0 6px 18px -10px rgba(70, 30, 5, .25);
+  --sombra-btn: 0 10px 20px -12px rgba(225, 14, 14, .6);
+  --anillo: 0 0 0 3px rgba(255, 122, 0, .18);
+
+  /* Bootstrap 5.3 lee estas variables: así los componentes heredan la marca */
+  --bs-body-font-family: var(--font);
+  --bs-body-color: var(--tinta);
+  --bs-body-bg: var(--fondo);
+  --bs-border-color: var(--linea);
+  --bs-secondary-color: var(--tinta-2);
+  --bs-link-color: var(--naranja-osc);
+  --bs-link-color-rgb: 192, 79, 0;
+  --bs-link-hover-color: var(--rojo-osc);
+  --bs-link-hover-color-rgb: 179, 11, 11;
+  --bs-primary: var(--naranja);
+  --bs-primary-rgb: 255, 122, 0;
+}
+
+/* ---------- base ---------- */
+body {
+  background-color: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--font);
+}
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 { color: var(--tinta); }
+a { color: var(--naranja-osc); }
+a:hover { color: var(--rojo-osc); }
+.text-muted, .text-secondary { color: var(--tinta-2) !important; }
+.text-marca { color: var(--naranja-osc) !important; }
+.bg-marca, .grad-marca { background: var(--grad) !important; color: #fff; }
+.bg-fondo { background-color: var(--fondo) !important; }
+
+:focus-visible { outline: 2.5px solid var(--naranja); outline-offset: 2px; }
+.btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible,
+.form-check-input:focus-visible, .btn-close:focus-visible {
+  outline: 2.5px solid var(--naranja); outline-offset: 2px; box-shadow: none;
+}
+
+/* ---------- encabezado ---------- */
+.navbar-brand-custom, .encabezado-marca {
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 10px 24px -16px rgba(120, 30, 0, .7);
+}
+.navbar-brand-custom a { color: #fff; }
+.logo-pastilla {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; border-radius: 12px; padding: 4px 8px;
+  box-shadow: 0 6px 14px -8px rgba(90, 20, 0, .6);
+}
+.logo-pastilla img { display: block; height: 34px; width: auto; }
+.menu-marca a {
+  color: #fff; text-decoration: none; padding: 6px 10px; border-radius: 999px;
+  transition: background-color .15s;
+}
+.menu-marca a:hover { color: #fff; background: rgba(255, 255, 255, .18); }
+.menu-marca a.activo, .menu-marca a[aria-current="page"] {
+  background: rgba(255, 255, 255, .24); text-decoration: underline; text-underline-offset: 4px;
+}
+.menu-marca a:focus-visible, .navbar-brand-custom a:focus-visible { outline-color: #fff; }
+
+/* ---------- tarjetas ---------- */
+.card-panel, .tarjeta {
+  background-color: var(--card);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+.card-panel.overflow-hidden .table, .card-panel > .table { margin-bottom: 0; }
+
+/* ---------- héroe (portada) ---------- */
+.heroe-marca {
+  background: var(--grad);
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  box-shadow: 0 24px 40px -26px rgba(170, 30, 0, .8);
+  position: relative;
+  overflow: hidden;
+}
+.heroe-marca h1, .heroe-marca h2, .heroe-marca p { color: #fff; }
+.heroe-marca .texto-suave { color: rgba(255, 255, 255, .92); }
+.etiqueta-blanca {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, .94); color: var(--rojo-osc);
+  font-weight: 600; font-size: .8rem; padding: 6px 12px; border-radius: 999px;
+}
+.icono-marca {
+  display: inline-grid; place-items: center; width: 48px; height: 48px;
+  border-radius: 14px; background: var(--naranja-suave); color: var(--naranja-osc);
+}
+
+/* ---------- botones ---------- */
+.btn { border-radius: var(--radio-sm); font-weight: 500; }
+.btn-success, .btn-primary, .btn-marca {
+  background: var(--grad);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: var(--sombra-btn);
+}
+.btn-success:hover, .btn-primary:hover, .btn-marca:hover,
+.btn-success:focus, .btn-primary:focus, .btn-marca:focus,
+.btn-success:active, .btn-primary:active, .btn-marca:active,
+.btn-success.active, .btn-primary.active {
+  background: var(--grad-osc);
+  color: #fff;
+  border: none;
+}
+.btn-warning {
+  --bs-btn-bg: var(--amarillo);
+  --bs-btn-border-color: var(--amarillo);
+  --bs-btn-color: var(--tinta);
+  --bs-btn-hover-bg: #F2B600;
+  --bs-btn-hover-border-color: #F2B600;
+  --bs-btn-hover-color: var(--tinta);
+  --bs-btn-active-bg: #E5AC00;
+  --bs-btn-active-border-color: #E5AC00;
+  --bs-btn-active-color: var(--tinta);
+  font-weight: 600;
+}
+.btn-danger {
+  --bs-btn-bg: var(--rojo);
+  --bs-btn-border-color: var(--rojo);
+  --bs-btn-hover-bg: var(--rojo-osc);
+  --bs-btn-hover-border-color: var(--rojo-osc);
+  --bs-btn-active-bg: var(--rojo-osc);
+  --bs-btn-active-border-color: var(--rojo-osc);
+}
+.btn-outline-secondary, .btn-outline-primary, .btn-outline-success, .btn-ghost {
+  --bs-btn-color: var(--tinta);
+  --bs-btn-bg: var(--card);
+  --bs-btn-border-color: var(--linea);
+  --bs-btn-hover-color: var(--naranja-osc);
+  --bs-btn-hover-bg: var(--naranja-suave);
+  --bs-btn-hover-border-color: var(--naranja);
+  --bs-btn-active-color: var(--naranja-osc);
+  --bs-btn-active-bg: var(--naranja-suave);
+  --bs-btn-active-border-color: var(--naranja);
+  border-width: 1.5px;
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--rojo-osc);
+  --bs-btn-bg: var(--card);
+  --bs-btn-border-color: #F2C4C4;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--rojo);
+  --bs-btn-hover-border-color: var(--rojo);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--rojo-osc);
+  --bs-btn-active-border-color: var(--rojo-osc);
+  border-width: 1.5px;
+}
+/* botones sobre el degradé */
+.btn-blanco, .btn-light {
+  --bs-btn-color: var(--rojo-osc);
+  --bs-btn-bg: #fff;
+  --bs-btn-border-color: #fff;
+  --bs-btn-hover-color: var(--rojo-osc);
+  --bs-btn-hover-bg: var(--naranja-suave);
+  --bs-btn-hover-border-color: var(--naranja-suave);
+  --bs-btn-active-color: var(--rojo-osc);
+  --bs-btn-active-bg: var(--naranja-suave);
+  font-weight: 600;
+  box-shadow: 0 14px 28px -12px rgba(90, 20, 0, .55);
+}
+.btn-outline-light {
+  --bs-btn-color: #fff;
+  --bs-btn-border-color: rgba(255, 255, 255, .85);
+  --bs-btn-hover-color: var(--rojo-osc);
+  --bs-btn-hover-bg: #fff;
+  --bs-btn-hover-border-color: #fff;
+  border-width: 1.5px;
+  font-weight: 600;
+}
+.heroe-marca .btn:focus-visible { outline-color: #fff; }
+
+/* ---------- formularios ---------- */
+.form-label { font-weight: 600; color: var(--tinta-2); font-size: .9rem; }
+.form-control, .form-select {
+  background-color: var(--card);
+  border-color: var(--linea);
+  border-radius: var(--radio-sm);
+  color: var(--tinta);
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--naranja);
+  box-shadow: var(--anillo);
+}
+.form-control::placeholder { color: var(--tinta-3); }
+.form-check-input:checked {
+  background-color: var(--naranja);
+  border-color: var(--naranja);
+}
+.form-check-input:focus { border-color: var(--naranja); box-shadow: var(--anillo); }
+.form-control.is-invalid, .form-select.is-invalid { border-color: var(--rojo); }
+.invalid-feedback, .text-danger { color: var(--rojo-osc) !important; }
+
+/* ---------- tablas ---------- */
+.table {
+  --bs-table-color: var(--tinta);
+  --bs-table-border-color: var(--linea);
+  --bs-table-hover-bg: var(--naranja-suave);
+  --bs-table-hover-color: var(--tinta);
+}
+.table > thead th, .table-light th {
+  --bs-table-bg: var(--fondo);
+  --bs-table-color: var(--tinta-2);
+  font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+}
+
+/* ---------- alertas ---------- */
+.alert { border-radius: var(--radio-sm); border-width: 1px; }
+.alert-success { background: var(--ok-bg); color: var(--ok); border-color: #C6E6D3; }
+.alert-info { background: var(--info-bg); color: var(--info); border-color: #C9DAF6; }
+.alert-warning { background: var(--warn-bg); color: var(--warn); border-color: #F6DE95; }
+.alert-secondary { background: var(--gris-bg); color: var(--gris); border-color: #E2D8D0; }
+.alert-danger, .alert-error { background: var(--rojo-suave); color: var(--rojo-osc); border-color: #F2C4C4; }
+
+/* ---------- estados (badges) ---------- */
+.estado {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  white-space: nowrap; line-height: 1.4;
+}
+.estado::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+}
+.estado-pendiente { background: var(--warn-bg); color: var(--warn); }
+.estado-confirmado { background: var(--info-bg); color: var(--info); }
+.estado-finalizado, .estado-activo { background: var(--ok-bg); color: var(--ok); }
+.estado-anulado, .estado-baja { background: var(--gris-bg); color: var(--gris); }
+.estado-marca { background: var(--naranja-suave); color: var(--naranja-osc); }
+
+/* ---------- pie ---------- */
+.pie-marca { color: var(--tinta-2); border-top: 1px solid var(--linea); }
