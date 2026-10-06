@@ -72,6 +72,9 @@ docker compose down
 - Los **roles se editan en `/roles/`**: se crean roles nuevos y se tildan sus permisos.
   Administrador, Cliente, Chofer y Ayudante de Carga son roles del sistema (se editan sus
   permisos, no su nombre); un rol solo se elimina si no tiene usuarios.
+- **Clientes y personal son cuentas separadas:** un cliente no puede pasar a otro rol, ni
+  alguien del personal a Cliente, y al rol Cliente solo se le pueden dar permisos sobre
+  sus propios pedidos (registrar, consultar, anular y comprobante).
 - **Candados:** nadie se da de baja ni se cambia el rol a sí mismo, nadie se quita el
   permiso de gestionar roles, y siempre queda al menos un usuario activo que pueda
   gestionar roles.

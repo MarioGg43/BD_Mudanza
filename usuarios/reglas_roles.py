@@ -32,6 +32,8 @@ def error_cambio_rol_gestor(usuario, nuevo_rol):
 
 
 CODIGOS_VALIDOS = {c for _, c, _ in CATALOGO}
+# Un cliente es alguien de afuera: solo puede operar sobre sus propios pedidos
+PERMISOS_CLIENTE = {'PED_REGISTRAR', 'PED_CONSULTAR', 'PED_ANULAR', 'PED_COMPROBANTE'}
 
 
 class ErrorRol(Exception):
@@ -58,6 +60,9 @@ def guardar_rol(rol, nombre, descripcion, codigos, actor):
         errores['nombre'] = 'Ya existe un rol con ese nombre.'
     if rol and rol.nom_rol in ROLES_DEL_SISTEMA and nombre != rol.nom_rol:
         errores['nombre'] = f'«{rol.nom_rol}» es un rol del sistema: no se le puede cambiar el nombre.'
+    if rol and rol.nom_rol == 'Cliente' and codigos - PERMISOS_CLIENTE:
+        errores['permisos'] = ('Al rol Cliente solo se le pueden dar permisos sobre sus propios pedidos: '
+                               'registrar, consultar, anular y emitir el comprobante.')
     if descripcion and len(descripcion) > 100:
         errores['descripcion'] = 'La descripción puede tener hasta 100 caracteres.'
     if rol and 'ROL_GESTIONAR' not in codigos and rol.permisos.filter(nom_permiso='ROL_GESTIONAR').exists():
@@ -89,3 +94,15 @@ def eliminar_rol(rol):
     with transaction.atomic():
         PermisoRol.objects.filter(idRol=rol).delete()
         rol.delete()
+
+
+ROL_CLIENTE = 'Cliente'
+MENSAJE_CRUCE_CLIENTE = ('Los clientes y el personal son cuentas separadas: un cliente no puede pasar '
+                         'a otro rol, ni alguien del personal a Cliente.')
+
+
+def error_cruce_cliente(usuario, nuevo_rol):
+    """Un cliente es alguien de afuera: no pasa al personal, y el personal no pasa a cliente."""
+    if (usuario.idRol.nom_rol == ROL_CLIENTE) != (nuevo_rol.nom_rol == ROL_CLIENTE):
+        return MENSAJE_CRUCE_CLIENTE
+    return None

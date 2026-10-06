@@ -265,3 +265,38 @@ class NavegacionYCasosBordeTest(BaseAcceso):
         Usuario.objects.filter(idRol=ayudante).update(idRol=Rol.objects.get(nom_rol='Chofer'))
         with self.assertRaises(ErrorRol):
             eliminar_rol(ayudante)
+
+
+class ClientesSeparadosTest(BaseAcceso):
+    """Los clientes y el personal son cuentas separadas: no se cruzan de rol."""
+    MENSAJE = ('Los clientes y el personal son cuentas separadas: un cliente no puede pasar '
+               'a otro rol, ni alguien del personal a Cliente.')
+
+    def setUp(self):
+        self.entrar(ADMIN)
+
+    def cambiar(self, dni, rol):
+        return self.client.post(f'/usuarios/{dni}/cambiar-rol/', {'idRol': Rol.objects.get(nom_rol=rol).id_rol})
+
+    def test_un_cliente_no_pasa_a_administrador(self):
+        r = self.cambiar(CLIENTE, 'Administrador')
+        self.assertEqual((r.status_code, r.json()['error']), (400, self.MENSAJE))
+        self.assertEqual(Usuario.objects.get(DNI=CLIENTE).idRol.nom_rol, 'Cliente')
+
+    def test_un_cliente_no_pasa_a_otro_rol_del_personal(self):
+        self.assertEqual(self.cambiar(CLIENTE, 'Chofer').status_code, 400)
+
+    def test_el_personal_no_pasa_a_cliente(self):
+        r = self.cambiar(CHOFER, 'Cliente')
+        self.assertEqual((r.status_code, r.json()['error']), (400, self.MENSAJE))
+        self.assertEqual(Usuario.objects.get(DNI=CHOFER).idRol.nom_rol, 'Chofer')
+
+    def test_entre_roles_del_personal_si(self):
+        self.assertTrue(self.cambiar(CHOFER, 'Ayudante de Carga').json()['ok'])
+
+    def test_en_el_panel_el_cliente_no_tiene_selector_y_el_personal_no_ofrece_cliente(self):
+        html = self.client.get('/panel/').content.decode()
+        self.assertNotIn(f'id="rol-{CLIENTE}"', html)
+        fila_chofer = html[html.index(f'id="rol-{CHOFER}"'):]
+        fila_chofer = fila_chofer[:fila_chofer.index('</select>')]
+        self.assertNotIn('>Cliente<', fila_chofer)

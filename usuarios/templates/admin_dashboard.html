@@ -92,15 +92,18 @@
               {% if u.DNI == usuario_actual.DNI %}
               <span class="chip-marca text-xs px-2 py-1 rounded"
                     title="No podés cambiar tu propio rol">{{ u.idRol.nom_rol }}</span>
+              {% elif u.idRol.nom_rol == 'Cliente' %}
+              <span class="chip-marca text-xs px-2 py-1 rounded"
+                    title="Los clientes no cambian de rol">{{ u.idRol.nom_rol }}</span>
               {% elif 'USR_CAMBIAR_ROL' not in permisos or u.idRol not in roles_asignables %}
               <span class="chip-marca text-xs px-2 py-1 rounded">{{ u.idRol.nom_rol }}</span>
               {% else %}
               <div class="flex items-center gap-1">
                 <select id="rol-{{ u.DNI }}"
                         class="campo text-xs px-2 py-1">
-                  {% for r in roles_asignables %}
+                  {% for r in roles_asignables %}{% if r.nom_rol != 'Cliente' %}
                   <option value="{{ r.id_rol }}" {% if r.id_rol == u.idRol_id %}selected{% endif %}>{{ r.nom_rol }}</option>
-                  {% endfor %}
+                  {% endif %}{% endfor %}
                 </select>
                 <button onclick="cambiarRol('{{ u.DNI }}')" title="Guardar el rol"
                         class="accion accion-neutra text-xs px-2 py-1 rounded-lg">

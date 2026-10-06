@@ -105,3 +105,14 @@ class RolesTest(TestCase):
 
     def test_el_panel_tiene_un_solo_enlace_a_roles(self):
         self.assertEqual(self.client.get('/panel/').content.decode().count('href="/roles/"'), 1)
+
+    def test_al_rol_cliente_no_se_le_dan_permisos_de_administracion(self):
+        cliente = Rol.objects.get(nom_rol='Cliente')
+        r = self.client.post(f'/roles/{cliente.pk}/editar/', {
+            'nombre': 'Cliente', 'permisos': ['PED_REGISTRAR', 'PED_CONSULTAR', 'USR_CONSULTAR']})
+        self.assertIn('Al rol Cliente solo se le pueden dar permisos sobre sus propios pedidos',
+                      r.context['form'].errors['permisos'][0])
+        self.assertNotIn('USR_CONSULTAR', codigos(cliente))
+        r = self.client.post(f'/roles/{cliente.pk}/editar/', {
+            'nombre': 'Cliente', 'permisos': ['PED_REGISTRAR', 'PED_CONSULTAR', 'PED_ANULAR', 'PED_COMPROBANTE']})
+        self.assertRedirects(r, '/roles/')

@@ -9,7 +9,7 @@ from .permisos import (  # noqa: F401
     get_usuario_actual, pantalla_inicio, puede_actuar_sobre_rol, requiere_permiso, requiere_permiso_api,
     tiene_permiso,
 )
-from .reglas_roles import error_baja_gestor, error_cambio_rol_gestor
+from .reglas_roles import error_baja_gestor, error_cambio_rol_gestor, error_cruce_cliente
 from .utils import (
     hash_password, generate_username, validate_strong_password, generate_temp_password,
     nombre_usuario_libre,
@@ -352,7 +352,7 @@ def cambiar_rol(request, dni):
     if anterior.id_rol == rol.id_rol:
         return JsonResponse({'ok': False, 'error': f'{usuario.NombreUsuario} ya tiene el rol {rol.nom_rol}.'}, status=400)
 
-    error = error_cambio_rol_gestor(usuario, rol)
+    error = error_cruce_cliente(usuario, rol) or error_cambio_rol_gestor(usuario, rol)
     if error:
         return JsonResponse({'ok': False, 'error': error}, status=400)
 

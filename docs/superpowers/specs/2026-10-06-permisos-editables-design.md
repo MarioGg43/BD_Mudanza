@@ -214,3 +214,16 @@ tu propio rol».
 - Archivo de contexto y página de cambios del DER/DFD: el DER no cambia de
   estructura, pero sí cambian los datos de PERMISOS. El DFD «Gestionar Usuarios» suma
   el proceso «Gestionar Roles».
+
+## 9. Clientes separados del personal (06/10/2026)
+
+El grupo pidió que un cliente no pueda convertirse en administrador. Los clientes y el
+personal son cuentas separadas:
+- **Cambio de rol:** un usuario con rol Cliente no puede pasar a otro rol, y alguien del
+  personal no puede pasar a Cliente. Error 400: «Los clientes y el personal son cuentas
+  separadas: un cliente no puede pasar a otro rol, ni alguien del personal a Cliente.»
+  En el panel, la fila de un cliente muestra el rol fijo y los selectores del personal no
+  ofrecen «Cliente».
+- **Permisos del rol Cliente:** solo puede tener PED_REGISTRAR, PED_CONSULTAR, PED_ANULAR
+  y PED_COMPROBANTE, que operan sobre sus propios pedidos. Así nadie puede darle acceso
+  administrativo a todos los clientes desde `/roles/`.
