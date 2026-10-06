@@ -51,7 +51,8 @@
 </head>
 <body>
 <div class="acciones">
-    <button onclick="window.print()">Imprimir / Guardar PDF</button>
+    <button onclick="window.print()">Imprimir</button>
+    <a href="{% url 'pedidos_comprobante_pdf' pedido.id_pedido %}">Descargar PDF</a>
     <a href="{% url 'pedidos_detalle' pedido.id_pedido %}">Volver al pedido</a>
 </div>
 <div class="hoja">

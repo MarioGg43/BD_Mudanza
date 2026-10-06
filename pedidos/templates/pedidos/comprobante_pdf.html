@@ -1,0 +1,25 @@
+<html><head><meta charset="utf-8">{% include 'pedidos/_pdf_estilos.html' %}</head><body>
+<table class="cab"><tr>
+    <td><img src="/static/img/logo.png" width="130"></td>
+    <td class="num"><h1>Pedido N° {{ pedido.id_pedido }}</h1>
+        Estado: <b>{{ pedido.estado }}</b><br>Registrado el {{ pedido.Fecha_pedido|date:"d/m/Y" }}</td>
+</tr></table>
+<div class="linea"></div>
+{% if pedido.estado == 'Anulado' %}
+<p class="anulado">ANULADO el {{ pedido.fecha_anulacion|date:"d/m/Y H:i" }} por {{ pedido.usuario_anulacion.Nombre }} {{ pedido.usuario_anulacion.Apellido }}. Motivo: {{ pedido.motivo_anulacion }}</p>
+{% endif %}
+<h2>Cliente</h2>
+<p>{{ pedido.idUsuario.Apellido }}, {{ pedido.idUsuario.Nombre }} · DNI {{ pedido.idUsuario.DNI }} · {{ pedido.idUsuario.Correo }}{% if pedido.idUsuario.Telefono %} · {{ pedido.idUsuario.Telefono }}{% endif %}</p>
+<h2>Mudanza</h2>
+<p><b>Fecha:</b> {{ pedido.fecha_servicio|date:"d/m/Y" }} a las {{ pedido.hora_servicio|time:"H:i" }}<br>
+<b>Desde:</b> {{ pedido.origen }}<br><b>Hasta:</b> {{ pedido.destino }}<br>
+<b>Vehículo:</b> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</p>
+<h2>Servicio</h2>
+<table><tr><th>Servicio</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
+{% for d in pedido.detalles.all %}<tr><td>{{ d.idServicio.Tipo_servicio }}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>{% endfor %}
+<tr><td></td><td class="num"><b>TOTAL</b></td><td class="num"><b>${{ pedido.total|floatformat:"2g" }}</b></td></tr></table>
+<h2>Inventario</h2>
+<table><tr><th>Objeto</th><th class="num">Cantidad</th><th>Frágil</th><th>Observación</th></tr>
+{% for i in pedido.inventario.all %}<tr><td>{{ i.Descripcion }}</td><td class="num">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>{% endfor %}</table>
+<p class="pie">Mudanzas y Fletes Salta · Comprobante emitido el {{ emitido|date:"d/m/Y H:i" }}. No válido como factura.</p>
+</body></html>

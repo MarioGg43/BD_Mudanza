@@ -348,3 +348,55 @@ class RevisionFinalTest(BaseVistas):
         self.client.post('/registro/', datos)
         self.assertNotEqual(self.client.session.session_key, antes)
         self.assertEqual(self.client.session['usuario_dni'], 33444555)
+
+
+class DescargasPdfTest(BaseVistas):
+    def setUp(self):
+        self.mio = self.pedido_de(self.cliente)
+        self.ajeno = self.pedido_de(self.otro, dias=2)
+
+    def assertEsPdf(self, r, nombre):
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertEqual(r['Content-Disposition'], f'attachment; filename="{nombre}"')
+        self.assertTrue(r.content.startswith(b'%PDF'))
+
+    def test_comprobante_en_pdf(self):
+        self.entrar(CLIENTE)
+        r = self.client.get(f'/pedidos/{self.mio.pk}/comprobante/pdf/')
+        self.assertEsPdf(r, f'Comprobante-pedido-{self.mio.pk}.pdf')
+
+    def test_comprobante_ajeno_da_404(self):
+        self.entrar(CLIENTE)
+        self.assertEqual(self.client.get(f'/pedidos/{self.ajeno.pk}/comprobante/pdf/').status_code, 404)
+
+    def test_el_chofer_no_descarga_el_comprobante(self):
+        self.entrar(CHOFER)
+        self.assertEqual(self.client.get(f'/pedidos/{self.mio.pk}/comprobante/pdf/').status_code, 403)
+
+    def test_botones_de_descarga(self):
+        self.entrar(CLIENTE)
+        self.assertContains(self.client.get(f'/pedidos/{self.mio.pk}/comprobante/'),
+                            f'/pedidos/{self.mio.pk}/comprobante/pdf/')
+        self.assertContains(self.client.get(f'/pedidos/{self.mio.pk}/'), f'/pedidos/{self.mio.pk}/comprobante/pdf/')
+        self.assertContains(self.client.get('/pedidos/', {'estado': 'Pendiente'}),
+                            '/pedidos/descargar/?estado=Pendiente')
+
+    def test_lista_en_pdf_con_los_filtros(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/descargar/', {'estado': 'Pendiente', 'servicio': self.local.id_servicio})
+        self.assertEsPdf(r, 'Pedidos.pdf')
+        self.assertEqual(sorted(p.pk for p in r.context['pedidos']), sorted([self.mio.pk, self.ajeno.pk]))
+        self.assertIn(('Estado', 'Pendiente'), r.context['filtros_usados'])
+
+    def test_el_cliente_descarga_solo_los_suyos(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/descargar/')
+        ids = [p.pk for p in r.context['pedidos']]
+        self.assertIn(self.mio.pk, ids)
+        self.assertNotIn(self.ajeno.pk, ids)
+
+    def test_la_lista_pdf_pide_sesion_y_permiso(self):
+        self.assertRedirects(self.client.get('/pedidos/descargar/'), '/login/')
+        self.entrar(CHOFER)
+        self.assertEqual(self.client.get('/pedidos/descargar/').status_code, 403)

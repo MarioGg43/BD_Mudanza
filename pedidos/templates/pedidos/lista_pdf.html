@@ -1,0 +1,19 @@
+<html><head><meta charset="utf-8">{% include 'pedidos/_pdf_estilos.html' with hoja="A4 landscape" %}</head><body>
+<table class="cab"><tr>
+    <td><img src="/static/img/logo.png" width="120"></td>
+    <td class="num"><h1>{% if ve_todos %}Pedidos{% else %}Mis pedidos{% endif %}</h1>Emitido el {{ emitido|date:"d/m/Y H:i" }}</td>
+</tr></table>
+<div class="linea"></div>
+<p><b>Filtros:</b> {% for etiqueta, valor in filtros_usados %}{{ etiqueta }}: {{ valor }}{% if not forloop.last %} · {% endif %}{% empty %}ninguno (todos los pedidos){% endfor %}
+· <b>{{ pedidos|length }}</b> pedido{{ pedidos|length|pluralize }}</p>
+<table>
+<tr><th>N°</th><th>Registrado</th><th>Mudanza</th>{% if ve_todos %}<th>Cliente</th>{% endif %}<th>Servicio</th><th>Desde → Hasta</th><th class="num">Total</th><th>Estado</th></tr>
+{% for p in pedidos %}<tr>
+<td>{{ p.id_pedido }}</td><td>{{ p.Fecha_pedido|date:"d/m/Y" }}</td><td>{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }}</td>
+{% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
+<td>{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% endfor %}</td><td>{{ p.origen }} → {{ p.destino }}</td>
+<td class="num">${{ p.total|floatformat:"2g" }}</td><td>{{ p.estado }}</td></tr>
+{% empty %}<tr><td colspan="8">No hay pedidos con esos filtros.</td></tr>{% endfor %}
+</table>
+<p class="pie">Mudanzas y Fletes Salta · Listado generado desde el sistema.</p>
+</body></html>

@@ -11,6 +11,7 @@ from usuarios.models import Pedido
 from usuarios.permisos import pantalla_inicio
 from usuarios.views import get_usuario_actual
 from . import reglas
+from .pdf import respuesta_pdf
 from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm, RegistroClienteForm
 from .permisos import requiere_permiso, tiene_permiso
 
@@ -32,17 +33,38 @@ def _pedido_visible(request, id_pedido):
     return pedido
 
 
-@requiere_permiso('PED_CONSULTAR')
-def lista(request):
+def _consulta(request):
+    """La consulta con los filtros del GET: la usan la pantalla y el PDF."""
     ve_todos = _ve_todos(request.usuario)
     base = Pedido.objects.all() if ve_todos else Pedido.objects.filter(idUsuario=request.usuario)
     form = FiltroPedidosForm(request.GET or None, ve_todos=ve_todos)
     filtros = form.filtros() if form.is_valid() else {}
+    return form, ve_todos, reglas.filtrar_pedidos(base, **filtros)
+
+
+@requiere_permiso('PED_CONSULTAR')
+def lista(request):
+    form, ve_todos, pedidos = _consulta(request)
     return render(request, 'pedidos/lista.html', {
-        'form': form, 've_todos': ve_todos,
-        'pedidos': reglas.filtrar_pedidos(base, **filtros),
+        'form': form, 've_todos': ve_todos, 'pedidos': pedidos,
         'puede_registrar': tiene_permiso(request.usuario, 'PED_REGISTRAR'),
     })
+
+
+@requiere_permiso('PED_CONSULTAR')
+def descargar(request):
+    """La lista filtrada en PDF, con los filtros usados."""
+    form, ve_todos, pedidos = _consulta(request)
+    usados = []
+    if form.is_valid():
+        for nombre, campo in form.fields.items():
+            valor = form.cleaned_data.get(nombre)
+            if valor:
+                texto = valor.strftime('%d/%m/%Y') if hasattr(valor, 'strftime') else str(valor)
+                usados.append((campo.label, texto))
+    return respuesta_pdf(request, 'pedidos/lista_pdf.html', {
+        'pedidos': pedidos, 've_todos': ve_todos, 'filtros_usados': usados,
+        'emitido': timezone.localtime()}, 'Pedidos.pdf')
 
 
 @requiere_permiso('PED_CONSULTAR')
@@ -149,6 +171,14 @@ def anular(request, id_pedido):
 def comprobante(request, id_pedido):
     pedido = _pedido_visible(request, id_pedido)
     return render(request, 'pedidos/comprobante.html', {'pedido': pedido, 'emitido': timezone.localtime()})
+
+
+@requiere_permiso('PED_COMPROBANTE')
+def comprobante_pdf(request, id_pedido):
+    pedido = _pedido_visible(request, id_pedido)
+    return respuesta_pdf(request, 'pedidos/comprobante_pdf.html',
+                         {'pedido': pedido, 'emitido': timezone.localtime()},
+                         f'Comprobante-pedido-{pedido.id_pedido}.pdf')
 
 
 def registro(request):
