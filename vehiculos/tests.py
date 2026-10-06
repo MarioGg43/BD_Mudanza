@@ -29,6 +29,12 @@ class VehiculosTest(TestCase):
     def test_inicio_es_publico(self):
         self.assertEqual(self.client.get('/').status_code, 200)
 
+    def test_con_sesion_la_portada_lleva_a_la_pantalla_de_cada_rol(self):
+        # la portada (Ver vehículos / Ingresar) es solo para visitantes
+        for dni, destino in ((29876543, '/pedidos/'), (ADMIN, '/panel/'), (CHOFER, '/portal/')):
+            self.entrar(dni)
+            self.assertRedirects(self.client.get('/'), destino, msg_prefix=str(dni))
+
     def test_sin_sesion_va_al_login(self):
         for url in ['/vehiculos/', '/vehiculos/crear/', '/vehiculos/editar/AE-123-CD/']:
             self.assertRedirects(self.client.get(url), '/login/', msg_prefix=url)
