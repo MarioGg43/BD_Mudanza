@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_POST
 
+from pedidos.reglas import tiene_pedidos_activos
 from usuarios.models import Vehiculo
 from usuarios.views import get_usuario_actual
 from .forms import VehiculoForm
@@ -77,6 +78,10 @@ def bajaVehiculo(request, patente):
     """Baja lógica: el vehículo queda 'Fuera de Servicio' y conserva su historial
     (PEDIDOS lo referencia, por eso no se borra). Se reactiva editando el estado."""
     vehiculo = get_object_or_404(Vehiculo, pk=patente)
+    if tiene_pedidos_activos(patente_vehiculo=vehiculo):
+        messages.error(request, f'El vehículo "{vehiculo.patente}" tiene pedidos pendientes o confirmados. '
+                                'Anulalos o reasignalos antes de darlo de baja.')
+        return redirect('lista_vehiculos')
     vehiculo.estado = 'Fuera de Servicio'
     vehiculo.save(update_fields=['estado'])
     messages.success(request, f'El vehículo "{vehiculo.patente}" quedó fuera de servicio.')

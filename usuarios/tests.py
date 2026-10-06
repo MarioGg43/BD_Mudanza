@@ -226,6 +226,28 @@ class CrudUsuariosTest(BaseHito2):
         self.assertEqual(len(self.client.get('/panel/?activos=1').context['usuarios']), 3)
 
 
+class BajaConPedidosActivosTest(BaseHito2):
+    def setUp(self):
+        self.entrar(ADMIN)
+        from datetime import timedelta
+        from django.utils import timezone
+        from pedidos import reglas
+        self.reglas = reglas
+        self.pedido = reglas.registrar_pedido(
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1),
+            'Origen 1', 'Destino 2', [Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio],
+            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'peso': Decimal('10'), 'fragil': False}])
+
+    def test_no_se_da_de_baja_con_pedido_activo(self):
+        r = self.client.post('/usuarios/29876543/baja/')
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(Usuario.objects.get(DNI=29876543).Activo)
+
+    def test_anulado_el_pedido_se_da_de_baja(self):
+        self.reglas.anular(self.pedido.pk, Usuario.objects.get(DNI=ADMIN), 'Pedido duplicado')
+        self.assertTrue(self.client.post('/usuarios/29876543/baja/').json()['ok'])
+
+
 class CandadosTest(BaseHito2):
     def setUp(self):
         self.entrar(ADMIN)

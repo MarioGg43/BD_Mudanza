@@ -94,3 +94,39 @@ class VehiculosTest(TestCase):
                     if f'name="{n}"' in html and not form.fields[n].disabled}
         self.client.post('/vehiculos/editar/AE-123-CD/', enviados)
         self.assertEqual(Vehiculo.objects.get(pk='AE-123-CD').chofer_asignado.DNI, CHOFER)
+
+
+class PedidosActivosTest(TestCase):
+    """Un vehículo con pedidos activos a futuro no sale de servicio."""
+    setUpTestData = VehiculosTest.setUpTestData
+    entrar = VehiculosTest.entrar
+    datos = VehiculosTest.datos
+
+    def setUp(self):
+        from datetime import timedelta
+        from decimal import Decimal
+        from django.utils import timezone
+        from pedidos import reglas
+        from usuarios.models import Servicio
+        self.reglas = reglas
+        self.pedido = reglas.registrar_pedido(
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1),
+            'Origen 1', 'Destino 2', [Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio],
+            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'peso': Decimal('10'), 'fragil': False}])
+        self.entrar(ADMIN)
+
+    def test_la_baja_se_rechaza(self):
+        self.assertRedirects(self.client.post('/vehiculos/baja/AD-321-JK/'), '/vehiculos/')
+        self.assertEqual(Vehiculo.objects.get(pk='AD-321-JK').estado, 'Disponible')
+
+    def test_no_pasa_a_mantenimiento(self):
+        r = self.client.post('/vehiculos/editar/AD-321-JK/', self.datos(
+            patente='AD-321-JK', estado='En Mantenimiento', marca_modelo='Renault Master'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('estado', r.context['form'].errors)
+        self.assertEqual(Vehiculo.objects.get(pk='AD-321-JK').estado, 'Disponible')
+
+    def test_anulado_el_pedido_la_baja_funciona(self):
+        self.reglas.anular(self.pedido.pk, Usuario.objects.get(DNI=ADMIN), 'Pedido duplicado')
+        self.client.post('/vehiculos/baja/AD-321-JK/')
+        self.assertEqual(Vehiculo.objects.get(pk='AD-321-JK').estado, 'Fuera de Servicio')

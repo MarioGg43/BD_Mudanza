@@ -300,6 +300,13 @@ def baja_usuario(request, dni):
                 'error': 'No se puede dar de baja al ultimo administrador activo.'
             }, status=400)
 
+    from pedidos.reglas import tiene_pedidos_activos
+    if tiene_pedidos_activos(idUsuario=usuario):
+        return JsonResponse({
+            'ok': False,
+            'error': 'El usuario tiene pedidos pendientes o confirmados. Anulalos antes de darlo de baja.'
+        }, status=400)
+
     usuario.Activo = False
     usuario.FechaBaja = timezone.now()
     usuario.save()

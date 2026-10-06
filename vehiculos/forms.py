@@ -1,5 +1,6 @@
 from django import forms
 
+from pedidos.reglas import tiene_pedidos_activos
 from usuarios.models import Usuario, Vehiculo
 
 
@@ -41,6 +42,13 @@ class VehiculoForm(forms.ModelForm):
                 field.widget.attrs.update({'class': 'form-control', 'rows': 3})
             else:
                 field.widget.attrs.update({'class': 'form-control'})
+
+    def clean(self):
+        datos = super().clean()
+        if (self.instance.pk and datos.get('estado') and datos['estado'] != 'Disponible'
+                and tiene_pedidos_activos(patente_vehiculo=self.instance.pk)):
+            self.add_error('estado', 'Tiene pedidos pendientes o confirmados: no puede dejar de estar disponible.')
+        return datos
 
     def clean_patente(self):
         # Se guarda siempre en mayúsculas y sin espacios, como en el Hito 2

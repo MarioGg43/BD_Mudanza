@@ -95,6 +95,7 @@ docker compose down
 - El cliente solo ve sus propios pedidos; si pide uno ajeno recibe 404.
 - Los **servicios** se dan de baja de forma lógica: no se ofrecen en pedidos nuevos,
   pero los pedidos viejos los conservan.
+- Un **vehículo o cliente con pedidos activos** a futuro no se puede dar de baja (ni el vehículo pasar a mantenimiento) hasta anularlos.
 
 | Permiso | Administrador | Cliente |
 |---|---|---|

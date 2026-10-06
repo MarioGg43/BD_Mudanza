@@ -18,6 +18,12 @@ MAX_PESO_UNITARIO = Decimal('5000')
 MAX_DIRECCION = 200
 
 
+def tiene_pedidos_activos(**filtro):
+    """¿Hay pedidos Pendientes o Confirmados de hoy en adelante? (patente_vehiculo=... o idUsuario=...)"""
+    return Pedido.objects.filter(estado__in=Pedido.ACTIVOS, fecha_servicio__gte=timezone.localdate(),
+                                 **filtro).exists()
+
+
 class ErrorPedido(Exception):
     """Errores de validación como {campo: mensaje}; '__all__' es un error general."""
 
