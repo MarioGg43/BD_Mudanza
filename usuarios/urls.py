@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import roles, views
 
 urlpatterns = [
     path('panel/', views.admin_dashboard, name='admin_dashboard'),
@@ -18,6 +18,16 @@ urlpatterns = [
     path('usuarios/<int:dni>/restablecer-clave/', views.restablecer_clave, name='restablecer_clave'),
     path('usuarios/<int:dni>/cambiar-rol/', views.cambiar_rol, name='cambiar_rol'),
     path('usuarios/preview-username/', views.preview_username_view, name='preview_username'),
+
+    path('roles/', roles.lista, name='roles_lista'),
+    path('roles/nuevo/', roles.crear, name='roles_crear'),
+    path('roles/<int:id_rol>/editar/', roles.editar, name='roles_editar'),
+    path('roles/<int:id_rol>/eliminar/', roles.eliminar, name='roles_eliminar'),
+
+    path('roles/', roles.lista, name='roles_lista'),
+    path('roles/nuevo/', roles.crear, name='roles_crear'),
+    path('roles/<int:id_rol>/editar/', roles.editar, name='roles_editar'),
+    path('roles/<int:id_rol>/eliminar/', roles.eliminar, name='roles_eliminar'),
 
 ]
 

@@ -1,0 +1,35 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Roles{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Roles</h1>
+        <p class="text-muted mb-0">Cada rol habilita solo los permisos que tiene tildados.</p>
+    </div>
+    <a href="{% url 'roles_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo rol</a>
+</div>
+<div class="card-panel bg-white p-0 overflow-auto">
+    <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Rol</th><th>Descripción</th><th class="text-center">Usuarios</th><th>Permisos</th><th></th></tr></thead>
+        <tbody>
+            {% for rol in roles %}
+            <tr>
+                <td class="fw-semibold">{{ rol.nom_rol }}{% if rol.nom_rol in del_sistema %} <span class="badge bg-secondary">del sistema</span>{% endif %}</td>
+                <td class="small">{{ rol.desc_rol|default:"—" }}</td>
+                <td class="text-center">{{ rol.cantidad }}</td>
+                <td>{% for p in rol.permisos.all %}<span class="badge bg-success-subtle text-success-emphasis border me-1 mb-1" title="{{ p.desc_permiso }}">{{ p.nom_permiso }}</span>{% empty %}<span class="text-muted small">Sin permisos</span>{% endfor %}</td>
+                <td class="text-end text-nowrap">
+                    <a href="{% url 'roles_editar' rol.id_rol %}" class="btn btn-sm btn-warning">Editar</a>
+                    {% if rol.cantidad == 0 and rol.nom_rol not in del_sistema %}
+                    <form method="post" action="{% url 'roles_eliminar' rol.id_rol %}" class="d-inline"
+                          onsubmit="return confirm('¿Eliminar el rol «{{ rol.nom_rol|escapejs }}»?')">
+                        {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

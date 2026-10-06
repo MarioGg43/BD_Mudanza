@@ -24,6 +24,9 @@
                 {% if 'USR_CONSULTAR' in permisos %}
                 <a href="{% url 'admin_dashboard' %}">Usuarios</a>
                 {% endif %}
+                {% if 'ROL_GESTIONAR' in permisos %}
+                <a href="{% url 'roles_lista' %}"{% if '/roles/' in ruta %} class="activo" aria-current="page"{% endif %}>Roles</a>
+                {% endif %}
                 {% if 'VEH_GESTIONAR' in permisos %}
                 <a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}>Vehículos</a>
                 {% endif %}
