@@ -7,6 +7,7 @@ from usuarios.models import (
     RecursoAsignado, Pedido, DetallePedido, InventarioDetalle,
     Cobranza, DetalleCobranza,
 )
+from usuarios.permisos import CATALOGO, PERMISOS_INICIALES
 from usuarios.utils import hash_password, generate_username
 
 
@@ -14,49 +15,30 @@ class Command(BaseCommand):
     help = 'Carga los roles, permisos, usuarios, vehículos y datos de ejemplo del DER'
 
     def handle(self, *args, **options):
-        # 1. Permisos
-        permisos_data = [
-            ('USR_CREAR', 'Permite dar de alta nuevos usuarios'),
-            ('USR_EDITAR_CORREO', 'Permite editar el correo del usuario'),
-            ('USR_BAJA', 'Permite dar de baja usuarios'),
-            ('USR_RESET_CLAVE', 'Permite restablecer contraseñas de usuarios'),
-            ('MUDANZAS_ADMIN', 'Permite administrar mudanzas y fletes'),
-            ('MUDANZAS_OPERAR', 'Permite operar y consultar servicios asignados'),
-            ('PED_REGISTRAR', 'Permite registrar pedidos de mudanza'),
-            ('PED_CONSULTAR', 'Permite consultar pedidos'),
-            ('PED_GESTIONAR', 'Permite confirmar y finalizar pedidos'),
-            ('PED_ANULAR', 'Permite anular pedidos'),
-            ('PED_COMPROBANTE', 'Permite emitir el comprobante del pedido'),
-            ('SRV_GESTIONAR', 'Permite dar de alta, modificar y dar de baja servicios'),
-        ]
-        permisos = {}
-        for code, desc in permisos_data:
-            p, _ = Permiso.objects.get_or_create(nom_permiso=code, defaults={'desc_permiso': desc})
-            permisos[code] = p
+        # 1. Permisos del catálogo (la descripción se mantiene al día)
+        for _, codigo, descripcion in CATALOGO:
+            p, creado = Permiso.objects.get_or_create(nom_permiso=codigo, defaults={'desc_permiso': descripcion})
+            if not creado and p.desc_permiso != descripcion:
+                p.desc_permiso = descripcion
+                p.save(update_fields=['desc_permiso'])
 
-        # 2. Roles
-        r_admin, _ = Rol.objects.get_or_create(
-            nom_rol='Administrador',
-            defaults={'desc_rol': 'Acceso total a la administración de seguridad y usuarios'})
-        r_chofer, _ = Rol.objects.get_or_create(
-            nom_rol='Chofer',
-            defaults={'desc_rol': 'Conducción de vehículos y visualización de rutas de mudanza'})
-        r_ayudante, _ = Rol.objects.get_or_create(
-            nom_rol='Ayudante de Carga',
-            defaults={'desc_rol': 'Personal operativo de carga, descarga y embalaje de bultos'})
-
-        r_cliente, _ = Rol.objects.get_or_create(
-            nom_rol='Cliente',
-            defaults={'desc_rol': 'Cliente que registra y sigue sus pedidos de mudanza'})
-
-        # el administrador gestiona todo, pero los pedidos los registra el cliente
-        for code, perm in permisos.items():
-            if code != 'PED_REGISTRAR':
-                PermisoRol.objects.get_or_create(idRol=r_admin, idPermiso=perm)
-        PermisoRol.objects.get_or_create(idRol=r_chofer, idPermiso=permisos['MUDANZAS_OPERAR'])
-        PermisoRol.objects.get_or_create(idRol=r_ayudante, idPermiso=permisos['MUDANZAS_OPERAR'])
-        for code in ('PED_REGISTRAR', 'PED_CONSULTAR', 'PED_COMPROBANTE'):
-            PermisoRol.objects.get_or_create(idRol=r_cliente, idPermiso=permisos[code])
+        # 2. Roles: los permisos iniciales se cargan solo al crear el rol, para no pisar
+        #    lo que se edite después desde la pantalla de roles.
+        descripciones_rol = {
+            'Administrador': 'Acceso total a la administración de seguridad y usuarios',
+            'Chofer': 'Conducción de vehículos y visualización de rutas de mudanza',
+            'Ayudante de Carga': 'Personal operativo de carga, descarga y embalaje de bultos',
+            'Cliente': 'Cliente que registra y sigue sus pedidos de mudanza',
+        }
+        roles = {}
+        for nombre, descripcion in descripciones_rol.items():
+            rol, creado = Rol.objects.get_or_create(nom_rol=nombre, defaults={'desc_rol': descripcion})
+            if creado:
+                for p in Permiso.objects.filter(nom_permiso__in=PERMISOS_INICIALES[nombre]):
+                    PermisoRol.objects.create(idRol=rol, idPermiso=p)
+            roles[nombre] = rol
+        r_admin, r_chofer = roles['Administrador'], roles['Chofer']
+        r_ayudante, r_cliente = roles['Ayudante de Carga'], roles['Cliente']
 
         # 3. Sueldos
         sueldo_admin, _ = Sueldo.objects.get_or_create(Monto=980000, Fecha_pago=date(2026, 9, 5))

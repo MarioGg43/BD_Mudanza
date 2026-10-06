@@ -5,19 +5,11 @@ from django.utils import timezone
 import json
 
 from .models import Usuario, Rol, Permiso, Vehiculo
+from .permisos import get_usuario_actual  # noqa: F401 (la importan otras apps)
 from .utils import (
     hash_password, generate_username, validate_strong_password, generate_temp_password,
     nombre_usuario_libre,
 )
-
-def get_usuario_actual(request):
-    dni = request.session.get('usuario_dni')
-    if not dni:
-        return None
-    try:
-        return Usuario.objects.select_related('idRol').get(DNI=dni, Activo=True)
-    except Usuario.DoesNotExist:
-        return None
 
 def solo_admin(request):
     """Controla que quien llama sea un administrador activo.

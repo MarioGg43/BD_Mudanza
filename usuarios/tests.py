@@ -53,9 +53,9 @@ class EstructuraDERTest(BaseHito2):
         self.assertEqual(Rol.objects.count(), 4)
         self.assertEqual(Usuario.objects.count(), 4)
         self.assertEqual(Vehiculo.objects.count(), 4)
-        self.assertEqual(Permiso.objects.count(), 12)
+        self.assertEqual(Permiso.objects.count(), 15)
         # el administrador tiene todos los permisos menos registrar pedidos
-        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador').count(), 11)
+        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador').count(), 14)
         self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Chofer').count(), 1)
 
     def test_pedido_de_ejemplo_completo(self):
