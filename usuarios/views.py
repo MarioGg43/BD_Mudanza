@@ -5,12 +5,22 @@ from django.utils import timezone
 import json
 
 from .models import Usuario, Rol, Permiso, Vehiculo
-from .permisos import get_usuario_actual, pantalla_inicio, requiere_permiso, requiere_permiso_api, tiene_permiso  # noqa: F401
+from .permisos import (  # noqa: F401
+    get_usuario_actual, pantalla_inicio, puede_actuar_sobre_rol, requiere_permiso, requiere_permiso_api,
+    tiene_permiso,
+)
 from .reglas_roles import error_baja_gestor, error_cambio_rol_gestor
 from .utils import (
     hash_password, generate_username, validate_strong_password, generate_temp_password,
     nombre_usuario_libre,
 )
+
+MENSAJE_ROL_SUPERIOR = 'No podés operar sobre un rol con más permisos administrativos que el tuyo.'
+
+
+def _rol_superior():
+    return JsonResponse({'ok': False, 'error': MENSAJE_ROL_SUPERIOR}, status=403)
+
 
 # ---- LOGIN Y AUTENTICACIÓN ----
 def login_view(request):
@@ -160,11 +170,14 @@ def admin_dashboard(request):
     usuarios = usuarios.order_by('Apellido', 'Nombre')
 
     roles = Rol.objects.all().order_by('id_rol')
+    # en los selectores solo se ofrecen los roles que este usuario puede asignar
+    roles_asignables = [r for r in roles if puede_actuar_sobre_rol(usuario_actual, r)]
 
     return render(request, 'admin_dashboard.html', {
         'usuario_actual': usuario_actual,
         'usuarios': usuarios,
         'roles': roles,
+        'roles_asignables': roles_asignables,
         'solo_activos': solo_activos,
     })
 
@@ -212,6 +225,8 @@ def alta_usuario(request):
             return JsonResponse({'ok': False, 'error': f'Clave no válida: {msg}'}, status=400)
 
         rol = get_object_or_404(Rol, id_rol=id_rol)
+        if not puede_actuar_sobre_rol(request.usuario, rol):
+            return _rol_superior()
 
         # Regla: Apellido + primera letra del primer nombre
         final_user = nombre_usuario_libre(apellido, nombre)
@@ -237,6 +252,8 @@ def alta_usuario(request):
 def modificar_correo(request, dni):
     # Regla estricta Hito 2: La Modificación solo permite editar el Correo
     usuario = get_object_or_404(Usuario, DNI=dni)
+    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
+        return _rol_superior()
     nuevo_correo = request.POST.get('correo', '').strip().lower()
 
     if Usuario.objects.filter(Correo=nuevo_correo).exclude(DNI=dni).exists():
@@ -255,6 +272,9 @@ def baja_usuario(request, dni):
 
     if usuario.DNI == request.usuario.DNI:
         return JsonResponse({'ok': False, 'error': 'No podes darte de baja a vos mismo.'}, status=400)
+
+    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
+        return _rol_superior()
 
     error = error_baja_gestor(usuario)
     if error:
@@ -276,6 +296,8 @@ def baja_usuario(request, dni):
 @requiere_permiso_api('USR_BAJA')
 def reactivar_usuario(request, dni):
     usuario = get_object_or_404(Usuario, DNI=dni)
+    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
+        return _rol_superior()
     usuario.Activo = True
     usuario.FechaBaja = None
     usuario.save()
@@ -285,6 +307,8 @@ def reactivar_usuario(request, dni):
 @requiere_permiso_api('USR_RESET_CLAVE')
 def restablecer_clave(request, dni):
     usuario = get_object_or_404(Usuario, DNI=dni)
+    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
+        return _rol_superior()
     nueva = request.POST.get('nueva_clave', '').strip()
     if nueva:
         valida, msg = validate_strong_password(nueva)
@@ -319,6 +343,10 @@ def cambiar_rol(request, dni):
         rol = Rol.objects.get(id_rol=int(request.POST.get('idRol')))
     except (Rol.DoesNotExist, TypeError, ValueError):
         return JsonResponse({'ok': False, 'error': 'El rol indicado no existe.'}, status=400)
+
+    if not (puede_actuar_sobre_rol(request.usuario, usuario.idRol)
+            and puede_actuar_sobre_rol(request.usuario, rol)):
+        return _rol_superior()
 
     anterior = usuario.idRol
     if anterior.id_rol == rol.id_rol:

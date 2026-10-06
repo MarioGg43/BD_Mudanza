@@ -125,7 +125,7 @@ def finalizar(request, id_pedido):
 
 @requiere_permiso('PED_ANULAR')
 def anular(request, id_pedido):
-    pedido = get_object_or_404(Pedido, pk=id_pedido)
+    pedido = _pedido_visible(request, id_pedido)
     if pedido.estado not in Pedido.ACTIVOS:
         messages.error(request, f'El pedido N° {id_pedido} está {pedido.estado.lower()} y no se puede anular.')
         return redirect('pedidos_detalle', id_pedido=id_pedido)

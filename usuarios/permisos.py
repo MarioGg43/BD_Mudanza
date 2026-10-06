@@ -26,6 +26,12 @@ CATALOGO = [
     ('Servicios', 'SRV_GESTIONAR', 'Alta, modificación y baja de servicios'),
 ]
 
+# Permisos administrativos: quien no los tiene no puede crear, editar ni
+# restablecer a un usuario cuyo rol sí los tiene (evita la escalada de privilegios).
+PERMISOS_SENSIBLES = frozenset(
+    [c for area, c, _ in CATALOGO if area in ('Usuarios', 'Roles', 'Vehículos', 'Servicios')]
+    + ['PED_GESTIONAR', 'PED_ANULAR'])
+
 PERMISOS_INICIALES = {
     'Administrador': [c for _, c, _ in CATALOGO if c != 'PED_REGISTRAR'],
     'Chofer': ['MUDANZAS_OPERAR'],
@@ -56,6 +62,16 @@ def permisos_de(usuario):
 
 def tiene_permiso(usuario, codigo):
     return codigo in permisos_de(usuario)
+
+
+def puede_actuar_sobre_rol(actor, rol):
+    """Quien gestiona roles puede todo; el resto, solo sobre roles cuyos permisos
+    administrativos ya tiene."""
+    propios = permisos_de(actor)
+    if 'ROL_GESTIONAR' in propios:
+        return True
+    del_rol = set(PermisoRol.objects.filter(idRol=rol).values_list('idPermiso__nom_permiso', flat=True))
+    return (del_rol & PERMISOS_SENSIBLES) <= propios
 
 
 def requiere_permiso(codigo):

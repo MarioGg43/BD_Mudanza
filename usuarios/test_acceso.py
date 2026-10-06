@@ -81,13 +81,13 @@ class GestorActivoTest(BaseAcceso):
         self.admin_rol = Rol.objects.get(nom_rol='Administrador')
 
     def test_no_se_da_de_baja_al_unico_gestor(self):
-        # el recepcionista recibe USR_BAJA; el admin es el único gestor de roles
+        # el recepcionista recibe USR_BAJA; el admin es el único gestor de roles. Como el rol
+        # del admin tiene permisos que el recepcionista no tiene, lo frena antes el 403; el
+        # candado del gestor queda cubierto por test_baja_del_unico_gestor_por_regla.
         PermisoRol.objects.create(idRol=self.recepcion, idPermiso=Permiso.objects.get(nom_permiso='USR_BAJA'))
         self.entrar(20111222)
         r = self.client.post(f'/usuarios/{ADMIN}/baja/')
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()['error'],
-                         'El sistema tiene que quedar con al menos un usuario activo que pueda gestionar roles.')
+        self.assertEqual(r.status_code, 403)
         self.assertTrue(Usuario.objects.get(DNI=ADMIN).Activo)
 
     def test_cambiar_rol_no_deja_al_sistema_sin_gestor(self):
@@ -121,9 +121,10 @@ class InicioParcialTest(BaseAcceso):
         PermisoRol.objects.create(idRol=self.recepcion, idPermiso=Permiso.objects.get(nom_permiso='USR_CAMBIAR_ROL'))
         self.entrar(20111222)
         r = self.client.post(f'/usuarios/{ADMIN}/cambiar-rol/', {'idRol': Rol.objects.get(nom_rol='Chofer').id_rol})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()['error'],
-                         'El sistema tiene que quedar con al menos un usuario activo que pueda gestionar roles.')
+        # lo frena la regla del rol superior; el candado del gestor lo cubre
+        # test_cambiar_rol_no_deja_al_sistema_sin_gestor
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Usuario.objects.get(DNI=ADMIN).idRol.nom_rol, 'Administrador')
 
 
 class MenuYBotonesTest(BaseAcceso):
@@ -151,3 +152,63 @@ class MenuYBotonesTest(BaseAcceso):
         self.assertNotContains(r, 'abrirModalRestablecer(\'')
         self.entrar(ADMIN)
         self.assertContains(self.client.get('/panel/'), 'abrirModalBaja(\'')
+
+
+class EscaladaDePrivilegiosTest(BaseAcceso):
+    """Sin ROL_GESTIONAR nadie opera sobre un rol con permisos administrativos que no tiene."""
+    MENSAJE = 'No podés operar sobre un rol con más permisos administrativos que el tuyo.'
+
+    def setUp(self):
+        self.entrar(20111222)
+        self.admin_rol = Rol.objects.get(nom_rol='Administrador')
+
+    def dar(self, codigo):
+        PermisoRol.objects.create(idRol=self.recepcion, idPermiso=Permiso.objects.get(nom_permiso=codigo))
+
+    def test_no_crea_un_administrador(self):
+        r = self.client.post('/usuarios/alta/', {'dni': '30111223', 'apellido': 'Ruiz', 'nombre': 'Eva',
+                                                 'correo': 'eva@mail.com', 'clave': 'Cliente123!',
+                                                 'idRol': self.admin_rol.id_rol})
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(r.json()['error'], self.MENSAJE)
+        self.assertFalse(Usuario.objects.filter(DNI=30111223).exists())
+
+    def test_no_restablece_la_clave_del_admin_pero_si_la_del_chofer(self):
+        self.dar('USR_RESET_CLAVE')
+        r = self.client.post(f'/usuarios/{ADMIN}/restablecer-clave/')
+        self.assertEqual(r.status_code, 403)
+        self.assertNotIn('clave_temporal', r.json())
+        self.assertFalse(Usuario.objects.get(DNI=ADMIN).DebeCambiarClave)
+        self.assertEqual(self.client.post(f'/usuarios/{CHOFER}/restablecer-clave/').status_code, 200)
+
+    def test_no_asciende_al_chofer_a_administrador(self):
+        self.dar('USR_CAMBIAR_ROL')
+        r = self.client.post(f'/usuarios/{CHOFER}/cambiar-rol/', {'idRol': self.admin_rol.id_rol})
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Usuario.objects.get(DNI=CHOFER).idRol.nom_rol, 'Chofer')
+
+    def test_no_baja_ni_modifica_al_admin(self):
+        self.dar('USR_BAJA')
+        self.dar('USR_EDITAR_CORREO')
+        self.assertEqual(self.client.post(f'/usuarios/{ADMIN}/modificar-correo/',
+                                          {'correo': 'otro@mail.com'}).status_code, 403)
+        self.assertEqual(self.client.post(f'/usuarios/{ADMIN}/reactivar/').status_code, 403)
+
+    def test_el_alta_no_ofrece_administrador_al_recepcionista(self):
+        r = self.client.get('/panel/')
+        self.assertContains(r, f'<option value="{Rol.objects.get(nom_rol="Cliente").id_rol}">Cliente</option>')
+        self.assertNotContains(r, f'<option value="{self.admin_rol.id_rol}">Administrador</option>')
+        self.entrar(ADMIN)
+        self.assertContains(self.client.get('/panel/'),
+                            f'<option value="{self.admin_rol.id_rol}">Administrador</option>')
+
+    def test_puede_actuar_sobre_rol(self):
+        from usuarios.permisos import PERMISOS_SENSIBLES, puede_actuar_sobre_rol
+        self.assertIn('PED_GESTIONAR', PERMISOS_SENSIBLES)
+        self.assertIn('VEH_GESTIONAR', PERMISOS_SENSIBLES)
+        self.assertNotIn('PED_CONSULTAR', PERMISOS_SENSIBLES)
+        recepcion = Usuario.objects.get(DNI=20111222)
+        self.assertFalse(puede_actuar_sobre_rol(recepcion, self.admin_rol))
+        self.assertTrue(puede_actuar_sobre_rol(recepcion, Rol.objects.get(nom_rol='Cliente')))
+        self.assertTrue(puede_actuar_sobre_rol(recepcion, self.recepcion))
+        self.assertTrue(puede_actuar_sobre_rol(Usuario.objects.get(DNI=ADMIN), self.admin_rol))

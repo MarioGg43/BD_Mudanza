@@ -224,6 +224,17 @@ class AccionesTest(BaseVistas):
         self.assertEqual(self.client.post(f'/pedidos/{self.p.pk}/anular/', {'motivo': 'Me arrepentí'}).status_code, 403)
         self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Pendiente')
 
+    def test_un_cliente_con_ped_anular_no_anula_un_pedido_ajeno(self):
+        from usuarios.models import Permiso, PermisoRol
+        PermisoRol.objects.create(idRol=Rol.objects.get(nom_rol='Cliente'),
+                                  idPermiso=Permiso.objects.get(nom_permiso='PED_ANULAR'))
+        self.entrar(self.otro.DNI)
+        self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/anular/').status_code, 404)
+        r = self.client.post(f'/pedidos/{self.p.pk}/anular/', {'motivo': 'Lo anulo yo'})
+        self.assertEqual(r.status_code, 404)
+        p = Pedido.objects.get(pk=self.p.pk)
+        self.assertEqual((p.estado, p.motivo_anulacion), ('Pendiente', None))
+
     def test_botones_segun_el_perfil(self):
         self.entrar(ADMIN)
         r = self.client.get(f'/pedidos/{self.p.pk}/')

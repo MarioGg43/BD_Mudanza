@@ -92,13 +92,13 @@
               {% if u.DNI == usuario_actual.DNI %}
               <span class="chip-marca text-xs px-2 py-1 rounded"
                     title="No podés cambiar tu propio rol">{{ u.idRol.nom_rol }}</span>
-              {% elif 'USR_CAMBIAR_ROL' not in permisos %}
+              {% elif 'USR_CAMBIAR_ROL' not in permisos or u.idRol not in roles_asignables %}
               <span class="chip-marca text-xs px-2 py-1 rounded">{{ u.idRol.nom_rol }}</span>
               {% else %}
               <div class="flex items-center gap-1">
                 <select id="rol-{{ u.DNI }}"
                         class="campo text-xs px-2 py-1">
-                  {% for r in roles %}
+                  {% for r in roles_asignables %}
                   <option value="{{ r.id_rol }}" {% if r.id_rol == u.idRol_id %}selected{% endif %}>{{ r.nom_rol }}</option>
                   {% endfor %}
                 </select>
@@ -193,7 +193,7 @@
           <label class="etiqueta block mb-1">Rol Asignado *</label>
           <select id="altaPerfil" required class="campo w-full p-2.5">
             <option value="">-- Seleccionar Rol --</option>
-            {% for p in roles %}
+            {% for p in roles_asignables %}
             <option value="{{ p.id_rol }}">{{ p.nom_rol }}</option>
             {% endfor %}
           </select>
