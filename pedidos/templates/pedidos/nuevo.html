@@ -33,6 +33,21 @@
             </div>
             {% endfor %}
             {% if form.servicio.errors %}<div class="invalid-feedback d-block">{{ form.servicio.errors.as_text }}</div>{% endif %}
+
+            {% if adicionales %}
+            <div id="bloqueAdicionales" class="border-top mt-3 pt-3 {% if not elegido and not form.adicionales.errors %}d-none{% endif %}">
+                <p class="fw-semibold mb-1">¿Querés sumar algo más? <span class="text-muted fw-normal small">(opcional)</span></p>
+                {% for s in adicionales %}
+                <div class="form-check">
+                    <input class="form-check-input adicional" type="checkbox" name="adicionales" value="{{ s.id_servicio }}"
+                           id="adi{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}"
+                           {% if s.id_servicio|stringformat:'s' in adicionales_elegidos %}checked{% endif %}>
+                    <label class="form-check-label" for="adi{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }}</label>
+                </div>
+                {% endfor %}
+                {% if form.adicionales.errors %}<div class="invalid-feedback d-block">{{ form.adicionales.errors.as_text }}</div>{% endif %}
+            </div>
+            {% endif %}
             <p class="fw-bold mt-3 mb-0">Total: $<span id="total">0</span></p>
         </div>
 
@@ -69,10 +84,14 @@
   const form = document.getElementById('formPedido');
   const fmt = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
 
-  // El total es el precio del servicio elegido
+  // Al elegir el servicio principal se despliegan los adicionales; el total suma todo lo marcado
+  const bloqueAdicionales = document.getElementById('bloqueAdicionales');
   function recalcular() {
     const elegido = form.querySelector('.servicio:checked');
-    document.getElementById('total').textContent = fmt(elegido ? parseFloat(elegido.dataset.precio) : 0);
+    if (bloqueAdicionales && elegido) bloqueAdicionales.classList.remove('d-none');
+    let total = elegido ? parseFloat(elegido.dataset.precio) : 0;
+    form.querySelectorAll('.adicional:checked').forEach((a) => { total += parseFloat(a.dataset.precio); });
+    document.getElementById('total').textContent = fmt(total);
   }
 
   const totalForms = form.querySelector('[name="inv-TOTAL_FORMS"]');

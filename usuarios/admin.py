@@ -45,7 +45,8 @@ class VehiculoAdmin(admin.ModelAdmin):
 
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
-    list_display = ('id_servicio', 'Tipo_servicio', 'Precio_base')
+    list_display = ('id_servicio', 'Tipo_servicio', 'Categoria', 'Precio_base', 'Activo')
+    list_filter = ('Categoria', 'Activo')
 
 
 @admin.register(Pedido)

@@ -7,11 +7,11 @@
 <p><b>Filtros:</b> {% for etiqueta, valor in filtros_usados %}{{ etiqueta }}: {{ valor }}{% if not forloop.last %} · {% endif %}{% empty %}ninguno (todos los pedidos){% endfor %}
 · <b>{{ pedidos|length }}</b> pedido{{ pedidos|length|pluralize }}</p>
 <table>
-<tr><th>N°</th><th>Registrado</th><th>Mudanza</th>{% if ve_todos %}<th>Cliente</th>{% endif %}<th>Servicio</th><th>Desde → Hasta</th><th class="num">Total</th><th>Estado</th></tr>
+<tr><th width="5%">N°</th><th width="10%">Registrado</th><th width="13%">Mudanza</th>{% if ve_todos %}<th>Cliente</th>{% endif %}<th>Servicio</th><th>Desde → Hasta</th><th width="11%" class="num">Total</th><th width="10%">Estado</th></tr>
 {% for p in pedidos %}<tr>
 <td>{{ p.id_pedido }}</td><td>{{ p.Fecha_pedido|date:"d/m/Y" }}</td><td>{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }}</td>
 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
-<td>{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% endfor %}</td><td>{{ p.origen }} → {{ p.destino }}</td>
+<td>{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td><td>{{ p.origen }} → {{ p.destino }}</td>
 <td class="num">${{ p.total|floatformat:"2g" }}</td><td>{{ p.estado }}</td></tr>
 {% empty %}<tr><td colspan="8">No hay pedidos con esos filtros.</td></tr>{% endfor %}
 </table>

@@ -4,17 +4,18 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1">Servicios</h1>
-        <p class="text-muted mb-0">Lo que el cliente puede elegir al pedir una mudanza.</p>
+        <p class="text-muted mb-0">Lo que el cliente puede elegir al pedir una mudanza: un principal por pedido y los adicionales que quiera.</p>
     </div>
     <a href="{% url 'servicios_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo servicio</a>
 </div>
 <div class="card-panel bg-white p-0 overflow-auto">
     <table class="table align-middle mb-0">
-        <thead class="table-light"><tr><th>Servicio</th><th class="text-end">Precio base</th><th>Materiales</th><th>Estado</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th>Servicio</th><th>Categoría</th><th class="text-end">Precio base</th><th>Materiales</th><th>Estado</th><th></th></tr></thead>
         <tbody>
             {% for s in servicios %}
             <tr class="{% if not s.Activo %}text-muted{% endif %}">
                 <td class="fw-semibold">{{ s.Tipo_servicio }}</td>
+                <td>{{ s.Categoria }}</td>
                 <td class="text-end">${{ s.Precio_base|floatformat:"2g" }}</td>
                 <td class="small">{% for r in s.recursos.all %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
                 <td>{% if s.Activo %}<span class="estado estado-activo">Activo</span>{% else %}<span class="estado estado-baja">Dado de baja</span>{% endif %}</td>

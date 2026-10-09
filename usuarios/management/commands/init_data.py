@@ -88,17 +88,22 @@ class Command(BaseCommand):
                     anio=anio, chofer_asignado=ch, observaciones=obs)
                 self.stdout.write(self.style.SUCCESS(f'Vehículo {pat} ({marca}) creado.'))
 
-        # 6. Servicios y sus materiales
+        # 6. Servicios y sus materiales: los principales (uno por pedido) y los adicionales
+        P, A = Servicio.PRINCIPAL, Servicio.ADICIONAL
         servicios_data = [
-            ('Mudanza local', 185000, 'Mantas, film y cintas'),
-            ('Mudanza nacional', 640000, 'Mantas, film, cintas y zunchos'),
-            ('Flete urbano', 75000, 'Correas y mantas'),
+            ('Mudanza local', P, 185000, 'Mantas, film y cintas'),
+            ('Mudanza nacional', P, 640000, 'Mantas, film, cintas y zunchos'),
+            ('Flete urbano', P, 75000, 'Correas y mantas'),
+            ('Embalaje', A, 40000, 'Cajas, papel burbuja y cinta'),
+            ('Desarmado y armado de muebles', A, 30000, 'Herramientas'),
+            ('Ayudante extra', A, 25000, None),
         ]
-        for tipo, precio, materiales in servicios_data:
+        for tipo, categoria, precio, materiales in servicios_data:
             serv, creado = Servicio.objects.get_or_create(
-                Tipo_servicio=tipo, defaults={'Precio_base': precio})
+                Tipo_servicio=tipo, defaults={'Precio_base': precio, 'Categoria': categoria})
             if creado:
-                RecursoAsignado.objects.create(idServicio=serv, Materiales=materiales)
+                if materiales:
+                    RecursoAsignado.objects.create(idServicio=serv, Materiales=materiales)
                 self.stdout.write(self.style.SUCCESS(f'Servicio "{tipo}" creado.'))
 
         # 7. Un pedido de ejemplo de la clienta, ya finalizado, con detalle, inventario y cobranza

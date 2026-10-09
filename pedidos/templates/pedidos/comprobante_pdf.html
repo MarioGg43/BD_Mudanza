@@ -14,12 +14,12 @@
 <p><b>Fecha:</b> {{ pedido.fecha_servicio|date:"d/m/Y" }} a las {{ pedido.hora_servicio|time:"H:i" }}<br>
 <b>Desde:</b> {{ pedido.origen }}<br><b>Hasta:</b> {{ pedido.destino }}<br>
 <b>Vehículo:</b> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</p>
-<h2>Servicio</h2>
-<table><tr><th>Servicio</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
+<h2>Servicios</h2>
+<table><tr><th>Servicio</th><th width="20%" class="num">Precio</th><th width="20%" class="num">Subtotal</th></tr>
 {% for d in pedido.detalles.all %}<tr><td>{{ d.idServicio.Tipo_servicio }}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>{% endfor %}
-<tr><td></td><td class="num"><b>TOTAL</b></td><td class="num"><b>${{ pedido.total|floatformat:"2g" }}</b></td></tr></table>
+<tr><td colspan="2" class="num"><b>TOTAL</b></td><td class="num"><b>${{ pedido.total|floatformat:"2g" }}</b></td></tr></table>
 <h2>Inventario</h2>
-<table><tr><th>Objeto</th><th class="num">Cantidad</th><th>Frágil</th><th>Observación</th></tr>
+<table><tr><th width="35%">Objeto</th><th width="12%" class="num">Cantidad</th><th width="10%">Frágil</th><th>Observación</th></tr>
 {% for i in pedido.inventario.all %}<tr><td>{{ i.Descripcion }}</td><td class="num">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>{% endfor %}</table>
 <p class="pie">Mudanzas y Fletes Salta · Comprobante emitido el {{ emitido|date:"d/m/Y H:i" }}. No válido como factura.</p>
 </body></html>

@@ -74,14 +74,22 @@ def _validar_direcciones(origen, destino, errores):
         errores['destino'] = 'El destino tiene que ser distinto del origen.'
 
 
-def _validar_servicio(id_servicio, errores):
+def _validar_servicios(id_servicio, ids_adicionales, errores):
+    """Un servicio principal obligatorio y, opcionales, los adicionales (sin repetir)."""
+    principal = None
     if id_servicio is None:
         errores['servicio'] = 'Elegí un servicio.'
-        return None
-    servicio = Servicio.objects.filter(id_servicio=id_servicio, Activo=True).first()
-    if not servicio:
-        errores['servicio'] = 'Ese servicio ya no está disponible.'
-    return servicio
+    else:
+        principal = Servicio.objects.filter(id_servicio=id_servicio, Activo=True,
+                                            Categoria=Servicio.PRINCIPAL).first()
+        if not principal:
+            errores['servicio'] = 'Ese servicio ya no está disponible.'
+    ids = list(dict.fromkeys(int(i) for i in ids_adicionales or ()))
+    adicionales = list(Servicio.objects.filter(id_servicio__in=ids, Activo=True,
+                                               Categoria=Servicio.ADICIONAL).order_by('Tipo_servicio'))
+    if len(adicionales) != len(ids):
+        errores['adicionales'] = 'Alguno de los adicionales elegidos ya no está disponible.'
+    return principal, adicionales
 
 
 def _validar_items(items, errores):
@@ -111,15 +119,17 @@ def _validar_items(items, errores):
     return limpios
 
 
-def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente, items):
-    """Registra el pedido completo (cabecera, servicio e inventario) en una sola
-    transacción y lo deja Pendiente. Si algo no es válido lanza ErrorPedido."""
+def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente, items,
+                     ids_adicionales=()):
+    """Registra el pedido completo (cabecera, servicios e inventario) en una sola
+    transacción y lo deja Pendiente. El total es el principal más los adicionales.
+    Si algo no es válido lanza ErrorPedido."""
     errores = {}
     origen, destino = (origen or '').strip(), (destino or '').strip()
     _validar_fecha(fecha_servicio, errores)
     _validar_hora(fecha_servicio, hora_servicio, errores)
     _validar_direcciones(origen, destino, errores)
-    servicio = _validar_servicio(id_servicio, errores)
+    principal, adicionales = _validar_servicios(id_servicio, ids_adicionales, errores)
     limpios = _validar_items(items, errores)
     if not patente:
         errores['vehiculo'] = 'Elegí un vehículo.'
@@ -138,9 +148,11 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
         pedido = Pedido.objects.create(
             patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=timezone.localdate(),
             fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, origen=origen, destino=destino,
-            estado=Pedido.PENDIENTE, total=servicio.Precio_base)
-        DetallePedido.objects.create(idPedido=pedido, idServicio=servicio,
-                                     precio_unitario=servicio.Precio_base, subtotal=servicio.Precio_base)
+            estado=Pedido.PENDIENTE, total=sum(s.Precio_base for s in [principal, *adicionales]))
+        # Una fila por servicio, con el precio del día: si después cambia, el pedido no cambia
+        DetallePedido.objects.bulk_create([
+            DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=s.Precio_base, subtotal=s.Precio_base)
+            for s in [principal, *adicionales]])
         InventarioDetalle.objects.bulk_create([
             InventarioDetalle(idPedido=pedido, Descripcion=i['descripcion'], Cantidad=i['cantidad'],
                               Fragil=i['fragil'], Observacion=i['observacion'])

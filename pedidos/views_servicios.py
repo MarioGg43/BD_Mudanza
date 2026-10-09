@@ -10,7 +10,7 @@ from .permisos import requiere_permiso
 
 @requiere_permiso('SRV_GESTIONAR')
 def lista(request):
-    servicios = Servicio.objects.prefetch_related('recursos').order_by('-Activo', 'Tipo_servicio')
+    servicios = Servicio.objects.prefetch_related('recursos').order_by('-Activo', '-Categoria', 'Tipo_servicio')
     return render(request, 'pedidos/servicios_lista.html', {'servicios': servicios})
 
 

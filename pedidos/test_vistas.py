@@ -142,6 +142,27 @@ class RegistrarPantallaTest(BaseVistas):
         self.assertContains(r, 'name="inv-0-observacion"')
         self.assertNotContains(r, 'Peso total')
 
+    def test_registra_con_adicionales_y_el_comprobante_los_lista(self):
+        self.entrar(CLIENTE)
+        embalaje = Servicio.objects.get(Tipo_servicio='Embalaje')
+        self.client.post('/pedidos/nuevo/', self.datos(adicionales=[embalaje.id_servicio]))
+        p = Pedido.objects.latest('id_pedido')
+        self.assertEqual(p.total, 185000 + 40000)
+        self.assertEqual([d.idServicio for d in p.detalles.all()], [self.local, embalaje])
+        r = self.client.get(f'/pedidos/{p.pk}/comprobante/')
+        self.assertContains(r, 'Mudanza local')
+        self.assertContains(r, 'Embalaje')
+
+    def test_el_formulario_separa_principales_de_adicionales(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/nuevo/')
+        principales = [str(s) for s in r.context['servicios']]
+        adicionales = [str(s) for s in r.context['adicionales']]
+        self.assertIn('Flete urbano', principales)
+        self.assertNotIn('Embalaje', principales)
+        self.assertIn('Embalaje', adicionales)
+        self.assertContains(r, 'type="checkbox" name="adicionales"')
+
     def test_objeto_escrito_a_mano_con_observacion(self):
         self.entrar(CLIENTE)
         r = self.client.post('/pedidos/nuevo/', self.datos(**{

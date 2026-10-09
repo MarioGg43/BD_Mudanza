@@ -62,7 +62,7 @@
 {% if servicios %}
 <section class="mb-5" aria-labelledby="servicios">
     <h2 id="servicios" class="h4 fw-bold mb-1">Servicios</h2>
-    <p class="text-muted mb-3">Elegís uno por pedido.</p>
+    <p class="text-muted mb-3">Elegís uno por pedido y le podés sumar adicionales.</p>
     <div class="row g-4">
         {% for s in servicios %}
         <div class="col-md-4">
@@ -78,6 +78,15 @@
         </div>
         {% endfor %}
     </div>
+    {% if adicionales %}
+    <h3 class="h6 fw-bold mt-4 mb-2">Y si querés, le sumás</h3>
+    <ul class="list-unstyled row g-2 mb-0">
+        {% for s in adicionales %}
+        <li class="col-md-4"><i class="bi bi-plus-circle text-marca me-1"></i>{{ s.Tipo_servicio }}
+            <span class="fw-semibold">${{ s.Precio_base|floatformat:"0g" }}</span></li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 </section>
 {% endif %}
 

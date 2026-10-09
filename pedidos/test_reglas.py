@@ -24,6 +24,8 @@ class BaseReglas(TestCase):
         cls.admin = Usuario.objects.get(DNI=ADMIN)
         cls.local = Servicio.objects.get(Tipo_servicio='Mudanza local')
         cls.flete = Servicio.objects.get(Tipo_servicio='Flete urbano')
+        cls.embalaje = Servicio.objects.get(Tipo_servicio='Embalaje')
+        cls.armado = Servicio.objects.get(Tipo_servicio='Desarmado y armado de muebles')
 
     def dia(self, dias=1):
         return timezone.localdate() + timedelta(days=dias)
@@ -64,6 +66,29 @@ class RegistrarPedidoTest(BaseReglas):
         self.assertEqual((detalle.idServicio, detalle.precio_unitario, detalle.subtotal),
                          (self.flete, 75000, 75000))
         self.assertEqual(p.total, self.flete.Precio_base)
+
+    def test_principal_mas_adicionales_suma_el_total(self):
+        p = self.registrar(id_servicio=self.flete.id_servicio,
+                           ids_adicionales=[self.armado.id_servicio, self.embalaje.id_servicio])
+        self.assertEqual([(d.idServicio, d.subtotal) for d in p.detalles.all()],
+                         [(self.flete, 75000), (self.armado, 30000), (self.embalaje, 40000)])
+        self.assertEqual(p.total, 145000)
+
+    def test_un_adicional_repetido_cuenta_una_vez(self):
+        p = self.registrar(ids_adicionales=[self.embalaje.id_servicio, self.embalaje.id_servicio])
+        self.assertEqual(p.detalles.count(), 2)
+        self.assertEqual(p.total, 185000 + 40000)
+
+    def test_un_adicional_no_puede_ser_el_principal(self):
+        self.assertRechaza('servicio', 'Ese servicio ya no está disponible.', id_servicio=self.embalaje.id_servicio)
+
+    def test_un_principal_no_puede_ir_como_adicional(self):
+        self.assertRechaza('adicionales', ids_adicionales=[self.flete.id_servicio])
+
+    def test_adicional_dado_de_baja(self):
+        Servicio.objects.filter(pk=self.embalaje.pk).update(Activo=False)
+        self.assertRechaza('adicionales', 'Alguno de los adicionales elegidos ya no está disponible.',
+                           ids_adicionales=[self.embalaje.id_servicio])
 
     def test_el_precio_queda_fijo_en_el_pedido(self):
         p = self.registrar()

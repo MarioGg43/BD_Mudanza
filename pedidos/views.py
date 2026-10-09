@@ -89,7 +89,8 @@ def nuevo(request):
                 pedido = reglas.registrar_pedido(
                     request.usuario, d['fecha_servicio'], d['hora_servicio'], d['origen'], d['destino'],
                     d['servicio'].id_servicio, d['vehiculo'].patente,
-                    [f.cleaned_data for f in items.forms if f.cleaned_data])
+                    [f.cleaned_data for f in items.forms if f.cleaned_data],
+                    ids_adicionales=[s.id_servicio for s in d['adicionales']])
             except reglas.ErrorPedido as e:
                 for campo, mensaje in e.errores.items():
                     form.add_error(campo if campo in form.fields else None, mensaje)
@@ -104,7 +105,9 @@ def nuevo(request):
     return render(request, 'pedidos/nuevo.html', {
         'form': form, 'items': items,
         'servicios': form.fields['servicio'].queryset,
+        'adicionales': form.fields['adicionales'].queryset,
         'elegido': str(form['servicio'].value() or ''),
+        'adicionales_elegidos': [str(i) for i in form['adicionales'].value() or []],
         'objetos': reglas.OBJETOS_INVENTARIO,
     })
 

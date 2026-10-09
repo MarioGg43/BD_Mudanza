@@ -65,12 +65,16 @@ class PedidoForm(forms.Form):
         attrs={'placeholder': 'Calle, número y ciudad'}))
     servicio = forms.ModelChoiceField(queryset=Servicio.objects.none(), label='Servicio',
                                       widget=forms.RadioSelect, empty_label=None)
+    adicionales = forms.ModelMultipleChoiceField(queryset=Servicio.objects.none(), required=False,
+                                                 label='Adicionales', widget=forms.CheckboxSelectMultiple)
     vehiculo = VehiculoField(queryset=Vehiculo.objects.none(), label='Vehículo',
                              empty_label='Elegí primero la fecha')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['servicio'].queryset = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio')
+        activos = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio')
+        self.fields['servicio'].queryset = activos.filter(Categoria=Servicio.PRINCIPAL)
+        self.fields['adicionales'].queryset = activos.filter(Categoria=Servicio.ADICIONAL)
         self.fields['vehiculo'].queryset = Vehiculo.objects.filter(estado='Disponible').order_by('patente')
         con_bootstrap(self)
 
@@ -153,8 +157,9 @@ class ServicioForm(forms.ModelForm):
 
     class Meta:
         model = Servicio
-        fields = ['Tipo_servicio', 'Precio_base', 'Activo']
+        fields = ['Tipo_servicio', 'Categoria', 'Precio_base', 'Activo']
         labels = {'Tipo_servicio': 'Tipo de servicio', 'Precio_base': 'Precio base ($)'}
+        help_texts = {'Categoria': 'El cliente elige un principal por pedido y, si quiere, le suma adicionales.'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -14,8 +14,10 @@ def inicio(request):
     actual = get_usuario_actual(request)
     if actual:
         return pantalla_inicio(actual)
-    servicios = Servicio.objects.filter(Activo=True).prefetch_related('recursos').order_by('Precio_base')
-    return render(request, 'vehiculos/inicio.html', {'servicios': servicios})
+    activos = Servicio.objects.filter(Activo=True).prefetch_related('recursos').order_by('Precio_base')
+    return render(request, 'vehiculos/inicio.html', {
+        'servicios': activos.filter(Categoria=Servicio.PRINCIPAL),
+        'adicionales': activos.filter(Categoria=Servicio.ADICIONAL)})
 
 
 @requiere_permiso('VEH_GESTIONAR')

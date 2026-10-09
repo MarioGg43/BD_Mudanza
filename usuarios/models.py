@@ -153,9 +153,15 @@ class Vehiculo(models.Model):
 
 
 class Servicio(models.Model):
+    # El pedido lleva un servicio principal (la mudanza o el flete) y, si quiere, adicionales
+    PRINCIPAL, ADICIONAL = 'Principal', 'Adicional'
+    CATEGORIAS = [(PRINCIPAL, 'Principal (mudanza o flete)'), (ADICIONAL, 'Adicional (embalaje, armado, etc.)')]
+
     id_servicio = models.AutoField(primary_key=True)
     Tipo_servicio = models.CharField(max_length=100, verbose_name='Tipo de servicio')
     Precio_base = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Precio base')
+    Categoria = models.CharField(max_length=10, choices=CATEGORIAS, default=PRINCIPAL,
+                                 db_column='Categoria', verbose_name='Categoría')
     Activo = models.BooleanField(default=True, db_column='Activo', verbose_name='Activo')
 
     class Meta:
@@ -238,6 +244,7 @@ class DetallePedido(models.Model):
 
     class Meta:
         db_table = 'DETALLE_PEDIDOS'
+        ordering = ['id_detalle_pedidos']  # primero el principal, después los adicionales
         verbose_name = 'Detalle de pedido'
         verbose_name_plural = 'Detalles de pedidos'
 
