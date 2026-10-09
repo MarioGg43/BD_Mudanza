@@ -6,7 +6,7 @@
     <form method="post" class="card-panel bg-white p-4" novalidate>
         {% csrf_token %}
         {% for field in form %}
-        <div class="mb-3 {% if field.name == 'Activo' %}form-check{% endif %}">
+        <div class="mb-3 {% if field.name == 'Activo' %}form-check{% endif %}" id="campo-{{ field.name }}">
             {% if field.name == 'Activo' %}
                 {{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">Activo (se ofrece al registrar pedidos)</label>
             {% else %}
@@ -23,4 +23,14 @@
         </div>
     </form>
 </div>
+<script>
+// Los adicionales no tienen precio: el campo se oculta cuando se elige esa categoría
+(function () {
+  const categoria = document.querySelector('[name="Categoria"]');
+  const precio = document.getElementById('campo-Precio_base');
+  const mostrar = () => precio.classList.toggle('d-none', categoria.value === 'Adicional');
+  categoria.addEventListener('change', mostrar);
+  mostrar();
+})();
+</script>
 {% endblock %}

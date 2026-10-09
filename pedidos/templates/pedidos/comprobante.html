@@ -89,7 +89,7 @@
     <table>
         <tr><th>Servicio</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
         {% for d in pedido.detalles.all %}
-        <tr><td>{{ d.idServicio.Tipo_servicio }}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>
+        <tr><td>{{ d.idServicio.Tipo_servicio }}{% if d.idServicio.Categoria == 'Adicional' %} <i>(adicional)</i>{% endif %}</td>{% if d.idServicio.Categoria != 'Adicional' %}<td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td>{% else %}<td class="num">—</td><td class="num">—</td>{% endif %}</tr>
         {% endfor %}
         <tr class="total"><td colspan="2" class="num">TOTAL</td><td class="num">${{ pedido.total|floatformat:"2g" }}</td></tr>
     </table>

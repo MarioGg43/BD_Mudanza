@@ -16,7 +16,7 @@
 <b>Vehículo:</b> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</p>
 <h2>Servicios</h2>
 <table><tr><th>Servicio</th><th width="20%" class="num">Precio</th><th width="20%" class="num">Subtotal</th></tr>
-{% for d in pedido.detalles.all %}<tr><td>{{ d.idServicio.Tipo_servicio }}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>{% endfor %}
+{% for d in pedido.detalles.all %}<tr><td>{{ d.idServicio.Tipo_servicio }}{% if d.idServicio.Categoria == 'Adicional' %} <i>(adicional)</i>{% endif %}</td>{% if d.idServicio.Categoria != 'Adicional' %}<td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td>{% else %}<td class="num">—</td><td class="num">—</td>{% endif %}</tr>{% endfor %}
 <tr><td colspan="2" class="num"><b>TOTAL</b></td><td class="num"><b>${{ pedido.total|floatformat:"2g" }}</b></td></tr></table>
 <h2>Inventario</h2>
 <table><tr><th width="35%">Objeto</th><th width="12%" class="num">Cantidad</th><th width="10%">Frágil</th><th>Observación</th></tr>

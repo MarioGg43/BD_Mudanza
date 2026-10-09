@@ -122,8 +122,8 @@ def _validar_items(items, errores):
 def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente, items,
                      ids_adicionales=()):
     """Registra el pedido completo (cabecera, servicios e inventario) en una sola
-    transacción y lo deja Pendiente. El total es el principal más los adicionales.
-    Si algo no es válido lanza ErrorPedido."""
+    transacción y lo deja Pendiente. Solo el servicio principal tiene precio: los
+    adicionales se anotan sin costo. Si algo no es válido lanza ErrorPedido."""
     errores = {}
     origen, destino = (origen or '').strip(), (destino or '').strip()
     _validar_fecha(fecha_servicio, errores)
@@ -148,11 +148,13 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
         pedido = Pedido.objects.create(
             patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=timezone.localdate(),
             fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, origen=origen, destino=destino,
-            estado=Pedido.PENDIENTE, total=sum(s.Precio_base for s in [principal, *adicionales]))
-        # Una fila por servicio, con el precio del día: si después cambia, el pedido no cambia
-        DetallePedido.objects.bulk_create([
-            DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=s.Precio_base, subtotal=s.Precio_base)
-            for s in [principal, *adicionales]])
+            estado=Pedido.PENDIENTE, total=principal.Precio_base)
+        # Una fila por servicio. El principal guarda el precio del día (si después cambia, el
+        # pedido no cambia); los adicionales van en 0 porque no tienen precio.
+        DetallePedido.objects.bulk_create(
+            [DetallePedido(idPedido=pedido, idServicio=principal,
+                           precio_unitario=principal.Precio_base, subtotal=principal.Precio_base)]
+            + [DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=0, subtotal=0) for s in adicionales])
         InventarioDetalle.objects.bulk_create([
             InventarioDetalle(idPedido=pedido, Descripcion=i['descripcion'], Cantidad=i['cantidad'],
                               Fragil=i['fragil'], Observacion=i['observacion'])

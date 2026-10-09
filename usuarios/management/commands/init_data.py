@@ -94,9 +94,9 @@ class Command(BaseCommand):
             ('Mudanza local', P, 185000, 'Mantas, film y cintas'),
             ('Mudanza nacional', P, 640000, 'Mantas, film, cintas y zunchos'),
             ('Flete urbano', P, 75000, 'Correas y mantas'),
-            ('Embalaje', A, 40000, 'Cajas, papel burbuja y cinta'),
-            ('Desarmado y armado de muebles', A, 30000, 'Herramientas'),
-            ('Ayudante extra', A, 25000, None),
+            ('Embalaje', A, 0, 'Cajas, papel burbuja y cinta'),
+            ('Desarmado y armado de muebles', A, 0, 'Herramientas'),
+            ('Ayudante extra', A, 0, None),
         ]
         for tipo, categoria, precio, materiales in servicios_data:
             serv, creado = Servicio.objects.get_or_create(

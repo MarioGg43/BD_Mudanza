@@ -67,17 +67,21 @@ class RegistrarPedidoTest(BaseReglas):
                          (self.flete, 75000, 75000))
         self.assertEqual(p.total, self.flete.Precio_base)
 
-    def test_principal_mas_adicionales_suma_el_total(self):
+    def test_los_adicionales_se_anotan_sin_precio(self):
         p = self.registrar(id_servicio=self.flete.id_servicio,
                            ids_adicionales=[self.armado.id_servicio, self.embalaje.id_servicio])
-        self.assertEqual([(d.idServicio, d.subtotal) for d in p.detalles.all()],
-                         [(self.flete, 75000), (self.armado, 30000), (self.embalaje, 40000)])
-        self.assertEqual(p.total, 145000)
+        self.assertEqual([(d.idServicio, d.precio_unitario, d.subtotal) for d in p.detalles.all()],
+                         [(self.flete, 75000, 75000), (self.armado, 0, 0), (self.embalaje, 0, 0)])
+        self.assertEqual(p.total, 75000)
+
+    def test_un_adicional_con_precio_cargado_igual_va_sin_precio(self):
+        Servicio.objects.filter(pk=self.embalaje.pk).update(Precio_base=40000)
+        p = self.registrar(ids_adicionales=[self.embalaje.id_servicio])
+        self.assertEqual(p.total, 185000)
 
     def test_un_adicional_repetido_cuenta_una_vez(self):
         p = self.registrar(ids_adicionales=[self.embalaje.id_servicio, self.embalaje.id_servicio])
         self.assertEqual(p.detalles.count(), 2)
-        self.assertEqual(p.total, 185000 + 40000)
 
     def test_un_adicional_no_puede_ser_el_principal(self):
         self.assertRechaza('servicio', 'Ese servicio ya no está disponible.', id_servicio=self.embalaje.id_servicio)

@@ -16,7 +16,7 @@
             <tr class="{% if not s.Activo %}text-muted{% endif %}">
                 <td class="fw-semibold">{{ s.Tipo_servicio }}</td>
                 <td>{{ s.Categoria }}</td>
-                <td class="text-end">${{ s.Precio_base|floatformat:"2g" }}</td>
+                <td class="text-end">{% if s.Categoria == 'Adicional' %}<span class="text-muted">Sin precio</span>{% else %}${{ s.Precio_base|floatformat:"2g" }}{% endif %}</td>
                 <td class="small">{% for r in s.recursos.all %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
                 <td>{% if s.Activo %}<span class="estado estado-activo">Activo</span>{% else %}<span class="estado estado-baja">Dado de baja</span>{% endif %}</td>
                 <td class="text-end text-nowrap">

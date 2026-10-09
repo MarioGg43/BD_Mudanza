@@ -32,16 +32,17 @@ class ServiciosTest(TestCase):
     def test_alta_con_materiales(self):
         self.entrar(ADMIN)
         r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Guardamuebles', 'Categoria': 'Adicional',
-                                                   'Precio_base': '40000', 'Activo': 'on',
+                                                   'Precio_base': '', 'Activo': 'on',
                                                    'materiales': 'Cajas, burbujas ,  cinta'})
         self.assertRedirects(r, '/servicios/')
         s = Servicio.objects.get(Tipo_servicio='Guardamuebles')
-        self.assertEqual(s.Categoria, Servicio.ADICIONAL)
+        self.assertEqual((s.Categoria, s.Precio_base), (Servicio.ADICIONAL, 0))
         self.assertEqual(sorted(s.recursos.values_list('Materiales', flat=True)), ['Cajas', 'burbujas', 'cinta'])
 
     def test_precio_tiene_que_ser_positivo(self):
         self.entrar(ADMIN)
-        r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Gratis', 'Precio_base': '0', 'materiales': ''})
+        r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Gratis', 'Categoria': 'Principal',
+                                                   'Precio_base': '0', 'materiales': ''})
         self.assertEqual(r.status_code, 200)
         self.assertIn('Precio_base', r.context['form'].errors)
 
@@ -76,11 +77,18 @@ class ServiciosTest(TestCase):
         r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'X', 'Precio_base': '1', 'materiales': ''})
         self.assertIn('Categoria', r.context['form'].errors)
 
+    def test_un_adicional_no_guarda_precio(self):
+        self.entrar(ADMIN)
+        self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Seguro', 'Categoria': 'Adicional',
+                                               'Precio_base': '9999', 'Activo': 'on', 'materiales': ''})
+        self.assertEqual(Servicio.objects.get(Tipo_servicio='Seguro').Precio_base, 0)
+
     def test_la_lista_muestra_la_categoria(self):
         self.entrar(ADMIN)
         r = self.client.get('/servicios/')
         self.assertContains(r, '<td>Adicional</td>', html=True)
         self.assertContains(r, 'Embalaje')
+        self.assertContains(r, 'Sin precio')
 
     def test_el_cliente_no_entra(self):
         self.entrar(CLIENTE)

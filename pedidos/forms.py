@@ -159,21 +159,26 @@ class ServicioForm(forms.ModelForm):
         model = Servicio
         fields = ['Tipo_servicio', 'Categoria', 'Precio_base', 'Activo']
         labels = {'Tipo_servicio': 'Tipo de servicio', 'Precio_base': 'Precio base ($)'}
-        help_texts = {'Categoria': 'El cliente elige un principal por pedido y, si quiere, le suma adicionales.'}
+        help_texts = {'Categoria': 'El cliente elige un principal por pedido y, si quiere, le suma adicionales. '
+                                   'Los adicionales no tienen precio.'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.fields['materiales'].initial = ', '.join(
                 self.instance.recursos.values_list('Materiales', flat=True))
+        self.fields['Precio_base'].required = False  # lo exige clean() solo para los principales
         con_bootstrap(self)
         self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
 
-    def clean_Precio_base(self):
-        precio = self.cleaned_data['Precio_base']
-        if precio <= 0:
-            raise forms.ValidationError('El precio tiene que ser mayor a 0.')
-        return precio
+    def clean(self):
+        d = super().clean()
+        if d.get('Categoria') == Servicio.ADICIONAL:
+            d['Precio_base'] = 0  # los adicionales no tienen precio
+            self.errors.pop('Precio_base', None)
+        elif d.get('Categoria') == Servicio.PRINCIPAL and not (d.get('Precio_base') or 0) > 0:
+            self.add_error('Precio_base', 'El precio tiene que ser mayor a 0.')
+        return d
 
     def clean_materiales(self):
         lista = [m.strip() for m in self.cleaned_data['materiales'].split(',') if m.strip()]
