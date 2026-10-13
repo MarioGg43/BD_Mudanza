@@ -58,6 +58,14 @@ docker compose down
 | `romerol` | `Temporal123!` | Ayudante de Carga | Le exige cambiar la clave al entrar |
 | `gomezm` | `Cliente123!` | Cliente | Sus pedidos; puede pedir mudanzas |
 
+**Admin de Django** (http://localhost:8002/admin/): usuario `admin`, contraseña `Admin123!`.
+Es una cuenta aparte de las del sistema. En una instalación nueva no existe: se crea una vez con
+`docker exec -it mudanzas_web python manage.py createsuperuser`.
+
+**Base de datos** (phpMyAdmin en http://localhost:8082/, o un cliente MySQL en `localhost:3308`):
+base `mudanzas_db`, usuario `mudanzas_user` / `mudanzas_pass`, o `root` / `root_pass`
+(valores de `.env.example`, solo para desarrollo).
+
 ## Reglas del Hito 2
 
 - El **nombre de usuario se genera solo**: apellido más la inicial del nombre.
