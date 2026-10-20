@@ -46,7 +46,7 @@ def completar_pedido(page, fecha, hora, origen, destino, servicio, objetos, pref
     for n, (nombre, cantidad, fragil, obs) in enumerate(objetos):
         if n:
             page.click('#agregarFila')
-        page.fill(f'[name="inv-{n}-descripcion"]', nombre)
+        page.select_option(f'[name="inv-{n}-objeto"]', label=nombre)
         page.fill(f'[name="inv-{n}-cantidad"]', str(cantidad))
         if fragil:
             page.check(f'[name="inv-{n}-fragil"]')
@@ -81,7 +81,7 @@ with sync_playwright() as p:
         page, hoy + timedelta(days=14), '08:30', 'Av. Belgrano 1250, Salta', 'Los Ceibos 340, Cerrillos',
         'Mudanza local',
         [('Heladera', 1, True, 'Tiene freezer aparte'), ('Cajas', 12, False, ''),
-         ('Piano vertical', 1, True, 'Se desarma; va con mantas')],
+         ('Otro', 1, True, 'Piano vertical: se desarma, va con mantas')],
         'AE-123-CD')
     foto(page, '03-registrar-pedido-formulario')
     pedido_a = registrar(page)
