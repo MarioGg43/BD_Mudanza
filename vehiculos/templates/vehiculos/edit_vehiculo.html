@@ -71,7 +71,7 @@
             </h2>
             <label for="{{ form.chofer_asignado.id_for_label }}" class="form-label fw-semibold">{{ form.chofer_asignado.label }}</label>
             {{ form.chofer_asignado }}
-            <div class="form-text">Solo aparecen los usuarios activos con rol Chofer.</div>
+            <div class="form-text">El chofer de siempre de este vehículo: se sugiere al asignar el personal de cada mudanza. Puede quedar vacío. Solo aparecen choferes activos.</div>
             {% if form.chofer_asignado.errors %}<div class="invalid-feedback d-block">{{ form.chofer_asignado.errors.as_text }}</div>{% endif %}
         </div>
 

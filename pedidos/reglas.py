@@ -258,6 +258,12 @@ def filtro_sin_chofer():
             & ~Q(pk__in=PersonalPedido.objects.filter(Funcion=PersonalPedido.CHOFER).values('idPedido')))
 
 
+def filtro_por_venir_sin_chofer():
+    """Pendientes o confirmados que todavía no empezaron y no tienen chofer asignado."""
+    return filtro_por_venir() & ~Q(pk__in=PersonalPedido.objects.filter(Funcion=PersonalPedido.CHOFER)
+                                   .values('idPedido'))
+
+
 AVISOS = {VENCIDO: filtro_vencidos, PARA_FINALIZAR: filtro_para_finalizar, POR_CONFIRMAR: filtro_por_confirmar,
           SIN_CHOFER: filtro_sin_chofer}
 

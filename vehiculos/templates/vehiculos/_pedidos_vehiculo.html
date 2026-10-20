@@ -1,7 +1,7 @@
 <div class="card-panel bg-white p-0 overflow-auto">
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
-            <tr><th>N°</th><th>Mudanza</th><th>Cliente</th><th>Servicios</th><th>Desde → Hasta</th><th>Estado</th><th></th></tr>
+            <tr><th>N°</th><th>Mudanza</th><th>Cliente</th><th>Servicios</th><th>Desde → Hasta</th><th>Chofer</th><th>Estado</th><th></th></tr>
         </thead>
         <tbody>
             {% for p in pedidos %}
@@ -11,11 +11,12 @@
                 <td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="small">{{ p.origen }} → {{ p.destino }}</td>
+                <td class="small">{% with c=p.chofer %}{% if c %}{{ c.Nombre }} {{ c.Apellido }}{% elif p.estado == 'Pendiente' or p.estado == 'Confirmado' %}<span class="text-danger fw-semibold">Sin asignar</span>{% else %}—{% endif %}{% endwith %}</td>
                 <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar %}</td>
                 <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
             </tr>
             {% empty %}
-            <tr><td colspan="7" class="text-center text-muted py-4">{{ vacio }}</td></tr>
+            <tr><td colspan="8" class="text-center text-muted py-4">{{ vacio }}</td></tr>
             {% endfor %}
         </tbody>
     </table>

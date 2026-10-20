@@ -7,7 +7,7 @@
     <div>
         <h1 class="h3 fw-bold mb-1">{{ vehiculo.patente }} <span class="h5 text-muted fw-normal">· {{ vehiculo.marca_modelo }}</span></h1>
         <p class="text-muted mb-0">{{ vehiculo.tipo_vehiculo }} · {{ vehiculo.capacidad_kg }} kg · {{ vehiculo.capacidad_m3 }} m³ ·
-            Chofer: {% if vehiculo.chofer_asignado %}{{ vehiculo.chofer_asignado.Nombre }} {{ vehiculo.chofer_asignado.Apellido }}{% else %}sin asignar{% endif %}</p>
+            Chofer habitual: {% if vehiculo.chofer_asignado %}{{ vehiculo.chofer_asignado.Nombre }} {{ vehiculo.chofer_asignado.Apellido }}{% else %}sin asignar{% endif %}</p>
     </div>
     <div class="d-flex gap-2 align-items-center">
         <span class="estado {% if vehiculo.estado == 'Disponible' %}estado-activo{% elif vehiculo.estado == 'Fuera de Servicio' %}estado-baja{% elif vehiculo.estado == 'En Mantenimiento' %}estado-pendiente{% else %}estado-marca{% endif %}">{{ vehiculo.estado }}</span>
@@ -19,8 +19,8 @@
 </div>
 
 {% if falta_chofer %}
-<div class="alert alert-warning"><i class="bi bi-person-exclamation me-1"></i>Tiene mudanzas programadas y <b>no tiene chofer asignado</b>.
-    <a href="{% url 'editarVehiculo' vehiculo.patente %}" class="alert-link">Asignale uno</a>.</div>
+<div class="alert alert-warning"><i class="bi bi-person-exclamation me-1"></i><b>{{ falta_chofer }} mudanza{{ falta_chofer|pluralize }} sin chofer asignado.</b>
+    Asigná el personal desde cada pedido (columna «Chofer»).</div>
 {% endif %}
 
 {% if ve_pedidos %}

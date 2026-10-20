@@ -236,6 +236,11 @@ class Pedido(models.Model):
         return timezone.now() >= self.inicio
 
     @property
+    def chofer(self):
+        """El chofer asignado a esta mudanza (o None)."""
+        return next((x.idUsuario for x in self.personal.all() if x.Funcion == 'Chofer'), None)
+
+    @property
     def para_finalizar(self):
         """Confirmado cuya mudanza ya empezó: falta marcarlo como finalizado."""
         return self.estado == self.CONFIRMADO and self.ya_empezo

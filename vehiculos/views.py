@@ -26,15 +26,15 @@ def inicio(request):
 @requiere_permiso('VEH_GESTIONAR')
 def listaVehiculos(request):
     """Lista todos los vehículos."""
-    por_venir = Pedido.objects.filter(reglas.filtro_por_venir()).values('pk')
+    sin_chofer = Pedido.objects.filter(reglas.filtro_por_venir_sin_chofer()).values('pk')
     vehiculos = list(Vehiculo.objects.select_related('chofer_asignado')
                      .annotate(cant_pedidos=Count('pedidos'),
-                               programados=Count('pedidos', filter=Q(pedidos__in=por_venir)))
+                               mudanzas_sin_chofer=Count('pedidos', filter=Q(pedidos__in=sin_chofer)))
                      .order_by('patente'))
     return render(request, 'vehiculos/lista_vehiculos.html', {
         'vehiculos': vehiculos, 've_pedidos': tiene_permiso(request.usuario, 'PED_GESTIONAR'),
-        # aviso: mudanzas programadas en un vehículo que no tiene quién lo maneje
-        'sin_chofer': [v for v in vehiculos if v.programados and not v.chofer_asignado_id]})
+        # aviso: mudanzas por venir de ese vehículo que todavía no tienen chofer asignado
+        'sin_chofer': [v for v in vehiculos if v.mudanzas_sin_chofer]})
 
 
 @requiere_permiso('VEH_GESTIONAR')
@@ -44,7 +44,8 @@ def detalleVehiculo(request, patente):
     ve_pedidos = tiene_permiso(request.usuario, 'PED_GESTIONAR')
     proximos = para_cerrar = historial = Pedido.objects.none()
     if ve_pedidos:
-        pedidos = vehiculo.pedidos.select_related('idUsuario').prefetch_related('detalles__idServicio')
+        pedidos = vehiculo.pedidos.select_related('idUsuario').prefetch_related('detalles__idServicio',
+                                                                                'personal__idUsuario')
         # próximos: todavía no empezaron · para cerrar: ya pasaron y falta finalizarlos o anularlos
         proximos = pedidos.filter(reglas.filtro_por_venir()).order_by('fecha_servicio', 'hora_servicio')
         para_cerrar = pedidos.filter(reglas.filtro_para_finalizar() | reglas.filtro_vencidos())                              .order_by('fecha_servicio', 'hora_servicio')
@@ -52,8 +53,7 @@ def detalleVehiculo(request, patente):
     return render(request, 'vehiculos/detalle_vehiculo.html', {
         'vehiculo': vehiculo, 've_pedidos': ve_pedidos,
         'proximos': proximos, 'para_cerrar': para_cerrar, 'historial': historial,
-        'falta_chofer': (not vehiculo.chofer_asignado_id
-                         and vehiculo.pedidos.filter(reglas.filtro_por_venir()).exists())})
+        'falta_chofer': vehiculo.pedidos.filter(reglas.filtro_por_venir_sin_chofer()).count()})
 
 
 @requiere_permiso('VEH_GESTIONAR')

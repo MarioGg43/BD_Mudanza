@@ -84,6 +84,14 @@ class VehiculosTest(TestCase):
         self.assertIn('tipo_vehiculo', r.context['form'].errors)
         self.assertFalse(Vehiculo.objects.filter(patente='AB999ZZ').exists())
 
+    def test_valores_fuera_de_rango(self):
+        self.entrar(ADMIN)
+        for campo, valor in [('capacidad_kg', '50'), ('capacidad_kg', '50000'), ('capacidad_m3', '120'),
+                             ('kilometraje', '2500000'), ('anio', '1970'), ('anio', '2099')]:
+            r = self.client.post('/vehiculos/crear/', self.datos(**{campo: valor}))
+            self.assertIn(campo, r.context['form'].errors, (campo, valor))
+        self.assertFalse(Vehiculo.objects.filter(patente='AB999ZZ').exists())
+
     def test_alta_patente_repetida(self):
         self.entrar(ADMIN)
         r = self.client.post('/vehiculos/crear/', self.datos(patente='ae-123-cd'))
@@ -250,15 +258,30 @@ class SinChoferTest(TestCase):
 
     def test_avisa_en_la_lista_y_en_el_detalle(self):
         r = self.client.get('/vehiculos/')
-        self.assertContains(r, 'Sin chofer con mudanzas programadas')
+        self.assertContains(r, 'Mudanzas sin chofer asignado')
         self.assertEqual([v.patente for v in r.context['sin_chofer']], ['AD-321-JK'])
-        self.assertContains(self.client.get('/vehiculos/AD-321-JK/'), 'no tiene chofer asignado')
+        detalle = self.client.get('/vehiculos/AD-321-JK/')
+        self.assertContains(detalle, '1 mudanza sin chofer asignado')
+        self.assertContains(detalle, 'Sin asignar')
 
-    def test_con_chofer_no_avisa(self):
+    def test_el_chofer_habitual_no_alcanza_hace_falta_el_del_pedido(self):
         Vehiculo.objects.filter(pk='AD-321-JK').update(chofer_asignado=Usuario.objects.get(DNI=CHOFER))
+        self.assertEqual(len(self.client.get('/vehiculos/').context['sin_chofer']), 1)
+
+    def test_con_chofer_en_el_pedido_no_avisa(self):
+        from pedidos import reglas
+        pedido = Pedido.objects.get(patente_vehiculo='AD-321-JK', estado='Pendiente')
+        reglas.asignar_personal(pedido.pk, Usuario.objects.get(DNI=CHOFER).pk)
         r = self.client.get('/vehiculos/')
         self.assertEqual(r.context['sin_chofer'], [])
-        self.assertNotContains(self.client.get('/vehiculos/AD-321-JK/'), 'no tiene chofer asignado')
+        detalle = self.client.get('/vehiculos/AD-321-JK/')
+        self.assertNotContains(detalle, 'sin chofer asignado')
+        self.assertContains(detalle, 'Luciana Fernandez')
+
+    def test_la_etiqueta_dice_chofer_habitual(self):
+        r = self.client.get('/vehiculos/editar/AD-321-JK/')
+        self.assertContains(r, 'Chofer habitual')
+        self.assertContains(r, 'se sugiere al asignar el personal')
 
 
 class ParaCerrarTest(TestCase):
@@ -286,4 +309,4 @@ class ParaCerrarTest(TestCase):
         self.assertEqual({p.pk for p in r.context['para_cerrar']}, {hecho.pk, vencido.pk})
         self.assertContains(r, 'Para cerrar')
         sin_chofer = self.client.get('/vehiculos/').context['sin_chofer']
-        self.assertEqual([(v.patente, v.programados) for v in sin_chofer], [('AD-321-JK', 1)])
+        self.assertEqual([(v.patente, v.mudanzas_sin_chofer) for v in sin_chofer], [('AD-321-JK', 1)])

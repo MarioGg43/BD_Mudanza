@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 
 from pedidos.reglas import tiene_pedidos_activos
 from usuarios.models import Usuario, Vehiculo
@@ -21,7 +22,7 @@ class VehiculoForm(forms.ModelForm):
             'estado': 'Estado',
             'kilometraje': 'Kilometraje',
             'anio': 'Año',
-            'chofer_asignado': 'Chofer Asignado',
+            'chofer_asignado': 'Chofer habitual',
             'observaciones': 'Observaciones',
         }
 
@@ -49,6 +50,35 @@ class VehiculoForm(forms.ModelForm):
                 and tiene_pedidos_activos(patente_vehiculo=self.instance.pk)):
             self.add_error('estado', 'Tiene pedidos pendientes o confirmados: no puede dejar de estar disponible.')
         return datos
+
+    # Rangos razonables para un vehículo de mudanzas: frenan errores de tipeo (un cero de más)
+    RANGOS = {
+        'capacidad_kg': (100, 40000, 'La capacidad va de 100 a 40.000 kg.'),
+        'capacidad_m3': (1, 100, 'El volumen va de 1 a 100 m³.'),
+        'kilometraje': (0, 2000000, 'El kilometraje va de 0 a 2.000.000 km.'),
+    }
+
+    def _en_rango(self, campo):
+        valor = self.cleaned_data.get(campo)
+        minimo, maximo, mensaje = self.RANGOS[campo]
+        if valor is not None and not minimo <= valor <= maximo:
+            raise forms.ValidationError(mensaje)
+        return valor
+
+    def clean_capacidad_kg(self):
+        return self._en_rango('capacidad_kg')
+
+    def clean_capacidad_m3(self):
+        return self._en_rango('capacidad_m3')
+
+    def clean_kilometraje(self):
+        return self._en_rango('kilometraje')
+
+    def clean_anio(self):
+        anio = self.cleaned_data.get('anio')
+        if anio is not None and not 1980 <= anio <= timezone.localdate().year + 1:
+            raise forms.ValidationError(f'El año va de 1980 a {timezone.localdate().year + 1}.')
+        return anio
 
     def clean_patente(self):
         # Se guarda siempre en mayúsculas y sin espacios, como en el Hito 2

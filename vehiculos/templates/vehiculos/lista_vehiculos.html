@@ -14,9 +14,9 @@
 
 {% if sin_chofer %}
 <div class="alert alert-warning">
-    <i class="bi bi-person-exclamation me-1"></i><b>Sin chofer con mudanzas programadas:</b>
-    {% for v in sin_chofer %}<a href="{% url 'editarVehiculo' v.patente %}" class="alert-link">{{ v.patente }}</a> ({{ v.programados }} mudanza{{ v.programados|pluralize }}){% if not forloop.last %}, {% endif %}{% endfor %}.
-    Asignale un chofer desde «Editar».
+    <i class="bi bi-person-exclamation me-1"></i><b>Mudanzas sin chofer asignado:</b>
+    {% for v in sin_chofer %}<a href="{% url 'detalleVehiculo' v.patente %}" class="alert-link">{{ v.patente }}</a> ({{ v.mudanzas_sin_chofer }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+    Asigná el personal desde cada pedido.
 </div>
 {% endif %}
 
@@ -35,7 +35,8 @@
             <p class="mb-1">{{ vehiculo.marca_modelo }}</p>
             <p class="text-muted small mb-3">
                 {{ vehiculo.capacidad_kg }} kg &middot; {{ vehiculo.capacidad_m3 }} m³<br>
-                {% if vehiculo.chofer_asignado %}Chofer: {{ vehiculo.chofer_asignado.Nombre }} {{ vehiculo.chofer_asignado.Apellido }}{% elif vehiculo.programados %}<span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Sin chofer y con {{ vehiculo.programados }} mudanza{{ vehiculo.programados|pluralize }} programada{{ vehiculo.programados|pluralize }}</span>{% else %}Chofer: sin asignar{% endif %}
+                Chofer habitual: {% if vehiculo.chofer_asignado %}{{ vehiculo.chofer_asignado.Nombre }} {{ vehiculo.chofer_asignado.Apellido }}{% else %}sin asignar{% endif %}
+                {% if vehiculo.mudanzas_sin_chofer %}<br><span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>{{ vehiculo.mudanzas_sin_chofer }} mudanza{{ vehiculo.mudanzas_sin_chofer|pluralize }} sin chofer asignado</span>{% endif %}
             </p>
 
             <div class="mt-auto">
