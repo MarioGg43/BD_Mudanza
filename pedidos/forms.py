@@ -30,9 +30,8 @@ class FiltroPedidosForm(forms.Form):
                             widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
     estado = forms.ChoiceField(required=False, label='Estado',
                                choices=[('', 'Todos')] + Pedido.ESTADOS
-                                       + [(reglas.VENCIDO, 'Vencidos (pendientes con la fecha pasada)'),
-                                          (reglas.PARA_FINALIZAR, 'Para finalizar (confirmados ya hechos)'),
-                                          (reglas.POR_CONFIRMAR, f'Por confirmar (próximos {reglas.DIAS_POR_CONFIRMAR} días)')])
+                                       + [(reglas.VENCIDO, 'Vencidos'), (reglas.PARA_FINALIZAR, 'Para finalizar'),
+                                          (reglas.POR_CONFIRMAR, 'Por confirmar')])
     servicio = forms.ModelChoiceField(required=False, label='Servicio', empty_label='Todos',
                                       queryset=Servicio.objects.order_by('Tipo_servicio'))
     cliente = forms.ModelChoiceField(required=False, label='Cliente', empty_label='Todos',
