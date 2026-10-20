@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
@@ -166,7 +167,7 @@ def admin_dashboard(request):
         return pantalla_inicio(usuario_actual)
 
     solo_activos = request.GET.get('activos') == '1'
-    usuarios = Usuario.objects.select_related('idRol')
+    usuarios = Usuario.objects.select_related('idRol').annotate(cant_pedidos=Count('pedidos'))
     if solo_activos:
         usuarios = usuarios.filter(Activo=True)
     usuarios = usuarios.order_by('Apellido', 'Nombre')

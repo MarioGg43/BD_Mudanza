@@ -60,7 +60,12 @@ def descargar(request):
         for nombre, campo in form.fields.items():
             valor = form.cleaned_data.get(nombre)
             if valor:
-                texto = valor.strftime('%d/%m/%Y') if hasattr(valor, 'strftime') else str(valor)
+                if hasattr(valor, 'strftime'):
+                    texto = valor.strftime('%d/%m/%Y')
+                elif hasattr(campo, 'label_from_instance'):
+                    texto = campo.label_from_instance(valor)
+                else:
+                    texto = str(valor)
                 usados.append((campo.label, texto))
     return respuesta_pdf(request, 'pedidos/lista_pdf.html', {
         'pedidos': pedidos, 've_todos': ve_todos, 'filtros_usados': usados,

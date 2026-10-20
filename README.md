@@ -38,6 +38,7 @@ docker compose down
 |---|---|
 | http://localhost:8002/ | Portada del sistema |
 | http://localhost:8002/vehiculos/ | CRUD de vehículos (Hito 1, solo administrador) |
+| http://localhost:8002/vehiculos/&lt;patente&gt;/ | Agenda del vehículo: próximos pedidos e historial |
 | http://localhost:8002/login/ | Ingreso al sistema (Hito 2) |
 | http://localhost:8002/registro/ | Crear cuenta de cliente |
 | http://localhost:8002/pedidos/ | Pedidos: el cliente ve los suyos y el admin todos |

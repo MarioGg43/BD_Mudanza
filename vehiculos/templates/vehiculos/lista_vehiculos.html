@@ -18,7 +18,7 @@
         <div class="card-panel p-3 h-100 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
-                    <h2 class="h5 fw-bold mb-0">{{ vehiculo.patente }}</h2>
+                    <h2 class="h5 fw-bold mb-0"><a href="{% url 'detalleVehiculo' vehiculo.patente %}" class="text-reset text-decoration-none">{{ vehiculo.patente }}</a></h2>
                     <span class="text-muted small">{{ vehiculo.tipo_vehiculo }}</span>
                 </div>
                 <span class="estado {% if vehiculo.estado == 'Disponible' %}estado-activo{% elif vehiculo.estado == 'Fuera de Servicio' %}estado-baja{% elif vehiculo.estado == 'En Mantenimiento' %}estado-pendiente{% else %}estado-marca{% endif %}">{{ vehiculo.estado }}</span>
@@ -31,6 +31,11 @@
             </p>
 
             <div class="mt-auto">
+                {% if ve_pedidos %}
+                <a href="{% url 'detalleVehiculo' vehiculo.patente %}" class="btn btn-sm btn-outline-secondary w-100 mb-2">
+                    <i class="bi bi-calendar-week me-1"></i>Pedidos ({{ vehiculo.cant_pedidos }})
+                </a>
+                {% endif %}
                 <div class="d-flex gap-2">
                     <a href="{% url 'editarVehiculo' vehiculo.patente %}" class="btn btn-sm btn-warning flex-fill">
                         <i class="bi bi-pencil-square me-1"></i>Editar

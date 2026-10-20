@@ -17,6 +17,12 @@ def con_bootstrap(form):
         w.attrs.setdefault('class', 'form-select' if isinstance(w, forms.Select) else 'form-control')
 
 
+class PatenteField(forms.ModelChoiceField):
+    """En el filtro alcanza con la patente (la descripción larga no entra en la columna)."""
+    def label_from_instance(self, v):
+        return v.patente
+
+
 class FiltroPedidosForm(forms.Form):
     desde = forms.DateField(required=False, label='Desde',
                             widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
@@ -29,11 +35,14 @@ class FiltroPedidosForm(forms.Form):
     cliente = forms.ModelChoiceField(required=False, label='Cliente', empty_label='Todos',
                                      queryset=Usuario.objects.filter(idRol__nom_rol='Cliente')
                                                              .order_by('Apellido', 'Nombre'))
+    vehiculo = PatenteField(required=False, label='Vehículo', empty_label='Todos',
+                            queryset=Vehiculo.objects.order_by('patente'))
 
     def __init__(self, *args, ve_todos=False, **kwargs):
         super().__init__(*args, **kwargs)
         if not ve_todos:
             del self.fields['cliente']
+            del self.fields['vehiculo']
         con_bootstrap(self)
 
     def clean(self):
@@ -46,7 +55,8 @@ class FiltroPedidosForm(forms.Form):
         d = self.cleaned_data
         return {'desde': d.get('desde'), 'hasta': d.get('hasta'), 'estado': d.get('estado') or None,
                 'id_servicio': d['servicio'].id_servicio if d.get('servicio') else None,
-                'id_cliente': d['cliente'].id_usuario if d.get('cliente') else None}
+                'id_cliente': d['cliente'].id_usuario if d.get('cliente') else None,
+                'patente': d['vehiculo'].patente if d.get('vehiculo') else None}
 
 
 class VehiculoField(forms.ModelChoiceField):

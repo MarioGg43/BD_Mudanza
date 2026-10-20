@@ -1,0 +1,22 @@
+<div class="card-panel bg-white p-0 overflow-auto">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+            <tr><th>N°</th><th>Mudanza</th><th>Cliente</th><th>Servicios</th><th>Desde → Hasta</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for p in pedidos %}
+            <tr>
+                <td class="fw-semibold">{{ p.id_pedido }}</td>
+                <td class="text-nowrap">{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }}</td>
+                <td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>
+                <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                <td class="small">{{ p.origen }} → {{ p.destino }}</td>
+                <td>{% include 'pedidos/_estado.html' with estado=p.estado %}</td>
+                <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-4">{{ vacio }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

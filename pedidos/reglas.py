@@ -217,7 +217,7 @@ def anular(id_pedido, usuario, motivo):
     return pedido
 
 
-def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=None, id_cliente=None):
+def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=None, id_cliente=None, patente=None):
     """Filtros de la consulta. Las fechas son de la mudanza (fecha_servicio)."""
     if desde:
         pedidos = pedidos.filter(fecha_servicio__gte=desde)
@@ -229,6 +229,8 @@ def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=No
         pedidos = pedidos.filter(detalles__idServicio_id=id_servicio)
     if id_cliente:
         pedidos = pedidos.filter(idUsuario_id=id_cliente)
+    if patente:
+        pedidos = pedidos.filter(patente_vehiculo_id=patente)
     return (pedidos.distinct()
             .select_related('idUsuario', 'patente_vehiculo')
             .prefetch_related('detalles__idServicio')

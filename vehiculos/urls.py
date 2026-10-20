@@ -6,4 +6,5 @@ urlpatterns = [
     path('crear/', views.createVehiculo, name='createVehiculo'),
     path('editar/<str:patente>/', views.editarVehiculo, name='editarVehiculo'),
     path('baja/<str:patente>/', views.bajaVehiculo, name='bajaVehiculo'),
+    path('<str:patente>/', views.detalleVehiculo, name='detalleVehiculo'),
 ]

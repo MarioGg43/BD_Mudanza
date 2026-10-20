@@ -161,3 +161,72 @@ class PedidosActivosTest(TestCase):
         self.reglas.anular(self.pedido.pk, Usuario.objects.get(DNI=ADMIN), 'Pedido duplicado')
         self.client.post('/vehiculos/baja/AD-321-JK/')
         self.assertEqual(Vehiculo.objects.get(pk='AD-321-JK').estado, 'Fuera de Servicio')
+
+
+class AgendaDelVehiculoTest(TestCase):
+    """Desde el vehículo se ven sus pedidos: los próximos y el historial."""
+    setUpTestData = VehiculosTest.setUpTestData
+    entrar = VehiculosTest.entrar
+
+    def setUp(self):
+        from datetime import time, timedelta
+        from django.utils import timezone
+        from pedidos import reglas
+        from usuarios.models import Servicio
+        self.proximo = reglas.registrar_pedido(
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=3), time(8, 30),
+            'Av. Belgrano 100', 'Mitre 50', Servicio.objects.get(Tipo_servicio='Flete urbano').id_servicio,
+            'AE-123-CD', [{'objeto': Objeto.objects.get(nom_objeto='Mesa'), 'cantidad': 1}])
+        self.viejo = Pedido.objects.get(patente_vehiculo='AE-123-CD', estado=Pedido.FINALIZADO)  # el de init_data
+
+    def test_el_detalle_separa_proximos_e_historial(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/vehiculos/AE-123-CD/')
+        self.assertEqual(list(r.context['proximos']), [self.proximo])
+        self.assertEqual(list(r.context['historial']), [self.viejo])
+        self.assertContains(r, 'Gómez, María')
+        self.assertContains(r, f'href="/pedidos/{self.proximo.pk}/"')
+        self.assertContains(r, 'href="/pedidos/?vehiculo=AE-123-CD"')
+
+    def test_la_tarjeta_muestra_la_cantidad(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/vehiculos/')
+        self.assertContains(r, 'Pedidos (2)')
+        self.assertContains(r, 'href="/vehiculos/AE-123-CD/"')
+
+    def test_filtro_por_vehiculo_en_la_lista_de_pedidos(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/', {'vehiculo': 'AE-123-CD'})
+        self.assertEqual({p.pk for p in r.context['pedidos']}, {self.proximo.pk, self.viejo.pk})
+        r = self.client.get('/pedidos/', {'vehiculo': 'AD-321-JK'})
+        self.assertEqual(list(r.context['pedidos']), [])
+        pdf = self.client.get('/pedidos/descargar/', {'vehiculo': 'AE-123-CD'})
+        self.assertEqual(pdf.status_code, 200)
+
+    def test_el_cliente_no_filtra_por_vehiculo(self):
+        self.entrar(29876543)
+        self.assertNotIn('vehiculo', self.client.get('/pedidos/').context['form'].fields)
+
+    def test_el_chofer_no_entra(self):
+        self.entrar(40987654)
+        self.assertEqual(self.client.get('/vehiculos/AE-123-CD/').status_code, 403)
+
+    def test_patente_inexistente(self):
+        self.entrar(ADMIN)
+        self.assertEqual(self.client.get('/vehiculos/ZZ999ZZ/').status_code, 404)
+
+
+class EnlacesAPedidosTest(TestCase):
+    setUpTestData = VehiculosTest.setUpTestData
+    entrar = VehiculosTest.entrar
+
+    def test_el_panel_lleva_a_los_pedidos_del_cliente(self):
+        self.entrar(ADMIN)
+        cliente = Usuario.objects.get(DNI=29876543)
+        self.assertContains(self.client.get('/panel/'), f'href="/pedidos/?cliente={cliente.id_usuario}"')
+
+    def test_servicios_muestra_cuantos_pedidos(self):
+        from usuarios.models import Servicio
+        self.entrar(ADMIN)
+        local = Servicio.objects.get(Tipo_servicio='Mudanza local')
+        self.assertContains(self.client.get('/servicios/'), f'href="/pedidos/?servicio={local.id_servicio}"')

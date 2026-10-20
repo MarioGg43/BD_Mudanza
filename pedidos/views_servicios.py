@@ -1,5 +1,6 @@
 """ABM de servicios: la tabla maestra que el pedido necesita y no se hizo en hitos anteriores."""
 from django.contrib import messages
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -10,7 +11,9 @@ from .permisos import requiere_permiso
 
 @requiere_permiso('SRV_GESTIONAR')
 def lista(request):
-    servicios = Servicio.objects.prefetch_related('recursos').order_by('-Activo', '-Categoria', 'Tipo_servicio')
+    servicios = (Servicio.objects.prefetch_related('recursos')
+                 .annotate(cant_pedidos=Count('detalles__idPedido', distinct=True))
+                 .order_by('-Activo', '-Categoria', 'Tipo_servicio'))
     return render(request, 'pedidos/servicios_lista.html', {'servicios': servicios})
 
 

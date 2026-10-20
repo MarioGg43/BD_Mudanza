@@ -1,0 +1,28 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Vehículo {{ vehiculo.patente }}{% endblock %}
+{% block content %}
+<a href="{% url 'lista_vehiculos' %}" class="small text-muted text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Volver a vehículos</a>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">{{ vehiculo.patente }} <span class="h5 text-muted fw-normal">· {{ vehiculo.marca_modelo }}</span></h1>
+        <p class="text-muted mb-0">{{ vehiculo.tipo_vehiculo }} · {{ vehiculo.capacidad_kg }} kg · {{ vehiculo.capacidad_m3 }} m³ ·
+            Chofer: {% if vehiculo.chofer_asignado %}{{ vehiculo.chofer_asignado.Nombre }} {{ vehiculo.chofer_asignado.Apellido }}{% else %}sin asignar{% endif %}</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="estado {% if vehiculo.estado == 'Disponible' %}estado-activo{% elif vehiculo.estado == 'Fuera de Servicio' %}estado-baja{% elif vehiculo.estado == 'En Mantenimiento' %}estado-pendiente{% else %}estado-marca{% endif %}">{{ vehiculo.estado }}</span>
+        <a href="{% url 'editarVehiculo' vehiculo.patente %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil-square me-1"></i>Editar</a>
+        {% if ve_pedidos %}
+        <a href="{% url 'pedidos_lista' %}?vehiculo={{ vehiculo.patente|urlencode }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list-ul me-1"></i>Ver todos en Pedidos</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if ve_pedidos %}
+<h2 class="h6 fw-bold text-uppercase text-muted mb-2"><i class="bi bi-calendar-week me-1"></i>Próximos pedidos</h2>
+{% include 'vehiculos/_pedidos_vehiculo.html' with pedidos=proximos vacio="No tiene mudanzas programadas." %}
+
+<h2 class="h6 fw-bold text-uppercase text-muted mt-4 mb-2"><i class="bi bi-clock-history me-1"></i>Historial</h2>
+{% include 'vehiculos/_pedidos_vehiculo.html' with pedidos=historial vacio="Todavía no tiene pedidos finalizados ni anulados." %}
+{% endif %}
+{% endblock %}

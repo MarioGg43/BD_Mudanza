@@ -10,7 +10,7 @@
 </div>
 <div class="card-panel bg-white p-0 overflow-auto">
     <table class="table align-middle mb-0">
-        <thead class="table-light"><tr><th>Servicio</th><th>Categoría</th><th class="text-end">Precio base</th><th>Materiales</th><th>Estado</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th>Servicio</th><th>Categoría</th><th class="text-end">Precio base</th><th>Materiales</th><th class="text-end">Pedidos</th><th>Estado</th><th></th></tr></thead>
         <tbody>
             {% for s in servicios %}
             <tr class="{% if not s.Activo %}text-muted{% endif %}">
@@ -18,6 +18,7 @@
                 <td>{{ s.Categoria }}</td>
                 <td class="text-end">{% if s.Categoria == 'Adicional' %}<span class="text-muted">Sin precio</span>{% else %}${{ s.Precio_base|floatformat:"2g" }}{% endif %}</td>
                 <td class="small">{% for r in s.recursos.all %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                <td class="text-end">{% if s.cant_pedidos and 'PED_GESTIONAR' in permisos %}<a href="{% url 'pedidos_lista' %}?servicio={{ s.id_servicio }}">{{ s.cant_pedidos }}</a>{% else %}{{ s.cant_pedidos }}{% endif %}</td>
                 <td>{% if s.Activo %}<span class="estado estado-activo">Activo</span>{% else %}<span class="estado estado-baja">Dado de baja</span>{% endif %}</td>
                 <td class="text-end text-nowrap">
                     <a href="{% url 'servicios_editar' s.id_servicio %}" class="btn btn-sm btn-warning">Editar</a>

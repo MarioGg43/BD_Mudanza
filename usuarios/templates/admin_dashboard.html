@@ -134,6 +134,12 @@
             </td>
             <td class="p-3 sm:p-4 text-right">
               <div class="flex justify-end gap-1.5">
+                <!-- Pedidos del cliente -->
+                {% if 'PED_GESTIONAR' in permisos and u.idRol.nom_rol == 'Cliente' %}
+                <a href="{% url 'pedidos_lista' %}?cliente={{ u.id_usuario }}" class="accion accion-editar p-1.5 rounded-lg text-xs" title="Ver sus pedidos ({{ u.cant_pedidos }})">
+                  <i class="fa-solid fa-truck"></i><span class="ml-1">{{ u.cant_pedidos }}</span>
+                </a>
+                {% endif %}
                 <!-- Modificar Correo -->
                 {% if 'USR_EDITAR_CORREO' in permisos %}
                 <button onclick="abrirModalModificar('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}', '{{ u.Correo }}')" class="accion accion-editar p-1.5 rounded-lg text-xs" title="Modificar Correo">
