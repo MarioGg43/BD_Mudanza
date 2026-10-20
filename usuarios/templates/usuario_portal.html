@@ -111,7 +111,7 @@
     {% for p in mudanzas %}
     <div class="caja-suave p-4 rounded-xl mb-3 text-xs space-y-2">
       <div class="flex flex-wrap justify-between items-center gap-2">
-        <p class="font-bold texto-tinta text-sm"><i class="fa-solid fa-calendar-day text-marca mr-1"></i>{{ p.fecha_servicio|date:"l d/m/Y" }} · {{ p.hora_servicio|time:"H:i" }}</p>
+        <p class="font-bold texto-tinta text-sm"><i class="fa-solid fa-calendar-day text-marca mr-1"></i>{{ p.fecha_servicio|date:"l"|capfirst }} {{ p.fecha_servicio|date:"d/m/Y" }} · {{ p.hora_servicio|time:"H:i" }}</p>
         <span class="chip-marca px-2 py-0.5 rounded font-semibold">{% if p.estado == 'Confirmado' %}Confirmada{% else %}A confirmar{% endif %}</span>
       </div>
       <p><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b> &nbsp;→&nbsp; <span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></p>
