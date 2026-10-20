@@ -230,3 +230,31 @@ class EnlacesAPedidosTest(TestCase):
         self.entrar(ADMIN)
         local = Servicio.objects.get(Tipo_servicio='Mudanza local')
         self.assertContains(self.client.get('/servicios/'), f'href="/pedidos/?servicio={local.id_servicio}"')
+
+
+class SinChoferTest(TestCase):
+    setUpTestData = VehiculosTest.setUpTestData
+    entrar = VehiculosTest.entrar
+
+    def setUp(self):
+        from datetime import time, timedelta
+        from django.utils import timezone
+        from pedidos import reglas
+        from usuarios.models import Servicio
+        reglas.registrar_pedido(
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=2), time(9, 0),
+            'Origen 1', 'Destino 2', Servicio.objects.get(Tipo_servicio='Flete urbano').id_servicio,
+            'AD-321-JK', [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 1}])
+        self.entrar(ADMIN)
+
+    def test_avisa_en_la_lista_y_en_el_detalle(self):
+        r = self.client.get('/vehiculos/')
+        self.assertContains(r, 'Sin chofer con mudanzas programadas')
+        self.assertEqual([v.patente for v in r.context['sin_chofer']], ['AD-321-JK'])
+        self.assertContains(self.client.get('/vehiculos/AD-321-JK/'), 'no tiene chofer asignado')
+
+    def test_con_chofer_no_avisa(self):
+        Vehiculo.objects.filter(pk='AD-321-JK').update(chofer_asignado=Usuario.objects.get(DNI=CHOFER))
+        r = self.client.get('/vehiculos/')
+        self.assertEqual(r.context['sin_chofer'], [])
+        self.assertNotContains(self.client.get('/vehiculos/AD-321-JK/'), 'no tiene chofer asignado')

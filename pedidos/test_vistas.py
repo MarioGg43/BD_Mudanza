@@ -464,3 +464,26 @@ class VencidosPantallaTest(BaseVistas):
         r = self.client.get('/pedidos/')
         self.assertContains(r, '>Vencido</span>')
         self.assertNotContains(r, 'Ver vencidos')
+
+
+class AvisosPantallaTest(BaseVistas):
+    def test_la_lista_muestra_los_tres_avisos(self):
+        hecho = self.pedido_de(self.cliente)
+        reglas.confirmar(hecho.pk)
+        Pedido.objects.filter(pk=hecho.pk).update(fecha_servicio=timezone.localdate() - timedelta(days=1))
+        self.pedido_de(self.otro, dias=2)  # pendiente cercano
+        vencido = self.pedido_de(self.otro, dias=5, patente='AE-123-CD')
+        Pedido.objects.filter(pk=vencido.pk).update(fecha_servicio=timezone.localdate() - timedelta(days=3))
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, '1</b> mudanza confirmada ya pasó')
+        self.assertContains(r, 'href="/pedidos/?estado=Para+finalizar"')
+        self.assertContains(r, 'href="/pedidos/?estado=Por+confirmar"')
+        self.assertContains(r, 'href="/pedidos/?estado=Vencido"')
+        self.assertContains(r, '>Para finalizar</span>')
+
+    def test_sin_avisos_no_muestra_nada(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/')
+        self.assertNotContains(r, 'Ver para finalizar')
+        self.assertNotContains(r, 'Ver por confirmar')

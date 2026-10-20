@@ -45,9 +45,11 @@ def _consulta(request):
 @requiere_permiso('PED_CONSULTAR')
 def lista(request):
     form, ve_todos, pedidos = _consulta(request)
-    vencidos = Pedido.objects.filter(reglas.filtro_vencidos()).count() if ve_todos else 0
+    avisos = reglas.contar_avisos() if ve_todos else {}
     return render(request, 'pedidos/lista.html', {
-        'form': form, 've_todos': ve_todos, 'pedidos': pedidos, 'vencidos': vencidos,
+        'form': form, 've_todos': ve_todos, 'pedidos': pedidos,
+        'vencidos': avisos.get(reglas.VENCIDO), 'para_finalizar': avisos.get(reglas.PARA_FINALIZAR),
+        'por_confirmar': avisos.get(reglas.POR_CONFIRMAR), 'dias_por_confirmar': reglas.DIAS_POR_CONFIRMAR,
         'puede_registrar': tiene_permiso(request.usuario, 'PED_REGISTRAR'),
     })
 

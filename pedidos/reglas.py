@@ -184,14 +184,40 @@ def _pasar_a(id_pedido, accion):
     return pedido
 
 
-VENCIDO = 'Vencido'  # no es un estado guardado: es un Pendiente cuya fecha y hora ya pasaron
+# Avisos para el administrador. No son estados guardados: se calculan con la fecha y hora.
+VENCIDO = 'Vencido'              # Pendiente cuya fecha y hora ya pasaron
+PARA_FINALIZAR = 'Para finalizar'  # Confirmado cuya mudanza ya empezó y nadie finalizó
+POR_CONFIRMAR = 'Por confirmar'    # Pendiente que se hace en los próximos días
+DIAS_POR_CONFIRMAR = 2
+
+
+def _ya_empezo():
+    ahora = timezone.localtime()
+    return Q(fecha_servicio__lt=ahora.date()) | Q(fecha_servicio=ahora.date(), hora_servicio__lte=ahora.time())
 
 
 def filtro_vencidos():
     """Pendientes cuya mudanza ya debía haber empezado."""
-    ahora = timezone.localtime()
-    return Q(estado=Pedido.PENDIENTE) & (Q(fecha_servicio__lt=ahora.date())
-                                         | Q(fecha_servicio=ahora.date(), hora_servicio__lte=ahora.time()))
+    return Q(estado=Pedido.PENDIENTE) & _ya_empezo()
+
+
+def filtro_para_finalizar():
+    """Confirmados cuya mudanza ya empezó: falta marcarlos como finalizados."""
+    return Q(estado=Pedido.CONFIRMADO) & _ya_empezo()
+
+
+def filtro_por_confirmar():
+    """Pendientes de hoy a DIAS_POR_CONFIRMAR días, que todavía no vencieron."""
+    limite = timezone.localdate() + timedelta(days=DIAS_POR_CONFIRMAR)
+    return Q(estado=Pedido.PENDIENTE, fecha_servicio__lte=limite) & ~_ya_empezo()
+
+
+AVISOS = {VENCIDO: filtro_vencidos, PARA_FINALIZAR: filtro_para_finalizar, POR_CONFIRMAR: filtro_por_confirmar}
+
+
+def contar_avisos():
+    """Cuántos pedidos hay en cada aviso (para la lista del administrador)."""
+    return {nombre: Pedido.objects.filter(filtro()).count() for nombre, filtro in AVISOS.items()}
 
 
 def confirmar(id_pedido):
@@ -238,8 +264,8 @@ def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=No
         pedidos = pedidos.filter(fecha_servicio__gte=desde)
     if hasta:
         pedidos = pedidos.filter(fecha_servicio__lte=hasta)
-    if estado == VENCIDO:
-        pedidos = pedidos.filter(filtro_vencidos())
+    if estado in AVISOS:
+        pedidos = pedidos.filter(AVISOS[estado]())
     elif estado:
         pedidos = pedidos.filter(estado=estado)
     if id_servicio:

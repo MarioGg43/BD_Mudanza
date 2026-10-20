@@ -236,6 +236,11 @@ class Pedido(models.Model):
         return timezone.now() >= self.inicio
 
     @property
+    def para_finalizar(self):
+        """Confirmado cuya mudanza ya empezó: falta marcarlo como finalizado."""
+        return self.estado == self.CONFIRMADO and self.ya_empezo
+
+    @property
     def vencido(self):
         """Pendiente con la fecha y hora ya pasadas: nadie lo confirmó a tiempo."""
         return self.estado == self.PENDIENTE and self.ya_empezo

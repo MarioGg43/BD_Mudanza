@@ -390,3 +390,29 @@ class VencidosTest(BaseReglas):
         self.registrar(fecha_servicio=self.dia(3))
         ids = list(reglas.filtrar_pedidos(Pedido.objects.all(), estado=reglas.VENCIDO).values_list('pk', flat=True))
         self.assertEqual(ids, [vencido.pk])
+
+
+class AvisosTest(BaseReglas):
+    def test_para_finalizar(self):
+        p = self.registrar()
+        reglas.confirmar(p.pk)
+        Pedido.objects.filter(pk=p.pk).update(fecha_servicio=self.dia(-1))
+        p.refresh_from_db()
+        self.assertTrue(p.para_finalizar)
+        self.assertEqual(list(reglas.filtrar_pedidos(Pedido.objects.all(), estado=reglas.PARA_FINALIZAR)), [p])
+        reglas.finalizar(p.pk)
+        self.assertEqual(reglas.contar_avisos()[reglas.PARA_FINALIZAR], 0)
+
+    def test_por_confirmar_solo_los_proximos_dias(self):
+        cerca = self.registrar(fecha_servicio=self.dia(2))
+        self.registrar(fecha_servicio=self.dia(3))  # todavía hay tiempo
+        lejos_confirmado = self.registrar(fecha_servicio=self.dia(1), patente='AE-123-CD')
+        reglas.confirmar(lejos_confirmado.pk)
+        ids = [p.pk for p in reglas.filtrar_pedidos(Pedido.objects.all(), estado=reglas.POR_CONFIRMAR)]
+        self.assertEqual(ids, [cerca.pk])
+
+    def test_un_vencido_no_cuenta_como_por_confirmar(self):
+        p = self.registrar()
+        Pedido.objects.filter(pk=p.pk).update(fecha_servicio=self.dia(-1))
+        avisos = reglas.contar_avisos()
+        self.assertEqual((avisos[reglas.VENCIDO], avisos[reglas.POR_CONFIRMAR]), (1, 0))

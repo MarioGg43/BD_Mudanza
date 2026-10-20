@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -25,10 +25,14 @@ def inicio(request):
 @requiere_permiso('VEH_GESTIONAR')
 def listaVehiculos(request):
     """Lista todos los vehículos."""
-    vehiculos = (Vehiculo.objects.select_related('chofer_asignado')
-                 .annotate(cant_pedidos=Count('pedidos')).order_by('patente'))
+    programados = Q(pedidos__estado__in=Pedido.ACTIVOS, pedidos__fecha_servicio__gte=timezone.localdate())
+    vehiculos = list(Vehiculo.objects.select_related('chofer_asignado')
+                     .annotate(cant_pedidos=Count('pedidos'), programados=Count('pedidos', filter=programados))
+                     .order_by('patente'))
     return render(request, 'vehiculos/lista_vehiculos.html', {
-        'vehiculos': vehiculos, 've_pedidos': tiene_permiso(request.usuario, 'PED_GESTIONAR')})
+        'vehiculos': vehiculos, 've_pedidos': tiene_permiso(request.usuario, 'PED_GESTIONAR'),
+        # aviso: mudanzas programadas en un vehículo que no tiene quién lo maneje
+        'sin_chofer': [v for v in vehiculos if v.programados and not v.chofer_asignado_id]})
 
 
 @requiere_permiso('VEH_GESTIONAR')
@@ -43,7 +47,8 @@ def detalleVehiculo(request, patente):
         proximos = pedidos.filter(estado__in=Pedido.ACTIVOS, fecha_servicio__gte=hoy)                           .order_by('fecha_servicio', 'hora_servicio')
         historial = pedidos.exclude(pk__in=proximos.values('pk')).order_by('-fecha_servicio', '-hora_servicio')
     return render(request, 'vehiculos/detalle_vehiculo.html', {
-        'vehiculo': vehiculo, 've_pedidos': ve_pedidos, 'proximos': proximos, 'historial': historial})
+        'vehiculo': vehiculo, 've_pedidos': ve_pedidos, 'proximos': proximos, 'historial': historial,
+        'falta_chofer': not vehiculo.chofer_asignado_id and tiene_pedidos_activos(patente_vehiculo=vehiculo)})
 
 
 @requiere_permiso('VEH_GESTIONAR')
