@@ -42,6 +42,12 @@ class ObjetosTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn('nom_objeto', r.context['form'].errors)
 
+    def test_no_se_repite_en_singular_o_sin_tilde(self):
+        self.entrar(ADMIN)
+        for nombre in ('Silla', 'colchon'):
+            r = self.client.post('/objetos/nuevo/', {'nom_objeto': nombre, 'Activo': 'on'})
+            self.assertIn('nom_objeto', r.context['form'].errors, nombre)
+
     def test_otro_es_fijo(self):
         self.entrar(ADMIN)
         otro = Objeto.objects.get(nom_objeto='Otro')

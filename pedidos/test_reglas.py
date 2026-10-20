@@ -524,3 +524,27 @@ class AsignarPersonalTest(BaseReglas):
         self.assertEqual(reglas.contar_avisos()[reglas.SIN_CHOFER], 0)
         self.PersonalPedido.objects.filter(idPedido=p).delete()  # como los confirmados de antes de la regla
         self.assertEqual(reglas.contar_avisos()[reglas.SIN_CHOFER], 1)
+
+
+class OtroRepetidoTest(BaseReglas):
+    """«Otro» es para lo que no está en la lista: si se escribe algo de la lista, se rechaza."""
+
+    def test_clave_objeto(self):
+        for a, b in [('Sillas', 'silla'), ('Colchón', 'COLCHONES'), ('Bolsos y valijas', 'bolso y valija'),
+                     ('Televisor', 'televisores'), ('Microondas', 'microondas'), ('Mesa', ' mesa. ')]:
+            self.assertEqual(reglas.clave_objeto(a), reglas.clave_objeto(b), (a, b))
+        self.assertNotEqual(reglas.clave_objeto('Mesa'), reglas.clave_objeto('Mesa de luz'))
+
+    def test_otro_con_algo_de_la_lista(self):
+        self.assertRechaza('inventario', 'Objeto 1: «silla» ya está en la lista como «Sillas»: elegilo de ahí.',
+                           items=[{'objeto': obj('Otro'), 'cantidad': 1, 'observacion': 'silla'}])
+        self.assertRechaza('inventario', items=[{'objeto': obj('Otro'), 'cantidad': 1, 'observacion': 'COLCHON'}])
+
+    def test_otro_con_algo_nuevo_se_acepta(self):
+        p = self.registrar(items=[{'objeto': obj('Otro'), 'cantidad': 1, 'observacion': 'Mesa de luz'}])
+        self.assertEqual(p.inventario.get().Observacion, 'Mesa de luz')
+
+    def test_un_objeto_dado_de_baja_se_puede_pedir_como_otro(self):
+        Objeto.objects.filter(nom_objeto='Plantas').update(Activo=False)
+        p = self.registrar(items=[{'objeto': obj('Otro'), 'cantidad': 2, 'observacion': 'plantas'}])
+        self.assertEqual(p.inventario.count(), 1)

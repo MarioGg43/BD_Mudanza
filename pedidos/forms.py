@@ -235,7 +235,9 @@ class ObjetoForm(forms.ModelForm):
         nombre = nombre[:1].upper() + nombre[1:]
         if nombre.lower() == Objeto.OTRO.lower():
             raise forms.ValidationError('«Otro» ya existe y es fijo.')
-        repetido = Objeto.objects.filter(nom_objeto__iexact=nombre).exclude(pk=self.instance.pk).first()
+        clave = reglas.clave_objeto(nombre)
+        repetido = next((o for o in Objeto.objects.exclude(pk=self.instance.pk)
+                         if reglas.clave_objeto(o.nom_objeto) == clave), None)
         if repetido:
             raise forms.ValidationError(f'Ya existe «{repetido}» en la lista.')
         return nombre

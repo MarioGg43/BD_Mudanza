@@ -4,6 +4,8 @@ Las vistas solo arman los datos y muestran el resultado: todo lo que decide si u
 pedido es válido, cuánto cuesta y a qué estado pasa vive acá. Cada operación que
 escribe corre en una transacción: o se guarda todo, o no se guarda nada.
 """
+import re
+import unicodedata
 from datetime import time, timedelta
 
 from django.db import transaction
@@ -99,6 +101,20 @@ def _validar_servicios(id_servicio, ids_adicionales, errores):
     return principal, adicionales
 
 
+def clave_objeto(texto):
+    """Forma comparable de un nombre: sin mayúsculas, tildes ni signos, y en singular.
+    «Sillas», «silla» y «SILLA» dan lo mismo; también «Colchón» y «colchones»."""
+    t = unicodedata.normalize('NFKD', texto or '').encode('ascii', 'ignore').decode().lower()
+    palabras = []
+    for p in re.sub(r'[^a-z0-9 ]', ' ', t).split():
+        if p.endswith('es') and len(p) > 4:
+            p = p[:-2]
+        elif p.endswith('s') and len(p) > 3:
+            p = p[:-1]
+        palabras.append(p)
+    return ' '.join(palabras)
+
+
 def _validar_items(items, errores):
     """Cada objeto sale del catálogo (OBJETOS): no se escriben nombres, así no hay variantes
     como «mesa» y «meza». Lo que no está en la lista va como «Otro», contado en la observación.
@@ -107,6 +123,8 @@ def _validar_items(items, errores):
         errores['inventario'] = 'Agregá al menos un objeto.'
         return []
     activos = {o.pk: o for o in Objeto.objects.filter(Activo=True)}
+    # para que «Otro» no se use con algo que ya está en la lista («silla» cuando existe «Sillas»)
+    en_la_lista = {clave_objeto(o.nom_objeto): o for o in activos.values() if not o.es_otro}
     limpios, vistos = [], set()
     for n, item in enumerate(items, start=1):
         elegido = item.get('objeto')
@@ -123,6 +141,9 @@ def _validar_items(items, errores):
             errores['inventario'] = f'Objeto {n}: ese objeto ya no está en la lista. Elegí otro.'
         elif objeto.es_otro and not observacion:
             errores['inventario'] = f'Objeto {n}: si elegís «Otro», contá en la observación qué es.'
+        elif objeto.es_otro and clave_objeto(observacion) in en_la_lista:
+            errores['inventario'] = (f'Objeto {n}: «{observacion}» ya está en la lista como '
+                                     f'«{en_la_lista[clave_objeto(observacion)]}»: elegilo de ahí.')
         elif not objeto.es_otro and objeto.pk in vistos:
             errores['inventario'] = f'Ya agregaste «{objeto}»: sumá la cantidad en una sola fila.'
         elif len(observacion) > MAX_OBSERVACION:
