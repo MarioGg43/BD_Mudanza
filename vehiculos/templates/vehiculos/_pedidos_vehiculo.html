@@ -11,7 +11,7 @@
                 <td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="small">{{ p.origen }} → {{ p.destino }}</td>
-                <td>{% include 'pedidos/_estado.html' with estado=p.estado %}</td>
+                <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido %}</td>
                 <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
             </tr>
             {% empty %}

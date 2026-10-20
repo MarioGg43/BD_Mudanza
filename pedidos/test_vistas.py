@@ -435,3 +435,32 @@ class DescargasPdfTest(BaseVistas):
         self.assertRedirects(self.client.get('/pedidos/descargar/'), '/login/')
         self.entrar(CHOFER)
         self.assertEqual(self.client.get('/pedidos/descargar/').status_code, 403)
+
+
+class VencidosPantallaTest(BaseVistas):
+    def setUp(self):
+        self.p = self.pedido_de(self.cliente)
+        Pedido.objects.filter(pk=self.p.pk).update(fecha_servicio=timezone.localdate() - timedelta(days=2))
+
+    def test_la_lista_avisa_y_filtra(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, 'vencido')
+        self.assertContains(r, 'href="/pedidos/?estado=Vencido"')
+        r = self.client.get('/pedidos/', {'estado': 'Vencido'})
+        self.assertEqual([p.pk for p in r.context['pedidos']], [self.p.pk])
+
+    def test_el_detalle_no_ofrece_confirmar(self):
+        self.entrar(ADMIN)
+        r = self.client.get(f'/pedidos/{self.p.pk}/')
+        self.assertContains(r, 'Pedido vencido')
+        self.assertNotContains(r, f'action="/pedidos/{self.p.pk}/confirmar/"')
+        self.client.post(f'/pedidos/{self.p.pk}/confirmar/')
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.estado, 'Pendiente')
+
+    def test_el_cliente_ve_la_marca_pero_no_el_aviso_general(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, '>Vencido</span>')
+        self.assertNotContains(r, 'Ver vencidos')

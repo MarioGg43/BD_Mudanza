@@ -45,8 +45,9 @@ def _consulta(request):
 @requiere_permiso('PED_CONSULTAR')
 def lista(request):
     form, ve_todos, pedidos = _consulta(request)
+    vencidos = Pedido.objects.filter(reglas.filtro_vencidos()).count() if ve_todos else 0
     return render(request, 'pedidos/lista.html', {
-        'form': form, 've_todos': ve_todos, 'pedidos': pedidos,
+        'form': form, 've_todos': ve_todos, 'pedidos': pedidos, 'vencidos': vencidos,
         'puede_registrar': tiene_permiso(request.usuario, 'PED_REGISTRAR'),
     })
 

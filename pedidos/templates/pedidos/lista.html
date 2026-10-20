@@ -14,6 +14,13 @@
     </div>
 </div>
 
+{% if vencidos %}
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-exclamation-triangle me-1"></i>Hay <b>{{ vencidos }}</b> pedido{{ vencidos|pluralize }} vencido{{ vencidos|pluralize }}: pendiente{{ vencidos|pluralize }} con la fecha ya pasada, sin confirmar.</span>
+    <a href="{% url 'pedidos_lista' %}?estado=Vencido" class="btn btn-sm btn-outline-dark">Ver vencidos</a>
+</div>
+{% endif %}
+
 <form method="get" class="card-panel bg-white p-3 mb-4">
     <div class="row g-2 align-items-end">
         {% for field in form %}
@@ -48,7 +55,7 @@
                 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="text-end">${{ p.total|floatformat:"2g" }}</td>
-                <td>{% include 'pedidos/_estado.html' with estado=p.estado %}</td>
+                <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido %}</td>
                 <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
             </tr>
             {% empty %}

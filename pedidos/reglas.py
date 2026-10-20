@@ -7,6 +7,7 @@ escribe corre en una transacción: o se guarda todo, o no se guarda nada.
 from datetime import time, timedelta
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from usuarios.models import DetallePedido, InventarioDetalle, Objeto, Pedido, Servicio, Vehiculo
@@ -183,9 +184,23 @@ def _pasar_a(id_pedido, accion):
     return pedido
 
 
+VENCIDO = 'Vencido'  # no es un estado guardado: es un Pendiente cuya fecha y hora ya pasaron
+
+
+def filtro_vencidos():
+    """Pendientes cuya mudanza ya debía haber empezado."""
+    ahora = timezone.localtime()
+    return Q(estado=Pedido.PENDIENTE) & (Q(fecha_servicio__lt=ahora.date())
+                                         | Q(fecha_servicio=ahora.date(), hora_servicio__lte=ahora.time()))
+
+
 def confirmar(id_pedido):
+    """Un pedido vencido no se confirma: la fecha ya pasó, se anula."""
     with transaction.atomic():
         pedido = _pasar_a(id_pedido, 'confirmar')
+        if pedido.ya_empezo:
+            raise ErrorPedido('La fecha y hora de la mudanza ya pasaron sin confirmar: el pedido está vencido. '
+                              'Anulalo y, si el cliente quiere, que pida una fecha nueva.')
         pedido.save(update_fields=['estado'])
     return pedido
 
@@ -223,7 +238,9 @@ def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=No
         pedidos = pedidos.filter(fecha_servicio__gte=desde)
     if hasta:
         pedidos = pedidos.filter(fecha_servicio__lte=hasta)
-    if estado:
+    if estado == VENCIDO:
+        pedidos = pedidos.filter(filtro_vencidos())
+    elif estado:
         pedidos = pedidos.filter(estado=estado)
     if id_servicio:
         pedidos = pedidos.filter(detalles__idServicio_id=id_servicio)

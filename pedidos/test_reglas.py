@@ -344,3 +344,49 @@ class FiltrarPedidosTest(BaseReglas):
 
     def test_filtros_combinados(self):
         self.assertEqual(self.ids(estado=Pedido.PENDIENTE, id_servicio=self.local.id_servicio), [self.p1.pk])
+
+
+class VencidosTest(BaseReglas):
+    """Un pendiente cuya fecha y hora ya pasaron está vencido: se marca y no se confirma."""
+
+    def vencer(self, pedido, dias=1):
+        Pedido.objects.filter(pk=pedido.pk).update(fecha_servicio=self.dia(-dias))
+        pedido.refresh_from_db()
+        return pedido
+
+    def test_pendiente_con_fecha_pasada(self):
+        p = self.vencer(self.registrar())
+        self.assertTrue(p.vencido)
+
+    def test_a_futuro_o_confirmado_no_esta_vencido(self):
+        p = self.registrar()
+        self.assertFalse(p.vencido)
+        reglas.confirmar(p.pk)
+        p = self.vencer(Pedido.objects.get(pk=p.pk))
+        self.assertFalse(p.vencido)  # confirmado y ya empezó: se finaliza, no está vencido
+
+    def test_vence_hoy_cuando_pasa_la_hora(self):
+        ahora = timezone.localtime()
+        p = self.registrar()
+        Pedido.objects.filter(pk=p.pk).update(fecha_servicio=ahora.date(),
+                                              hora_servicio=(ahora - timedelta(minutes=5)).time())
+        p.refresh_from_db()
+        self.assertTrue(p.vencido)
+
+    def test_no_se_confirma_un_vencido(self):
+        p = self.vencer(self.registrar())
+        with self.assertRaises(reglas.ErrorPedido) as ctx:
+            reglas.confirmar(p.pk)
+        self.assertIn('vencido', str(ctx.exception))
+        p.refresh_from_db()
+        self.assertEqual(p.estado, Pedido.PENDIENTE)
+
+    def test_un_vencido_se_puede_anular(self):
+        p = self.vencer(self.registrar())
+        self.assertEqual(reglas.anular(p.pk, self.admin, 'Nadie lo confirmó a tiempo').estado, Pedido.ANULADO)
+
+    def test_filtro_de_vencidos(self):
+        vencido = self.vencer(self.registrar())
+        self.registrar(fecha_servicio=self.dia(3))
+        ids = list(reglas.filtrar_pedidos(Pedido.objects.all(), estado=reglas.VENCIDO).values_list('pk', flat=True))
+        self.assertEqual(ids, [vencido.pk])

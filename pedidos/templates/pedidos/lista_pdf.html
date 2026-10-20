@@ -12,7 +12,7 @@
 <td>{{ p.id_pedido }}</td><td>{{ p.Fecha_pedido|date:"d/m/Y" }}</td><td>{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }}</td>
 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
 <td>{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td><td>{{ p.origen }} → {{ p.destino }}</td>
-<td class="num">${{ p.total|floatformat:"2g" }}</td><td>{{ p.estado }}</td></tr>
+<td class="num">${{ p.total|floatformat:"2g" }}</td><td>{{ p.estado }}{% if p.vencido %} (vencido){% endif %}</td></tr>
 {% empty %}<tr><td colspan="8">No hay pedidos con esos filtros.</td></tr>{% endfor %}
 </table>
 <p class="pie">Mudanzas y Fletes Salta · Listado generado desde el sistema.</p>

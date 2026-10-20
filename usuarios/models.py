@@ -235,6 +235,11 @@ class Pedido(models.Model):
     def ya_empezo(self):
         return timezone.now() >= self.inicio
 
+    @property
+    def vencido(self):
+        """Pendiente con la fecha y hora ya pasadas: nadie lo confirmó a tiempo."""
+        return self.estado == self.PENDIENTE and self.ya_empezo
+
 
 class DetallePedido(models.Model):
     id_detalle_pedidos = models.AutoField(primary_key=True)
