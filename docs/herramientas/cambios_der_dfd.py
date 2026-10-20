@@ -1,6 +1,7 @@
 """Genera el Word con los cambios pendientes del DER y de los DFD (Grupo 5).
 
 Uso: python docs/herramientas/cambios_der_dfd.py "<ruta de salida>.docx"  (necesita python-docx)
+"""
 import sys
 
 from docx import Document
