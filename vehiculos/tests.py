@@ -183,6 +183,7 @@ class AgendaDelVehiculoTest(TestCase):
         self.entrar(ADMIN)
         r = self.client.get('/vehiculos/AE-123-CD/')
         self.assertEqual(list(r.context['proximos']), [self.proximo])
+        self.assertEqual(list(r.context['para_cerrar']), [])
         self.assertEqual(list(r.context['historial']), [self.viejo])
         self.assertContains(r, 'Gómez, María')
         self.assertContains(r, f'href="/pedidos/{self.proximo.pk}/"')
@@ -258,3 +259,30 @@ class SinChoferTest(TestCase):
         r = self.client.get('/vehiculos/')
         self.assertEqual(r.context['sin_chofer'], [])
         self.assertNotContains(self.client.get('/vehiculos/AD-321-JK/'), 'no tiene chofer asignado')
+
+
+class ParaCerrarTest(TestCase):
+    """Un pedido que ya pasó sin cerrarse no es «próximo» ni cuenta para el aviso de chofer."""
+    setUpTestData = VehiculosTest.setUpTestData
+    entrar = VehiculosTest.entrar
+
+    def test_separa_lo_que_ya_paso(self):
+        from datetime import time, timedelta
+        from django.utils import timezone
+        from pedidos import reglas
+        from usuarios.models import Servicio
+        nuevo = lambda dias: reglas.registrar_pedido(
+            Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=dias), time(9, 0),
+            'A 1', 'B 2', Servicio.objects.get(Tipo_servicio='Flete urbano').id_servicio,
+            'AD-321-JK', [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 1}])
+        hecho, vencido, futuro = nuevo(1), nuevo(2), nuevo(3)
+        reglas.confirmar(hecho.pk)
+        ayer = timezone.localdate() - timedelta(days=1)
+        Pedido.objects.filter(pk__in=[hecho.pk, vencido.pk]).update(fecha_servicio=ayer)
+        self.entrar(ADMIN)
+        r = self.client.get('/vehiculos/AD-321-JK/')
+        self.assertEqual(list(r.context['proximos']), [futuro])
+        self.assertEqual({p.pk for p in r.context['para_cerrar']}, {hecho.pk, vencido.pk})
+        self.assertContains(r, 'Para cerrar')
+        sin_chofer = self.client.get('/vehiculos/').context['sin_chofer']
+        self.assertEqual([(v.patente, v.programados) for v in sin_chofer], [('AD-321-JK', 1)])

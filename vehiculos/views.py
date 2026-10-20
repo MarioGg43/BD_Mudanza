@@ -4,6 +4,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from pedidos import reglas
 from pedidos.reglas import tiene_pedidos_activos
 from usuarios.models import Pedido, Servicio, Vehiculo
 from usuarios.permisos import get_usuario_actual, pantalla_inicio, requiere_permiso, tiene_permiso
@@ -25,9 +26,10 @@ def inicio(request):
 @requiere_permiso('VEH_GESTIONAR')
 def listaVehiculos(request):
     """Lista todos los vehículos."""
-    programados = Q(pedidos__estado__in=Pedido.ACTIVOS, pedidos__fecha_servicio__gte=timezone.localdate())
+    por_venir = Pedido.objects.filter(reglas.filtro_por_venir()).values('pk')
     vehiculos = list(Vehiculo.objects.select_related('chofer_asignado')
-                     .annotate(cant_pedidos=Count('pedidos'), programados=Count('pedidos', filter=programados))
+                     .annotate(cant_pedidos=Count('pedidos'),
+                               programados=Count('pedidos', filter=Q(pedidos__in=por_venir)))
                      .order_by('patente'))
     return render(request, 'vehiculos/lista_vehiculos.html', {
         'vehiculos': vehiculos, 've_pedidos': tiene_permiso(request.usuario, 'PED_GESTIONAR'),
@@ -40,15 +42,18 @@ def detalleVehiculo(request, patente):
     """El vehículo con su agenda: los próximos pedidos y el historial."""
     vehiculo = get_object_or_404(Vehiculo.objects.select_related('chofer_asignado'), patente=patente)
     ve_pedidos = tiene_permiso(request.usuario, 'PED_GESTIONAR')
-    proximos = historial = Pedido.objects.none()
+    proximos = para_cerrar = historial = Pedido.objects.none()
     if ve_pedidos:
         pedidos = vehiculo.pedidos.select_related('idUsuario').prefetch_related('detalles__idServicio')
-        hoy = timezone.localdate()
-        proximos = pedidos.filter(estado__in=Pedido.ACTIVOS, fecha_servicio__gte=hoy)                           .order_by('fecha_servicio', 'hora_servicio')
-        historial = pedidos.exclude(pk__in=proximos.values('pk')).order_by('-fecha_servicio', '-hora_servicio')
+        # próximos: todavía no empezaron · para cerrar: ya pasaron y falta finalizarlos o anularlos
+        proximos = pedidos.filter(reglas.filtro_por_venir()).order_by('fecha_servicio', 'hora_servicio')
+        para_cerrar = pedidos.filter(reglas.filtro_para_finalizar() | reglas.filtro_vencidos())                              .order_by('fecha_servicio', 'hora_servicio')
+        historial = pedidos.exclude(estado__in=Pedido.ACTIVOS).order_by('-fecha_servicio', '-hora_servicio')
     return render(request, 'vehiculos/detalle_vehiculo.html', {
-        'vehiculo': vehiculo, 've_pedidos': ve_pedidos, 'proximos': proximos, 'historial': historial,
-        'falta_chofer': not vehiculo.chofer_asignado_id and tiene_pedidos_activos(patente_vehiculo=vehiculo)})
+        'vehiculo': vehiculo, 've_pedidos': ve_pedidos,
+        'proximos': proximos, 'para_cerrar': para_cerrar, 'historial': historial,
+        'falta_chofer': (not vehiculo.chofer_asignado_id
+                         and vehiculo.pedidos.filter(reglas.filtro_por_venir()).exists())})
 
 
 @requiere_permiso('VEH_GESTIONAR')

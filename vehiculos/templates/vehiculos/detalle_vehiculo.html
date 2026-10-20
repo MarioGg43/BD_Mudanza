@@ -27,6 +27,12 @@
 <h2 class="h6 fw-bold text-uppercase text-muted mb-2"><i class="bi bi-calendar-week me-1"></i>Próximos pedidos</h2>
 {% include 'vehiculos/_pedidos_vehiculo.html' with pedidos=proximos vacio="No tiene mudanzas programadas." %}
 
+{% if para_cerrar %}
+<h2 class="h6 fw-bold text-uppercase text-muted mt-4 mb-2"><i class="bi bi-flag me-1"></i>Para cerrar</h2>
+<p class="small text-muted mb-2">Ya pasaron: finalizá los confirmados y anulá los vencidos.</p>
+{% include 'vehiculos/_pedidos_vehiculo.html' with pedidos=para_cerrar vacio="" %}
+{% endif %}
+
 <h2 class="h6 fw-bold text-uppercase text-muted mt-4 mb-2"><i class="bi bi-clock-history me-1"></i>Historial</h2>
 {% include 'vehiculos/_pedidos_vehiculo.html' with pedidos=historial vacio="Todavía no tiene pedidos finalizados ni anulados." %}
 {% endif %}

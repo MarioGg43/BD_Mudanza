@@ -196,6 +196,11 @@ def _ya_empezo():
     return Q(fecha_servicio__lt=ahora.date()) | Q(fecha_servicio=ahora.date(), hora_servicio__lte=ahora.time())
 
 
+def filtro_por_venir():
+    """Pendientes o confirmados que todavía no empezaron: la agenda de verdad."""
+    return Q(estado__in=Pedido.ACTIVOS) & ~_ya_empezo()
+
+
 def filtro_vencidos():
     """Pendientes cuya mudanza ya debía haber empezado."""
     return Q(estado=Pedido.PENDIENTE) & _ya_empezo()
