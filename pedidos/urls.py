@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_servicios
+from . import views, views_objetos, views_servicios
 
 urlpatterns = [
     path('registro/', views.registro, name='registro_cliente'),
@@ -18,4 +18,8 @@ urlpatterns = [
     path('servicios/nuevo/', views_servicios.crear, name='servicios_crear'),
     path('servicios/<int:id_servicio>/editar/', views_servicios.editar, name='servicios_editar'),
     path('servicios/<int:id_servicio>/baja/', views_servicios.baja, name='servicios_baja'),
+    path('objetos/', views_objetos.lista, name='objetos_lista'),
+    path('objetos/nuevo/', views_objetos.crear, name='objetos_crear'),
+    path('objetos/<int:id_objeto>/editar/', views_objetos.editar, name='objetos_editar'),
+    path('objetos/<int:id_objeto>/baja/', views_objetos.baja, name='objetos_baja'),
 ]

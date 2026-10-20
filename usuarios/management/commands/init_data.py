@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 from usuarios.models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Sueldo, Servicio,
-    RecursoAsignado, Pedido, DetallePedido, InventarioDetalle,
+    RecursoAsignado, Pedido, DetallePedido, InventarioDetalle, Objeto,
     Cobranza, DetalleCobranza,
 )
 from usuarios.permisos import CATALOGO, PERMISOS_INICIALES
@@ -119,7 +119,8 @@ class Command(BaseCommand):
             DetallePedido.objects.create(idPedido=pedido, idServicio=servicio,
                                          precio_unitario=servicio.Precio_base,
                                          subtotal=servicio.Precio_base)
-            InventarioDetalle.objects.create(idPedido=pedido, Descripcion='Cajas', Cantidad=42, Fragil=True)
+            InventarioDetalle.objects.create(idPedido=pedido, idObjeto=Objeto.objects.get(nom_objeto='Cajas'),
+                                             Cantidad=42, Fragil=True)
             cobranza = Cobranza.objects.create(Monto_cob=185000, Met_pag_cob='Transferencia')
             DetalleCobranza.objects.create(idPedido=pedido, idCobranza=cobranza)
             self.stdout.write(self.style.SUCCESS(

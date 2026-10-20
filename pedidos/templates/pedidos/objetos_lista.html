@@ -1,0 +1,36 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Objetos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Objetos</h1>
+        <p class="text-muted mb-0">La lista de la que el cliente elige qué hay que llevar. Si algo se pide seguido como «Otro», agregalo acá.</p>
+    </div>
+    <a href="{% url 'objetos_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo objeto</a>
+</div>
+<div class="card-panel bg-white p-0 overflow-auto">
+    <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Objeto</th><th class="text-end">Veces pedido</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+            {% for o in objetos %}
+            <tr class="{% if not o.Activo %}text-muted{% endif %}">
+                <td class="fw-semibold">{{ o.nom_objeto }}{% if o.es_otro %} <span class="small text-muted fw-normal">(fijo: lo que no está en la lista)</span>{% endif %}</td>
+                <td class="text-end">{{ o.usos }}</td>
+                <td>{% if o.Activo %}<span class="estado estado-activo">Activo</span>{% else %}<span class="estado estado-baja">Dado de baja</span>{% endif %}</td>
+                <td class="text-end text-nowrap">
+                    {% if not o.es_otro %}
+                    <a href="{% url 'objetos_editar' o.id_objeto %}" class="btn btn-sm btn-warning">Editar</a>
+                    {% if o.Activo %}
+                    <form method="post" action="{% url 'objetos_baja' o.id_objeto %}" class="d-inline"
+                          onsubmit="return confirm('¿Dar de baja «{{ o.nom_objeto|escapejs }}»? Los pedidos que ya lo tienen no cambian.')">
+                        {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Dar de baja</button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -20,6 +20,6 @@
 <tr><td colspan="2" class="num"><b>TOTAL</b></td><td class="num"><b>${{ pedido.total|floatformat:"2g" }}</b></td></tr></table>
 <h2>Inventario</h2>
 <table><tr><th width="35%">Objeto</th><th width="12%" class="num">Cantidad</th><th width="10%">Frágil</th><th>Observación</th></tr>
-{% for i in pedido.inventario.all %}<tr><td>{{ i.Descripcion }}</td><td class="num">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>{% endfor %}</table>
+{% for i in pedido.inventario.all %}<tr><td>{{ i.idObjeto }}</td><td class="num">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>{% endfor %}</table>
 <p class="pie">Mudanzas y Fletes Salta · Comprobante emitido el {{ emitido|date:"d/m/Y H:i" }}. No válido como factura.</p>
 </body></html>

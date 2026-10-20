@@ -115,6 +115,9 @@ class Usuario(models.Model):
 
 
 class Vehiculo(models.Model):
+    # Lista cerrada: con texto libre aparecían variantes como «Camion» y «Camión Liviano»
+    TIPOS = ['Utilitario Mediano', 'Furgón Urbano', 'Camión Liviano', 'Camión Pesado']
+
     patente = models.CharField(max_length=15, primary_key=True, db_column='Patente',
                                verbose_name='Patente')
     marca_modelo = models.CharField(max_length=100, db_column='Marca_Modelo_vehiculo',
@@ -137,7 +140,8 @@ class Vehiculo(models.Model):
     anio = models.IntegerField(blank=True, null=True, db_column='Anio_vehiculo', verbose_name='Año')
 
     # --- datos operativos que ya usaba el CRUD del Hito 1 ---
-    tipo_vehiculo = models.CharField(max_length=50, verbose_name='Tipo de vehículo')
+    tipo_vehiculo = models.CharField(max_length=50, choices=[(t, t) for t in TIPOS],
+                                     verbose_name='Tipo de vehículo')
     chofer_asignado = models.ForeignKey(Usuario, on_delete=models.SET_NULL, blank=True, null=True,
                                         related_name='vehiculos_asignados', verbose_name='Chofer asignado')
     observaciones = models.TextField(blank=True, null=True)
@@ -252,9 +256,34 @@ class DetallePedido(models.Model):
         return f'Pedido {self.idPedido_id} - {self.idServicio}'
 
 
+class Objeto(models.Model):
+    """Catálogo de objetos que se pueden mudar. El inventario elige de acá en vez de escribir
+    el nombre, así no se llena de variantes («mesa», «meza», «Mesa»). Lo que no está en la
+    lista se carga como «Otro», con la observación obligatoria."""
+    OTRO = 'Otro'
+
+    id_objeto = models.AutoField(primary_key=True)
+    nom_objeto = models.CharField(max_length=100, unique=True, db_column='nom_objeto', verbose_name='Objeto')
+    Activo = models.BooleanField(default=True, db_column='estado_objeto', verbose_name='Activo')
+
+    class Meta:
+        db_table = 'OBJETOS'
+        verbose_name = 'Objeto'
+        verbose_name_plural = 'Objetos'
+        ordering = ['nom_objeto']
+
+    def __str__(self):
+        return self.nom_objeto
+
+    @property
+    def es_otro(self):
+        return self.nom_objeto == self.OTRO
+
+
 class InventarioDetalle(models.Model):
     id_inventario = models.AutoField(primary_key=True)
-    Descripcion = models.CharField(max_length=100, default='', verbose_name='Descripción')
+    idObjeto = models.ForeignKey(Objeto, on_delete=models.PROTECT, db_column='id_objeto',
+                                 related_name='inventarios', verbose_name='Objeto')
     Cantidad = models.IntegerField()
     Fragil = models.BooleanField(default=False, verbose_name='Frágil')
     Observacion = models.CharField(max_length=200, blank=True, null=True, verbose_name='Observación')
@@ -267,7 +296,7 @@ class InventarioDetalle(models.Model):
         verbose_name_plural = 'Detalles de inventario'
 
     def __str__(self):
-        return f'{self.Cantidad} x {self.Descripcion}'
+        return f'{self.Cantidad} x {self.idObjeto}'
 
 
 class Cobranza(models.Model):

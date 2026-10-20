@@ -1,6 +1,6 @@
 <div class="fila row g-2 align-items-end mb-3">
     <div class="col-md-5">
-        <label class="form-label small mb-1" for="{{ f.descripcion.id_for_label }}">{{ f.descripcion.label }}</label>{{ f.descripcion }}
+        <label class="form-label small mb-1" for="{{ f.objeto.id_for_label }}">{{ f.objeto.label }}</label>{{ f.objeto }}
     </div>
     <div class="col-6 col-md-2">
         <label class="form-label small mb-1" for="{{ f.cantidad.id_for_label }}">{{ f.cantidad.label }}</label>{{ f.cantidad }}
@@ -9,7 +9,7 @@
         <div class="form-check mb-2">{{ f.fragil }} <label class="form-check-label small" for="{{ f.fragil.id_for_label }}">{{ f.fragil.label }}</label></div>
     </div>
     <div class="col-12 col-md-3">
-        <label class="form-label small mb-1" for="{{ f.observacion.id_for_label }}">{{ f.observacion.label }} <span class="text-muted">(opcional)</span></label>{{ f.observacion }}
+        <label class="form-label small mb-1" for="{{ f.observacion.id_for_label }}">{{ f.observacion.label }} <span class="text-muted aviso-obs">(opcional)</span></label>{{ f.observacion }}
     </div>
     {% if f.errors %}<div class="col-12 invalid-feedback d-block">{% for e in f.errors.values %}{{ e.as_text }} {% endfor %}</div>{% endif %}
 </div>

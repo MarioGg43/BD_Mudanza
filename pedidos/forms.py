@@ -1,7 +1,9 @@
 from django import forms
 from django.db import transaction
 
-from usuarios.models import Pedido, RecursoAsignado, Rol, Servicio, Usuario, Vehiculo
+from django.db.models import Case, IntegerField, Value, When
+
+from usuarios.models import Objeto, Pedido, RecursoAsignado, Rol, Servicio, Usuario, Vehiculo
 from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
 from . import reglas
 
@@ -79,10 +81,17 @@ class PedidoForm(forms.Form):
         con_bootstrap(self)
 
 
+def objetos_para_elegir():
+    """El catálogo activo en orden alfabético, con «Otro» al final."""
+    return (Objeto.objects.filter(Activo=True)
+            .annotate(al_final=Case(When(nom_objeto=Objeto.OTRO, then=Value(1)), default=Value(0),
+                                    output_field=IntegerField()))
+            .order_by('al_final', 'nom_objeto'))
+
+
 class ItemInventarioForm(forms.Form):
-    # Caja de texto con sugerencias (<datalist> en nuevo.html): se elige de la lista o se escribe
-    descripcion = forms.CharField(max_length=reglas.MAX_DESCRIPCION, label='Objeto', widget=forms.TextInput(
-        attrs={'list': 'objetos-sugeridos', 'placeholder': 'Elegí de la lista o escribilo', 'autocomplete': 'off'}))
+    # Se elige del catálogo: no se escribe el nombre (ver reglas._validar_items)
+    objeto = forms.ModelChoiceField(queryset=Objeto.objects.none(), label='Objeto', empty_label='Elegí un objeto')
     cantidad = forms.IntegerField(min_value=1, max_value=reglas.MAX_CANTIDAD, label='Cantidad')
     fragil = forms.BooleanField(required=False, label='Frágil')
     observacion = forms.CharField(max_length=reglas.MAX_OBSERVACION, required=False, label='Observación',
@@ -90,6 +99,7 @@ class ItemInventarioForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['objeto'].queryset = objetos_para_elegir()
         con_bootstrap(self)
 
 
@@ -194,3 +204,26 @@ class ServicioForm(forms.ModelForm):
             RecursoAsignado.objects.bulk_create(
                 [RecursoAsignado(idServicio=servicio, Materiales=m) for m in self.cleaned_data['materiales']])
         return servicio
+
+
+class ObjetoForm(forms.ModelForm):
+    class Meta:
+        model = Objeto
+        fields = ['nom_objeto', 'Activo']
+        labels = {'nom_objeto': 'Nombre del objeto'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        con_bootstrap(self)
+        self.fields['nom_objeto'].widget.attrs['placeholder'] = 'Ej.: Piano'
+        self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
+
+    def clean_nom_objeto(self):
+        nombre = ' '.join(self.cleaned_data['nom_objeto'].split())
+        nombre = nombre[:1].upper() + nombre[1:]
+        if nombre.lower() == Objeto.OTRO.lower():
+            raise forms.ValidationError('«Otro» ya existe y es fijo.')
+        repetido = Objeto.objects.filter(nom_objeto__iexact=nombre).exclude(pk=self.instance.pk).first()
+        if repetido:
+            raise forms.ValidationError(f'Ya existe «{repetido}» en la lista.')
+        return nombre

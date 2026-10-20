@@ -72,7 +72,7 @@
             <thead><tr><th>Objeto</th><th class="text-end">Cantidad</th><th>Frágil</th><th>Observación</th></tr></thead>
             <tbody>
                 {% for i in pedido.inventario.all %}
-                <tr><td>{{ i.Descripcion }}</td><td class="text-end">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>
+                <tr><td>{{ i.idObjeto }}</td><td class="text-end">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

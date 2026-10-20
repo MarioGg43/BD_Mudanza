@@ -9,19 +9,12 @@ from datetime import time, timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from usuarios.models import DetallePedido, InventarioDetalle, Pedido, Servicio, Vehiculo
+from usuarios.models import DetallePedido, InventarioDetalle, Objeto, Pedido, Servicio, Vehiculo
 
 MAX_DIAS_ADELANTO = 365
 MAX_CANTIDAD = 999
 MAX_DIRECCION = 200
-MAX_DESCRIPCION = 100
 MAX_OBSERVACION = 200
-# Sugerencias del formulario: el cliente puede elegir una o escribir otro objeto
-OBJETOS_INVENTARIO = (
-    'Heladera', 'Cocina', 'Lavarropas', 'Microondas', 'Cama 1 plaza', 'Cama 2 plazas', 'Colchón',
-    'Ropero', 'Cómoda', 'Mesa', 'Sillas', 'Sillón', 'Televisor', 'Escritorio', 'Biblioteca',
-    'Cajas', 'Bolsos y valijas', 'Bicicleta', 'Plantas',
-)
 
 
 def tiene_pedidos_activos(**filtro):
@@ -93,28 +86,38 @@ def _validar_servicios(id_servicio, ids_adicionales, errores):
 
 
 def _validar_items(items, errores):
+    """Cada objeto sale del catálogo (OBJETOS): no se escriben nombres, así no hay variantes
+    como «mesa» y «meza». Lo que no está en la lista va como «Otro», contado en la observación.
+    Un mismo objeto va una sola vez por pedido: si son varios, se suma la cantidad."""
     if not items:
         errores['inventario'] = 'Agregá al menos un objeto.'
         return []
-    limpios = []
+    activos = {o.pk: o for o in Objeto.objects.filter(Activo=True)}
+    limpios, vistos = [], set()
     for n, item in enumerate(items, start=1):
-        descripcion = (item.get('descripcion') or '').strip()
+        elegido = item.get('objeto')
+        objeto = activos.get(getattr(elegido, 'pk', elegido))
         try:
             cantidad = int(item.get('cantidad'))
         except (TypeError, ValueError):
             errores['inventario'] = f'Objeto {n}: la cantidad tiene que ser un número.'
             continue
         observacion = (item.get('observacion') or '').strip()
-        if not descripcion:
-            errores['inventario'] = f'Objeto {n}: escribí o elegí qué es.'
-        elif len(descripcion) > MAX_DESCRIPCION:
-            errores['inventario'] = f'Objeto {n}: el nombre puede tener hasta {MAX_DESCRIPCION} caracteres.'
+        if elegido in (None, ''):
+            errores['inventario'] = f'Objeto {n}: elegí qué es de la lista.'
+        elif objeto is None:
+            errores['inventario'] = f'Objeto {n}: ese objeto ya no está en la lista. Elegí otro.'
+        elif objeto.es_otro and not observacion:
+            errores['inventario'] = f'Objeto {n}: si elegís «Otro», contá en la observación qué es.'
+        elif not objeto.es_otro and objeto.pk in vistos:
+            errores['inventario'] = f'Ya agregaste «{objeto}»: sumá la cantidad en una sola fila.'
         elif len(observacion) > MAX_OBSERVACION:
             errores['inventario'] = f'Objeto {n}: la observación puede tener hasta {MAX_OBSERVACION} caracteres.'
         elif not 1 <= cantidad <= MAX_CANTIDAD:
             errores['inventario'] = f'Objeto {n}: la cantidad va de 1 a {MAX_CANTIDAD}.'
         else:
-            limpios.append({'descripcion': descripcion, 'cantidad': cantidad,
+            vistos.add(objeto.pk)
+            limpios.append({'objeto': objeto, 'cantidad': cantidad,
                             'fragil': bool(item.get('fragil')), 'observacion': observacion or None})
     return limpios
 
@@ -156,7 +159,7 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
                            precio_unitario=principal.Precio_base, subtotal=principal.Precio_base)]
             + [DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=0, subtotal=0) for s in adicionales])
         InventarioDetalle.objects.bulk_create([
-            InventarioDetalle(idPedido=pedido, Descripcion=i['descripcion'], Cantidad=i['cantidad'],
+            InventarioDetalle(idPedido=pedido, idObjeto=i['objeto'], Cantidad=i['cantidad'],
                               Fragil=i['fragil'], Observacion=i['observacion'])
             for i in limpios])
     return pedido

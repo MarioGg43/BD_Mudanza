@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from pedidos import reglas
-from usuarios.models import Servicio, Usuario
+from usuarios.models import Objeto, Servicio, Usuario
 
 ADMIN, CLIENTE = 35123456, 29876543
 
@@ -70,7 +70,7 @@ class ServiciosTest(TestCase):
         with self.assertRaises(reglas.ErrorPedido):
             reglas.registrar_pedido(
                 Usuario.objects.get(DNI=CLIENTE), timezone.localdate() + timedelta(days=1), time(9, 0),
-                'A 1', 'B 2', s.id_servicio, 'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 1}])
+                'A 1', 'B 2', s.id_servicio, 'AD-321-JK', [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 1}])
 
     def test_la_categoria_es_obligatoria(self):
         self.entrar(ADMIN)

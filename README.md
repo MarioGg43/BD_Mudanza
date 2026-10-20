@@ -43,6 +43,7 @@ docker compose down
 | http://localhost:8002/pedidos/ | Pedidos: el cliente ve los suyos y el admin todos |
 | http://localhost:8002/pedidos/nuevo/ | Pedir una mudanza (solo clientes) |
 | http://localhost:8002/servicios/ | ABM de servicios (solo admin) |
+| http://localhost:8002/objetos/ | Catálogo de objetos que el cliente elige para el inventario (solo admin) |
 | http://localhost:8002/roles/ | Roles y sus permisos (quien tenga `ROL_GESTIONAR`) |
 | http://localhost:8002/panel/ | Panel del administrador |
 | http://localhost:8002/portal/ | Portal del personal operativo |
@@ -109,6 +110,7 @@ base `mudanzas_db`, usuario `mudanzas_user` / `mudanzas_pass`, o `root` / `root_
 | `PED_ANULAR` | Anular pedidos | Sí | | |
 | `PED_COMPROBANTE` | Emitir el comprobante | Sí | Sí (los suyos) | |
 | `SRV_GESTIONAR` | ABM de servicios | Sí | | |
+| `OBJ_GESTIONAR` | Catálogo de objetos | Sí | | |
 
 Estos son los permisos iniciales. `init_data` los carga solo cuando crea cada rol, así que
 lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
@@ -147,6 +149,12 @@ lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
 - El cliente solo ve sus propios pedidos; si pide uno ajeno recibe 404.
 - Los **servicios** se dan de baja de forma lógica: no se ofrecen en pedidos nuevos,
   pero los pedidos viejos los conservan.
+- **Lo que hay que llevar se elige de un catálogo** (tabla `OBJETOS`), no se escribe: así no se
+  guardan variantes como «mesa» y «meza». Lo que no está en la lista va como **«Otro»**, con la
+  observación obligatoria; el mismo objeto no se repite en un pedido (se suma la cantidad). El
+  administrador amplía la lista desde `/objetos/`.
+- El **tipo de vehículo** se elige de una lista cerrada (Utilitario Mediano, Furgón Urbano,
+  Camión Liviano, Camión Pesado).
 - Un **vehículo o cliente con pedidos activos** a futuro no se puede dar de baja (ni el vehículo pasar a mantenimiento) hasta anularlos.
 
 | Permiso | Administrador | Cliente |
@@ -157,6 +165,7 @@ lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
 | `PED_ANULAR` | Sí | |
 | `PED_COMPROBANTE` | Sí | Sí (solo los suyos) |
 | `SRV_GESTIONAR` | Sí | |
+| `OBJ_GESTIONAR` | Sí | |
 
 Chofer y Ayudante de Carga no tienen permisos sobre pedidos.
 

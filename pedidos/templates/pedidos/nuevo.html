@@ -58,8 +58,7 @@
             <div id="filas">
                 {% for f in items %}{% include 'pedidos/_fila_inventario.html' with f=f %}{% endfor %}
             </div>
-            <datalist id="objetos-sugeridos">{% for o in objetos %}<option value="{{ o }}"></option>{% endfor %}</datalist>
-            <p class="form-text mt-0 mb-2">Elegí el objeto de la lista o escribilo si no está.</p>
+            <p class="form-text mt-0 mb-2">¿No está en la lista? Elegí <b>Otro</b> y contá qué es en la observación.</p>
             <template id="filaVacia">{% include 'pedidos/_fila_inventario.html' with f=items.empty_form %}</template>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="agregarFila"><i class="bi bi-plus"></i> Agregar objeto</button>
         </div>
@@ -99,6 +98,18 @@
     document.getElementById('filas').insertAdjacentHTML('beforeend', html);
     totalForms.value = parseInt(totalForms.value, 10) + 1;
   });
+  // Con «Otro» la observación es obligatoria: ahí se cuenta qué es
+  function marcarOtro(select) {
+    const fila = select.closest('.fila');
+    const obs = fila.querySelector('[name$="-observacion"]');
+    const aviso = fila.querySelector('.aviso-obs');
+    const esOtro = select.selectedOptions[0] && select.selectedOptions[0].text === 'Otro';
+    obs.required = esOtro;
+    obs.placeholder = esOtro ? 'Contá qué es (obligatorio)' : 'Ej.: se desarma, tiene vidrio';
+    aviso.textContent = esOtro ? '(obligatoria)' : '(opcional)';
+  }
+  form.addEventListener('change', (e) => { if (e.target.name && e.target.name.endsWith('-objeto')) marcarOtro(e.target); });
+  form.querySelectorAll('[name$="-objeto"]').forEach(marcarOtro);
   form.addEventListener('input', recalcular);
   form.addEventListener('change', recalcular);
 

@@ -26,7 +26,7 @@ def _pedido_visible(request, id_pedido):
     para no revelar que existe."""
     pedido = get_object_or_404(
         Pedido.objects.select_related('idUsuario', 'patente_vehiculo', 'usuario_anulacion')
-                      .prefetch_related('detalles__idServicio', 'inventario'),
+                      .prefetch_related('detalles__idServicio', 'inventario__idObjeto'),
         pk=id_pedido)
     if not _ve_todos(request.usuario) and pedido.idUsuario_id != request.usuario.id_usuario:
         raise Http404('Pedido inexistente')
@@ -108,7 +108,6 @@ def nuevo(request):
         'adicionales': form.fields['adicionales'].queryset,
         'elegido': str(form['servicio'].value() or ''),
         'adicionales_elegidos': [str(i) for i in form['adicionales'].value() or []],
-        'objetos': reglas.OBJETOS_INVENTARIO,
     })
 
 

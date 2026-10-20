@@ -14,7 +14,7 @@ from django.test import TestCase
 
 from .models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Pedido,
-    DetallePedido, InventarioDetalle, Cobranza, DetalleCobranza, Servicio,
+    DetallePedido, InventarioDetalle, Cobranza, DetalleCobranza, Servicio, Objeto,
 )
 from .utils import generate_username, validate_strong_password, hash_password
 
@@ -53,9 +53,9 @@ class EstructuraDERTest(BaseHito2):
         self.assertEqual(Rol.objects.count(), 4)
         self.assertEqual(Usuario.objects.count(), 4)
         self.assertEqual(Vehiculo.objects.count(), 4)
-        self.assertEqual(Permiso.objects.count(), 15)
+        self.assertEqual(Permiso.objects.count(), 16)
         # el administrador tiene todos los permisos menos registrar pedidos
-        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador').count(), 14)
+        self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador').count(), 15)
         self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Chofer').count(), 1)
 
     def test_pedido_de_ejemplo_completo(self):
@@ -236,7 +236,7 @@ class BajaConPedidosActivosTest(BaseHito2):
         self.pedido = reglas.registrar_pedido(
             Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1), time(9, 0),
             'Origen 1', 'Destino 2', Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio,
-            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'fragil': False}])
+            'AD-321-JK', [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 2, 'fragil': False}])
 
     def test_no_se_da_de_baja_con_pedido_activo(self):
         r = self.client.post('/usuarios/29876543/baja/')
@@ -344,7 +344,7 @@ class DatosHito3Test(BaseHito2):
         self.assertEqual((detalle.precio_unitario, detalle.subtotal), (185000, 185000))
         self.assertEqual(p.hora_servicio, time(9, 0))
         item = p.inventario.get()
-        self.assertEqual((item.Descripcion, item.Cantidad, item.Fragil), ('Cajas', 42, True))
+        self.assertEqual((item.idObjeto.nom_objeto, item.Cantidad, item.Fragil), ('Cajas', 42, True))
         self.assertEqual(str(item), '42 x Cajas')
 
     def test_servicios_activos_por_defecto(self):

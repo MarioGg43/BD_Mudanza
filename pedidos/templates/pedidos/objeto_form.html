@@ -1,0 +1,22 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 560px;">
+    <h1 class="h3 fw-bold mb-4">{{ titulo }}</h1>
+    <form method="post" class="card-panel bg-white p-4" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="{{ form.nom_objeto.id_for_label }}" class="form-label fw-semibold">{{ form.nom_objeto.label }}</label>
+            {{ form.nom_objeto }}
+            {% if form.nom_objeto.errors %}<div class="invalid-feedback d-block">{{ form.nom_objeto.errors.as_text }}</div>{% endif %}
+        </div>
+        <div class="mb-3 form-check">
+            {{ form.Activo }} <label class="form-check-label" for="{{ form.Activo.id_for_label }}">Activo (se ofrece al registrar pedidos)</label>
+        </div>
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% url 'objetos_lista' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+            <button class="btn btn-success fw-bold px-4">Guardar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

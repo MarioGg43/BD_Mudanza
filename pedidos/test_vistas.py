@@ -9,10 +9,14 @@ from django.utils import timezone
 
 from pedidos import reglas
 from pedidos.permisos import tiene_permiso
-from usuarios.models import Pedido, Rol, Servicio, Usuario
+from usuarios.models import Objeto, Pedido, Rol, Servicio, Usuario
 from usuarios.utils import hash_password
 
 ADMIN, CHOFER, CLIENTE = 35123456, 40987654, 29876543
+
+
+def id_obj(nombre):
+    return str(Objeto.objects.get(nom_objeto=nombre).pk)
 
 
 class BaseVistas(TestCase):
@@ -36,7 +40,7 @@ class BaseVistas(TestCase):
         return reglas.registrar_pedido(
             cliente, timezone.localdate() + timedelta(days=dias), time(9, 0), 'Origen 1', 'Destino 2',
             self.local.id_servicio, patente,
-            [{'descripcion': 'Cajas', 'cantidad': 2, 'fragil': False}])
+            [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 2, 'fragil': False}])
 
 
 class PermisosTest(BaseVistas):
@@ -112,8 +116,8 @@ class RegistrarPantallaTest(BaseVistas):
         d = {'fecha_servicio': manana, 'hora_servicio': '10:15', 'origen': 'Av. Belgrano 100',
              'destino': 'Mitre 50', 'servicio': self.local.id_servicio, 'vehiculo': 'AD-321-JK',
              'inv-TOTAL_FORMS': '2', 'inv-INITIAL_FORMS': '0', 'inv-MIN_NUM_FORMS': '1', 'inv-MAX_NUM_FORMS': '50',
-             'inv-0-descripcion': 'Heladera', 'inv-0-cantidad': '1', 'inv-0-fragil': 'on',
-             'inv-1-descripcion': 'Cajas', 'inv-1-cantidad': '10'}
+             'inv-0-objeto': id_obj('Heladera'), 'inv-0-cantidad': '1', 'inv-0-fragil': 'on',
+             'inv-1-objeto': id_obj('Cajas'), 'inv-1-cantidad': '10'}
         d.update(cambios)
         return d
 
@@ -136,9 +140,10 @@ class RegistrarPantallaTest(BaseVistas):
         r = self.client.get('/pedidos/nuevo/')
         self.assertContains(r, 'type="radio"')
         self.assertContains(r, 'name="hora_servicio"')
-        self.assertContains(r, '<datalist id="objetos-sugeridos">')
-        self.assertContains(r, '<option value="Bolsos y valijas"></option>', html=True)
-        self.assertContains(r, 'list="objetos-sugeridos"')
+        self.assertContains(r, '<select name="inv-0-objeto"')
+        bolsos = id_obj('Bolsos y valijas')
+        self.assertContains(r, f'<option value="{bolsos}">Bolsos y valijas</option>', html=True)
+        self.assertNotContains(r, '<datalist')  # ya no se escribe el nombre
         self.assertContains(r, 'name="inv-0-observacion"')
         self.assertNotContains(r, 'Peso total')
 
@@ -164,15 +169,23 @@ class RegistrarPantallaTest(BaseVistas):
         self.assertContains(r, 'type="checkbox" name="adicionales"')
         self.assertContains(r, '>Embalaje</label>')  # sin precio
 
-    def test_objeto_escrito_a_mano_con_observacion(self):
+    def test_otro_con_observacion(self):
         self.entrar(CLIENTE)
         r = self.client.post('/pedidos/nuevo/', self.datos(**{
-            'inv-0-descripcion': 'Piano', 'inv-0-observacion': 'Se desarma'}))
+            'inv-0-objeto': id_obj('Otro'), 'inv-0-observacion': 'Piano vertical, se desarma'}))
         p = Pedido.objects.latest('id_pedido')
         self.assertRedirects(r, f'/pedidos/{p.pk}/', fetch_redirect_response=False)
-        self.assertTrue(p.inventario.filter(Descripcion='Piano', Observacion='Se desarma').exists())
-        self.assertContains(self.client.get(r.url), 'Se desarma')
-        self.assertContains(self.client.get(f'/pedidos/{p.pk}/comprobante/'), 'Se desarma')
+        self.assertTrue(p.inventario.filter(idObjeto__nom_objeto='Otro',
+                                            Observacion='Piano vertical, se desarma').exists())
+        self.assertContains(self.client.get(r.url), 'Piano vertical, se desarma')
+        self.assertContains(self.client.get(f'/pedidos/{p.pk}/comprobante/'), 'Piano vertical, se desarma')
+
+    def test_un_nombre_escrito_a_mano_no_se_acepta(self):
+        self.entrar(CLIENTE)
+        antes = Pedido.objects.count()
+        r = self.client.post('/pedidos/nuevo/', self.datos(**{'inv-0-objeto': 'Meza'}))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(Pedido.objects.count(), antes)
 
     def test_error_de_reglas_vuelve_al_formulario_con_los_datos(self):
         self.entrar(CLIENTE)
@@ -187,7 +200,7 @@ class RegistrarPantallaTest(BaseVistas):
     def test_sin_objetos(self):
         self.entrar(CLIENTE)
         r = self.client.post('/pedidos/nuevo/', self.datos(**{
-            'inv-TOTAL_FORMS': '1', 'inv-0-descripcion': '', 'inv-0-cantidad': ''}))
+            'inv-TOTAL_FORMS': '1', 'inv-0-objeto': '', 'inv-0-cantidad': ''}))
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.context['items'].non_form_errors() or r.context['items'].errors[0])
 

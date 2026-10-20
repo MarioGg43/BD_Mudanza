@@ -11,9 +11,13 @@ from django.test import TestCase
 from django.utils import timezone
 
 from pedidos import reglas
-from usuarios.models import DetallePedido, Pedido, Servicio, Usuario
+from usuarios.models import DetallePedido, Objeto, Pedido, Servicio, Usuario
 
 CLIENTE, ADMIN = 29876543, 35123456
+
+
+def obj(nombre):
+    return Objeto.objects.get(nom_objeto=nombre)
 
 
 class BaseReglas(TestCase):
@@ -35,8 +39,8 @@ class BaseReglas(TestCase):
             cliente=self.cliente, fecha_servicio=self.dia(), hora_servicio=time(9, 0),
             origen='Av. Belgrano 100, Salta', destino='Mitre 50, Cerrillos',
             id_servicio=self.local.id_servicio, patente='AD-321-JK',
-            items=[{'descripcion': 'Heladera', 'cantidad': 1, 'fragil': True},
-                   {'descripcion': 'Cajas', 'cantidad': 10, 'fragil': False}])
+            items=[{'objeto': obj('Heladera'), 'cantidad': 1, 'fragil': True},
+                   {'objeto': obj('Cajas'), 'cantidad': 10, 'fragil': False}])
         datos.update(cambios)
         return reglas.registrar_pedido(**datos)
 
@@ -57,7 +61,7 @@ class RegistrarPedidoTest(BaseReglas):
         self.assertEqual(p.Fecha_pedido, timezone.localdate())
         self.assertEqual(p.idUsuario, self.cliente)
         self.assertEqual(p.hora_servicio, time(9, 0))
-        self.assertEqual(sorted((i.Descripcion, i.Cantidad, i.Fragil) for i in p.inventario.all()),
+        self.assertEqual(sorted((i.idObjeto.nom_objeto, i.Cantidad, i.Fragil) for i in p.inventario.all()),
                          [('Cajas', 10, False), ('Heladera', 1, True)])
 
     def test_un_solo_detalle_y_el_total_es_el_precio_del_servicio(self):
@@ -156,31 +160,52 @@ class RegistrarPedidoTest(BaseReglas):
     def test_sin_objetos(self):
         self.assertRechaza('inventario', 'Agregá al menos un objeto.', items=[])
 
-    def test_objeto_escrito_a_mano_y_observacion(self):
+    def test_otro_con_observacion(self):
         p = self.registrar(items=[
-            {'descripcion': '  Piano vertical ', 'cantidad': 1, 'fragil': True,
-             'observacion': ' Se desarma; 3er piso sin ascensor '},
-            {'descripcion': 'Cajas', 'cantidad': 4}])
-        self.assertEqual(sorted((i.Descripcion, i.Observacion) for i in p.inventario.all()),
-                         [('Cajas', None), ('Piano vertical', 'Se desarma; 3er piso sin ascensor')])
+            {'objeto': obj('Otro'), 'cantidad': 1, 'fragil': True,
+             'observacion': ' Piano vertical; se desarma '},
+            {'objeto': obj('Cajas'), 'cantidad': 4}])
+        self.assertEqual(sorted((i.idObjeto.nom_objeto, i.Observacion) for i in p.inventario.all()),
+                         [('Cajas', None), ('Otro', 'Piano vertical; se desarma')])
 
-    def test_objeto_sin_nombre(self):
-        self.assertRechaza('inventario', 'Objeto 1: escribí o elegí qué es.',
-                           items=[{'descripcion': '   ', 'cantidad': 1}])
+    def test_otro_sin_observacion(self):
+        self.assertRechaza('inventario', 'Objeto 1: si elegís «Otro», contá en la observación qué es.',
+                           items=[{'objeto': obj('Otro'), 'cantidad': 1, 'observacion': '  '}])
 
-    def test_textos_demasiado_largos(self):
-        self.assertRechaza('inventario', 'Objeto 1: el nombre puede tener hasta 100 caracteres.',
-                           items=[{'descripcion': 'x' * 101, 'cantidad': 1}])
+    def test_objeto_sin_elegir(self):
+        self.assertRechaza('inventario', 'Objeto 1: elegí qué es de la lista.',
+                           items=[{'objeto': None, 'cantidad': 1}])
+
+    def test_no_se_puede_escribir_un_objeto_que_no_esta_en_la_lista(self):
+        self.assertRechaza('inventario', 'Objeto 1: ese objeto ya no está en la lista. Elegí otro.',
+                           items=[{'objeto': 'Meza', 'cantidad': 1}])
+
+    def test_objeto_dado_de_baja(self):
+        Objeto.objects.filter(nom_objeto='Mesa').update(Activo=False)
+        self.assertRechaza('inventario', 'Objeto 1: ese objeto ya no está en la lista. Elegí otro.',
+                           items=[{'objeto': obj('Mesa'), 'cantidad': 1}])
+
+    def test_el_mismo_objeto_dos_veces(self):
+        self.assertRechaza('inventario', 'Ya agregaste «Mesa»: sumá la cantidad en una sola fila.',
+                           items=[{'objeto': obj('Mesa'), 'cantidad': 1}, {'objeto': obj('Mesa'), 'cantidad': 2}])
+
+    def test_otro_puede_repetirse(self):
+        p = self.registrar(items=[{'objeto': obj('Otro'), 'cantidad': 1, 'observacion': 'Piano'},
+                                  {'objeto': obj('Otro'), 'cantidad': 1, 'observacion': 'Acuario'}])
+        self.assertEqual(p.inventario.count(), 2)
+
+    def test_observacion_demasiado_larga(self):
         self.assertRechaza('inventario', 'Objeto 1: la observación puede tener hasta 200 caracteres.',
-                           items=[{'descripcion': 'Mesa', 'cantidad': 1, 'observacion': 'x' * 201}])
+                           items=[{'objeto': obj('Mesa'), 'cantidad': 1, 'observacion': 'x' * 201}])
 
     def test_cantidad_fuera_de_rango(self):
-        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 0}])
-        self.assertRechaza('inventario', items=[{'descripcion': 'Sillas', 'cantidad': 1000}])
+        self.assertRechaza('inventario', items=[{'objeto': obj('Sillas'), 'cantidad': 0}])
+        self.assertRechaza('inventario', items=[{'objeto': obj('Sillas'), 'cantidad': 1000}])
 
-    def test_la_lista_fija_de_objetos(self):
-        self.assertEqual(len(reglas.OBJETOS_INVENTARIO), 19)
-        self.assertEqual((reglas.OBJETOS_INVENTARIO[0], reglas.OBJETOS_INVENTARIO[-1]), ('Heladera', 'Plantas'))
+    def test_el_catalogo_inicial_de_objetos(self):
+        self.assertEqual(Objeto.objects.count(), 20)
+        self.assertTrue(obj('Otro').es_otro)
+        self.assertTrue(Objeto.objects.filter(nom_objeto='Bolsos y valijas', Activo=True).exists())
 
     def test_sin_vehiculo(self):
         self.assertRechaza('vehiculo', patente='')

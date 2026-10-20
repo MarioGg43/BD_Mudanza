@@ -39,6 +39,9 @@
                 {% if 'SRV_GESTIONAR' in permisos %}
                 <a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}>Servicios</a>
                 {% endif %}
+                {% if 'OBJ_GESTIONAR' in permisos %}
+                <a href="{% url 'objetos_lista' %}"{% if '/objetos/' in ruta %} class="activo" aria-current="page"{% endif %}>Objetos</a>
+                {% endif %}
                 {% if 'MUDANZAS_OPERAR' in permisos %}
                 <a href="{% url 'usuario_portal' %}">Portal</a>
                 {% endif %}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Permiso, Rol, PermisoRol, Sueldo, Usuario, Vehiculo, Servicio,
+    Permiso, Rol, PermisoRol, Sueldo, Usuario, Vehiculo, Servicio, Objeto,
     RecursoAsignado, Pedido, DetallePedido, InventarioDetalle,
     Cobranza, DetalleCobranza,
 )
@@ -41,6 +41,12 @@ class VehiculoAdmin(admin.ModelAdmin):
     list_filter = ('estado', 'tipo_vehiculo')
     search_fields = ('patente', 'marca_modelo')
     readonly_fields = ('created_at',)
+
+
+@admin.register(Objeto)
+class ObjetoAdmin(admin.ModelAdmin):
+    list_display = ('id_objeto', 'nom_objeto', 'Activo')
+    list_filter = ('Activo',)
 
 
 @admin.register(Servicio)

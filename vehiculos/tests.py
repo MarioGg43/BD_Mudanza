@@ -4,7 +4,7 @@ import io
 from django.core.management import call_command
 from django.test import TestCase
 
-from usuarios.models import Usuario, Vehiculo, Pedido
+from usuarios.models import Objeto, Usuario, Vehiculo, Pedido
 
 ADMIN, CHOFER = 35123456, 40987654
 
@@ -20,7 +20,7 @@ class VehiculosTest(TestCase):
         s.save()
 
     def datos(self, **cambios):
-        base = {'patente': ' ab 999 zz ', 'marca_modelo': 'Fiat Ducato', 'tipo_vehiculo': 'Furgón',
+        base = {'patente': ' ab 999 zz ', 'marca_modelo': 'Fiat Ducato', 'tipo_vehiculo': 'Furgón Urbano',
                 'capacidad_kg': '1500', 'capacidad_m3': '10', 'estado': 'Disponible',
                 'kilometraje': '0', 'anio': '2024', 'chofer_asignado': '', 'observaciones': ''}
         base.update(cambios)
@@ -74,6 +74,15 @@ class VehiculosTest(TestCase):
         r = self.client.post('/vehiculos/crear/', self.datos())
         self.assertRedirects(r, '/vehiculos/')
         self.assertTrue(Vehiculo.objects.filter(patente='AB999ZZ').exists())
+
+    def test_el_tipo_se_elige_de_una_lista(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/vehiculos/crear/')
+        self.assertContains(r, '<select name="tipo_vehiculo"')
+        r = self.client.post('/vehiculos/crear/', self.datos(tipo_vehiculo='Camion'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('tipo_vehiculo', r.context['form'].errors)
+        self.assertFalse(Vehiculo.objects.filter(patente='AB999ZZ').exists())
 
     def test_alta_patente_repetida(self):
         self.entrar(ADMIN)
@@ -134,7 +143,7 @@ class PedidosActivosTest(TestCase):
         self.pedido = reglas.registrar_pedido(
             Usuario.objects.get(DNI=29876543), timezone.localdate() + timedelta(days=1), time(9, 0),
             'Origen 1', 'Destino 2', Servicio.objects.get(Tipo_servicio='Mudanza local').id_servicio,
-            'AD-321-JK', [{'descripcion': 'Cajas', 'cantidad': 2, 'fragil': False}])
+            'AD-321-JK', [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 2, 'fragil': False}])
         self.entrar(ADMIN)
 
     def test_la_baja_se_rechaza(self):
