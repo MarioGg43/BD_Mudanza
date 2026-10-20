@@ -31,7 +31,7 @@ class FiltroPedidosForm(forms.Form):
     estado = forms.ChoiceField(required=False, label='Estado',
                                choices=[('', 'Todos')] + Pedido.ESTADOS
                                        + [(reglas.VENCIDO, 'Vencidos'), (reglas.PARA_FINALIZAR, 'Para finalizar'),
-                                          (reglas.POR_CONFIRMAR, 'Por confirmar')])
+                                          (reglas.POR_CONFIRMAR, 'Por confirmar'), (reglas.SIN_CHOFER, 'Sin chofer')])
     servicio = forms.ModelChoiceField(required=False, label='Servicio', empty_label='Todos',
                                       queryset=Servicio.objects.order_by('Tipo_servicio'))
     cliente = forms.ModelChoiceField(required=False, label='Cliente', empty_label='Todos',
@@ -239,3 +239,26 @@ class ObjetoForm(forms.ModelForm):
         if repetido:
             raise forms.ValidationError(f'Ya existe «{repetido}» en la lista.')
         return nombre
+
+
+class PersonaField(forms.ModelChoiceField):
+    def label_from_instance(self, u):
+        return f'{u.Apellido}, {u.Nombre}'
+
+
+class PersonasField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, u):
+        return f'{u.Apellido}, {u.Nombre}'
+
+
+class AsignarPersonalForm(forms.Form):
+    """Solo ofrece al personal libre ese día; las reglas se vuelven a controlar en reglas.py."""
+    chofer = PersonaField(queryset=Usuario.objects.none(), label='Chofer', empty_label='Elegí el chofer')
+    ayudantes = PersonasField(queryset=Usuario.objects.none(), required=False, label='Ayudantes de carga',
+                              widget=forms.CheckboxSelectMultiple)
+
+    def __init__(self, *args, pedido, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['chofer'].queryset = reglas.personal_libre(pedido.fecha_servicio, reglas.ROL_CHOFER, pedido)
+        self.fields['ayudantes'].queryset = reglas.personal_libre(pedido.fecha_servicio, reglas.ROL_AYUDANTE, pedido)
+        con_bootstrap(self)

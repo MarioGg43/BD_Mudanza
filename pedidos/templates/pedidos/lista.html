@@ -32,7 +32,13 @@
     <a href="{% url 'pedidos_lista' %}?estado=Por+confirmar" class="btn btn-sm btn-outline-dark">Ver por confirmar</a>
 </div>
 {% endif %}
-{% if vencidos or para_finalizar or por_confirmar %}<div class="mb-3"></div>{% endif %}
+{% if sin_chofer %}
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <span><i class="bi bi-person-exclamation me-1"></i><b>{{ sin_chofer }}</b> pedido{{ sin_chofer|pluralize }} confirmado{{ sin_chofer|pluralize }} sin chofer asignado.</span>
+    <a href="{% url 'pedidos_lista' %}?estado=Sin+chofer" class="btn btn-sm btn-outline-dark">Ver sin chofer</a>
+</div>
+{% endif %}
+{% if vencidos or para_finalizar or por_confirmar or sin_chofer %}<div class="mb-3"></div>{% endif %}
 
 <form method="get" class="card-panel bg-white p-3 mb-4">
     <div class="row g-2 align-items-end">

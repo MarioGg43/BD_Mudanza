@@ -154,6 +154,10 @@ lo que se edite en `/roles/` no se pisa al reiniciar el contenedor.
   guardan variantes como «mesa» y «meza». Lo que no está en la lista va como **«Otro»**, con la
   observación obligatoria; el mismo objeto no se repite en un pedido (se suma la cantidad). El
   administrador amplía la lista desde `/objetos/`.
+- **Asignar personal:** el administrador asigna a cada pedido un **chofer** (obligatorio para
+  confirmarlo) y los **ayudantes de carga** que hagan falta (hasta 6), desde el detalle del pedido.
+  Solo se ofrece personal activo y libre ese día: una persona, una mudanza por día. Se sugiere el
+  chofer habitual del vehículo. Cada chofer y ayudante ve sus próximas mudanzas en su portal (sin precios).
 - El **tipo de vehículo** se elige de una lista cerrada (Utilitario Mediano, Furgón Urbano,
   Camión Liviano, Camión Pesado).
 - Un **vehículo o cliente con pedidos activos** a futuro no se puede dar de baja (ni el vehículo pasar a mantenimiento) hasta anularlos.

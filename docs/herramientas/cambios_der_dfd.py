@@ -168,13 +168,15 @@ tabla(['Campo', 'Tipo', 'Descripción'], [
 parrafo('Opción si la profesora lo pide: pasar el tipo a una tabla TIPO_VEHICULO (id_tipo_veh, nom_tipo_veh), '
         'igual que ESTADO_VEHICULO.')
 
-titulo('1.7 Falta una tabla para el personal de cada pedido', 2)
+titulo('1.7 Tabla nueva: PERSONAL_PEDIDO (ya está en el sistema)', 2)
 parrafo('El documento dice que RECURSOS_ASIGNADOS «asocia los empleados», pero en el DER solo relaciona '
-        'servicio con materiales. No hay dónde guardar qué chofer y qué ayudantes van a cada mudanza.')
+        'servicio con materiales. El sistema ya guarda qué chofer y qué ayudantes van a cada mudanza en '
+        'esta tabla: el chofer es obligatorio para confirmar el pedido y una persona hace una sola mudanza por día.')
 tabla(['Campo', 'Tipo', 'Clave'], [
     ['id_personal_pedido', 'INT', 'PK'],
     ['id_pedido', 'INT', 'FK → PEDIDOS'],
     ['id_usuario', 'INT', 'FK → USUARIOS (chofer o ayudante)'],
+    ['funcion_personal', 'VARCHAR(10)', 'Chofer / Ayudante'],
 ], [160, 80, 220])
 parrafo('Relaciones: PEDIDOS 1 : N PERSONAL_PEDIDO y USUARIOS 1 : N PERSONAL_PEDIDO.')
 
@@ -242,7 +244,7 @@ tabla(['Qué está', 'Problema', 'Cómo corregirlo'], [
     ['«Asignación de usuario»', 'Es una acción', '«Personal asignado» (id_pedido, id_usuario)'],
     ['Entidad externa «usuarios» con el mismo nombre que el almacén', 'Se confunde', 'Llamar a la entidad «Personal»'],
     ['El personal se guarda en «recursos asignados»', 'Esa tabla es servicio–materiales',
-     'Guardar en el almacén nuevo PERSONAL_PEDIDO'],
+     'Guardar en el almacén nuevo PERSONAL_PEDIDO (consulta: «Fecha de la mudanza» → «Personal ocupado»)'],
     ['«Usuario actualizado», «Vehículo actualizado»', 'El proceso no modifica usuarios ni vehículos',
      'Revisar: si solo se asignan, sacarlas'],
 ], [150, 130, 180])

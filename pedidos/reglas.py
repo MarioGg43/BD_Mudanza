@@ -10,7 +10,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from usuarios.models import DetallePedido, InventarioDetalle, Objeto, Pedido, Servicio, Vehiculo
+from usuarios.models import (DetallePedido, InventarioDetalle, Objeto, Pedido, PersonalPedido, Servicio,
+                             Usuario, Vehiculo)
 
 MAX_DIAS_ADELANTO = 365
 MAX_CANTIDAD = 999
@@ -200,6 +201,7 @@ def _pasar_a(id_pedido, accion):
 VENCIDO = 'Vencido'              # Pendiente cuya fecha y hora ya pasaron
 PARA_FINALIZAR = 'Para finalizar'  # Confirmado cuya mudanza ya empezó y nadie finalizó
 POR_CONFIRMAR = 'Por confirmar'    # Pendiente que se hace en los próximos días
+SIN_CHOFER = 'Sin chofer'          # Confirmado que todavía no empezó y no tiene chofer asignado
 DIAS_POR_CONFIRMAR = 2
 
 
@@ -229,7 +231,14 @@ def filtro_por_confirmar():
     return Q(estado=Pedido.PENDIENTE, fecha_servicio__lte=limite) & ~_ya_empezo()
 
 
-AVISOS = {VENCIDO: filtro_vencidos, PARA_FINALIZAR: filtro_para_finalizar, POR_CONFIRMAR: filtro_por_confirmar}
+def filtro_sin_chofer():
+    """Confirmados por venir sin chofer (los de antes de que fuera obligatorio)."""
+    return (Q(estado=Pedido.CONFIRMADO) & ~_ya_empezo()
+            & ~Q(pk__in=PersonalPedido.objects.filter(Funcion=PersonalPedido.CHOFER).values('idPedido')))
+
+
+AVISOS = {VENCIDO: filtro_vencidos, PARA_FINALIZAR: filtro_para_finalizar, POR_CONFIRMAR: filtro_por_confirmar,
+          SIN_CHOFER: filtro_sin_chofer}
 
 
 def contar_avisos():
@@ -244,6 +253,8 @@ def confirmar(id_pedido):
         if pedido.ya_empezo:
             raise ErrorPedido('La fecha y hora de la mudanza ya pasaron sin confirmar: el pedido está vencido. '
                               'Anulalo y, si el cliente quiere, que pida una fecha nueva.')
+        if not pedido.personal.filter(Funcion=PersonalPedido.CHOFER).exists():
+            raise ErrorPedido('Asigná el chofer antes de confirmar el pedido.')
         pedido.save(update_fields=['estado'])
     return pedido
 
@@ -295,3 +306,53 @@ def filtrar_pedidos(pedidos, desde=None, hasta=None, estado=None, id_servicio=No
             .select_related('idUsuario', 'patente_vehiculo')
             .prefetch_related('detalles__idServicio')
             .order_by('-id_pedido'))
+
+
+# ---------------------------------------------------------------- asignar personal
+ROL_CHOFER, ROL_AYUDANTE = 'Chofer', 'Ayudante de Carga'
+MAX_AYUDANTES = 6
+
+
+def personal_libre(fecha, rol, pedido=None):
+    """Empleados activos de ese rol sin otra mudanza ese día (una persona, una mudanza por día,
+    igual que los vehículos). Los del propio pedido cuentan como libres para poder editarlo."""
+    ocupados = PersonalPedido.objects.filter(idPedido__fecha_servicio=fecha, idPedido__estado__in=Pedido.ACTIVOS) \
+                                     .exclude(idPedido__in=Pedido.objects.filter(filtro_vencidos()))
+    if pedido is not None:
+        ocupados = ocupados.exclude(idPedido=pedido)
+    return (Usuario.objects.filter(Activo=True, idRol__nom_rol=rol)
+            .exclude(pk__in=ocupados.values('idUsuario')).order_by('Apellido', 'Nombre'))
+
+
+def asignar_personal(id_pedido, id_chofer, ids_ayudantes=()):
+    """Asigna el chofer (obligatorio) y los ayudantes (opcionales) de un pedido que todavía no
+    empezó. Reemplaza la asignación anterior. Si algo no es válido lanza ErrorPedido."""
+    ids = list(dict.fromkeys(int(i) for i in ids_ayudantes or ()))
+    with transaction.atomic():
+        pedido = Pedido.objects.select_for_update().get(pk=id_pedido)
+        if pedido.estado not in Pedido.ACTIVOS:
+            raise ErrorPedido(f'No se puede asignar personal a un pedido {pedido.estado.lower()}.')
+        if pedido.ya_empezo:
+            raise ErrorPedido('La mudanza ya empezó: el personal no se puede cambiar.')
+        # bloquea a las personas elegidas: si dos pedidos del mismo día las piden a la vez, el segundo espera
+        list(Usuario.objects.select_for_update().filter(pk__in=[i for i in [id_chofer, *ids] if i]))
+        errores = {}
+        chofer = personal_libre(pedido.fecha_servicio, ROL_CHOFER, pedido).filter(pk=id_chofer).first() \
+            if id_chofer else None
+        if not id_chofer:
+            errores['chofer'] = 'Elegí el chofer.'
+        elif chofer is None:
+            errores['chofer'] = 'Ese chofer no está libre ese día. Elegí otro.'
+        if len(ids) > MAX_AYUDANTES:
+            errores['ayudantes'] = f'Se pueden asignar hasta {MAX_AYUDANTES} ayudantes.'
+        else:
+            ayudantes = list(personal_libre(pedido.fecha_servicio, ROL_AYUDANTE, pedido).filter(pk__in=ids))
+            if len(ayudantes) != len(ids):
+                errores['ayudantes'] = 'Alguno de los ayudantes no está libre ese día.'
+        if errores:
+            raise ErrorPedido(errores)
+        pedido.personal.all().delete()
+        PersonalPedido.objects.bulk_create(
+            [PersonalPedido(idPedido=pedido, idUsuario=chofer, Funcion=PersonalPedido.CHOFER)]
+            + [PersonalPedido(idPedido=pedido, idUsuario=a, Funcion=PersonalPedido.AYUDANTE) for a in ayudantes])
+    return pedido

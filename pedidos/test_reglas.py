@@ -34,6 +34,11 @@ class BaseReglas(TestCase):
     def dia(self, dias=1):
         return timezone.localdate() + timedelta(days=dias)
 
+    def confirmar(self, pedido):
+        """Para confirmar hace falta el chofer: se asigna a Luciana Fernández (la chofer de init_data)."""
+        reglas.asignar_personal(pedido.pk, Usuario.objects.get(DNI=40987654).pk)
+        return reglas.confirmar(pedido.pk)
+
     def registrar(self, **cambios):
         datos = dict(
             cliente=self.cliente, fecha_servicio=self.dia(), hora_servicio=time(9, 0),
@@ -254,14 +259,14 @@ class TransicionesTest(BaseReglas):
 
     def test_confirmar_y_finalizar(self):
         p = self.registrar()
-        self.assertEqual(reglas.confirmar(p.pk).estado, Pedido.CONFIRMADO)
+        self.assertEqual(self.confirmar(p).estado, Pedido.CONFIRMADO)
         with self.despues_de(p, 60):
             self.assertEqual(reglas.finalizar(p.pk).estado, Pedido.FINALIZADO)
         self.assertEqual(Pedido.objects.get(pk=p.pk).estado, Pedido.FINALIZADO)
 
     def test_no_se_finaliza_antes_de_que_empiece_la_mudanza(self):
         p = self.registrar(hora_servicio=time(17, 13))
-        reglas.confirmar(p.pk)
+        self.confirmar(p)
         with self.despues_de(p, -1):
             with self.assertRaises(reglas.ErrorPedido) as ctx:
                 reglas.finalizar(p.pk)
@@ -280,13 +285,13 @@ class TransicionesTest(BaseReglas):
 
     def test_no_se_confirma_dos_veces(self):
         p = self.registrar()
-        reglas.confirmar(p.pk)
+        self.confirmar(p)
         with self.assertRaises(reglas.ErrorPedido):
-            reglas.confirmar(p.pk)
+            self.confirmar(p)
 
     def test_anular_guarda_fecha_motivo_y_usuario_y_libera_el_vehiculo(self):
         p = self.registrar()
-        reglas.confirmar(p.pk)
+        self.confirmar(p)
         reglas.anular(p.pk, self.admin, '  El cliente suspendió la mudanza  ')
         p.refresh_from_db()
         self.assertEqual(p.estado, Pedido.ANULADO)
@@ -318,7 +323,7 @@ class FiltrarPedidosTest(BaseReglas):
     def setUp(self):
         self.p1 = self.registrar(fecha_servicio=self.dia(1), id_servicio=self.local.id_servicio)
         self.p2 = self.registrar(fecha_servicio=self.dia(5), id_servicio=self.flete.id_servicio)
-        reglas.confirmar(self.p2.pk)
+        self.confirmar(self.p2)
         self.viejo = Pedido.objects.get(estado=Pedido.FINALIZADO)  # 20/09/2026, Mudanza local
 
     def ids(self, **filtros):
@@ -361,7 +366,7 @@ class VencidosTest(BaseReglas):
     def test_a_futuro_o_confirmado_no_esta_vencido(self):
         p = self.registrar()
         self.assertFalse(p.vencido)
-        reglas.confirmar(p.pk)
+        self.confirmar(p)
         p = self.vencer(Pedido.objects.get(pk=p.pk))
         self.assertFalse(p.vencido)  # confirmado y ya empezó: se finaliza, no está vencido
 
@@ -395,7 +400,7 @@ class VencidosTest(BaseReglas):
 class AvisosTest(BaseReglas):
     def test_para_finalizar(self):
         p = self.registrar()
-        reglas.confirmar(p.pk)
+        self.confirmar(p)
         Pedido.objects.filter(pk=p.pk).update(fecha_servicio=self.dia(-1))
         p.refresh_from_db()
         self.assertTrue(p.para_finalizar)
@@ -407,7 +412,7 @@ class AvisosTest(BaseReglas):
         cerca = self.registrar(fecha_servicio=self.dia(2))
         self.registrar(fecha_servicio=self.dia(3))  # todavía hay tiempo
         lejos_confirmado = self.registrar(fecha_servicio=self.dia(1), patente='AE-123-CD')
-        reglas.confirmar(lejos_confirmado.pk)
+        self.confirmar(lejos_confirmado)
         ids = [p.pk for p in reglas.filtrar_pedidos(Pedido.objects.all(), estado=reglas.POR_CONFIRMAR)]
         self.assertEqual(ids, [cerca.pk])
 
@@ -436,3 +441,86 @@ class VehiculoPorDiaTest(BaseReglas):
         self.assertEqual(list(reglas.vehiculos_libres(self.dia())), [])
         self.assertEqual(reglas.motivo_sin_vehiculos(self.dia()),
                          'Los 2 vehículos disponibles ya tienen una mudanza ese día. Probá con otra fecha.')
+
+
+class AsignarPersonalTest(BaseReglas):
+    """Un chofer obligatorio, ayudantes opcionales y una mudanza por persona por día."""
+
+    def setUp(self):
+        from usuarios.models import PersonalPedido, Rol
+        from usuarios.utils import hash_password
+        self.PersonalPedido = PersonalPedido
+        self.chofer = Usuario.objects.get(DNI=40987654)
+        self.ayudante = Usuario.objects.get(DNI=38999888)
+        self.chofer2 = Usuario.objects.create(
+            DNI=30111222, Nombre='Pablo', Apellido='Ruiz', Correo='pablo.ruiz@ejemplo.com', NombreUsuario='ruizp',
+            Clave=hash_password('Usuario123!'), idRol=Rol.objects.get(nom_rol='Chofer'))
+
+    def test_asigna_chofer_y_ayudante(self):
+        p = self.registrar()
+        reglas.asignar_personal(p.pk, self.chofer.pk, [self.ayudante.pk])
+        self.assertEqual([(x.idUsuario, x.Funcion) for x in p.personal.all()],
+                         [(self.chofer, 'Chofer'), (self.ayudante, 'Ayudante')])
+
+    def test_reasignar_reemplaza(self):
+        p = self.registrar()
+        reglas.asignar_personal(p.pk, self.chofer.pk, [self.ayudante.pk])
+        reglas.asignar_personal(p.pk, self.chofer2.pk)
+        self.assertEqual([x.idUsuario for x in p.personal.all()], [self.chofer2])
+
+    def test_sin_chofer_no_se_confirma(self):
+        p = self.registrar()
+        with self.assertRaises(reglas.ErrorPedido) as ctx:
+            reglas.confirmar(p.pk)
+        self.assertEqual(str(ctx.exception), 'Asigná el chofer antes de confirmar el pedido.')
+
+    def test_el_chofer_es_obligatorio(self):
+        p = self.registrar()
+        with self.assertRaises(reglas.ErrorPedido) as ctx:
+            reglas.asignar_personal(p.pk, None)
+        self.assertEqual(ctx.exception.errores['chofer'], 'Elegí el chofer.')
+
+    def test_una_persona_una_mudanza_por_dia(self):
+        uno = self.registrar()
+        reglas.asignar_personal(uno.pk, self.chofer.pk, [self.ayudante.pk])
+        dos = self.registrar(patente='AE-123-CD')
+        with self.assertRaises(reglas.ErrorPedido) as ctx:
+            reglas.asignar_personal(dos.pk, self.chofer.pk)
+        self.assertEqual(ctx.exception.errores['chofer'], 'Ese chofer no está libre ese día. Elegí otro.')
+        with self.assertRaises(reglas.ErrorPedido) as ctx:
+            reglas.asignar_personal(dos.pk, self.chofer2.pk, [self.ayudante.pk])
+        self.assertIn('ayudantes', ctx.exception.errores)
+        reglas.asignar_personal(dos.pk, self.chofer2.pk)  # con otro chofer sí
+        otro_dia = self.registrar(fecha_servicio=self.dia(2))
+        reglas.asignar_personal(otro_dia.pk, self.chofer.pk)  # y el mismo chofer otro día también
+
+    def test_anular_libera_al_personal(self):
+        uno = self.registrar()
+        reglas.asignar_personal(uno.pk, self.chofer.pk)
+        reglas.anular(uno.pk, self.admin, 'El cliente canceló')
+        self.assertIn(self.chofer, reglas.personal_libre(uno.fecha_servicio, reglas.ROL_CHOFER))
+
+    def test_un_chofer_dado_de_baja_no_se_ofrece(self):
+        Usuario.objects.filter(pk=self.chofer2.pk).update(Activo=False)
+        self.assertNotIn(self.chofer2, reglas.personal_libre(self.dia(), reglas.ROL_CHOFER))
+
+    def test_un_cliente_no_puede_ser_chofer(self):
+        p = self.registrar()
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.asignar_personal(p.pk, self.cliente.pk)
+
+    def test_no_se_asigna_a_un_pedido_anulado_o_que_ya_empezo(self):
+        p = self.registrar()
+        reglas.anular(p.pk, self.admin, 'El cliente canceló')
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.asignar_personal(p.pk, self.chofer.pk)
+        q = self.registrar(fecha_servicio=self.dia(3))
+        Pedido.objects.filter(pk=q.pk).update(fecha_servicio=self.dia(-1))
+        with self.assertRaises(reglas.ErrorPedido):
+            reglas.asignar_personal(q.pk, self.chofer.pk)
+
+    def test_aviso_confirmados_sin_chofer(self):
+        p = self.confirmar(self.registrar())
+        self.assertEqual(reglas.contar_avisos()[reglas.SIN_CHOFER], 0)
+        self.PersonalPedido.objects.filter(idPedido=p).delete()  # como los confirmados de antes de la regla
+        self.assertEqual(reglas.contar_avisos()[reglas.SIN_CHOFER], 1)

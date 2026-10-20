@@ -36,6 +36,10 @@ class BaseVistas(TestCase):
         s['usuario_rol'] = Usuario.objects.get(DNI=dni).idRol.nom_rol
         s.save()
 
+    def con_chofer(self, pedido):
+        reglas.asignar_personal(pedido.pk, Usuario.objects.get(DNI=CHOFER).pk)
+        return pedido
+
     def pedido_de(self, cliente, dias=1, patente='AD-321-JK'):
         return reglas.registrar_pedido(
             cliente, timezone.localdate() + timedelta(days=dias), time(9, 0), 'Origen 1', 'Destino 2',
@@ -221,7 +225,7 @@ class RegistrarPantallaTest(BaseVistas):
 
 class AccionesTest(BaseVistas):
     def setUp(self):
-        self.p = self.pedido_de(self.cliente)
+        self.p = self.con_chofer(self.pedido_de(self.cliente))
 
     def test_el_admin_confirma_y_finaliza(self):
         self.entrar(ADMIN)
@@ -469,7 +473,7 @@ class VencidosPantallaTest(BaseVistas):
 class AvisosPantallaTest(BaseVistas):
     def test_la_lista_muestra_los_tres_avisos(self):
         hecho = self.pedido_de(self.cliente)
-        reglas.confirmar(hecho.pk)
+        reglas.confirmar(self.con_chofer(hecho).pk)
         Pedido.objects.filter(pk=hecho.pk).update(fecha_servicio=timezone.localdate() - timedelta(days=1))
         self.pedido_de(self.otro, dias=2)  # pendiente cercano
         vencido = self.pedido_de(self.otro, dias=5, patente='AE-123-CD')
@@ -487,3 +491,57 @@ class AvisosPantallaTest(BaseVistas):
         r = self.client.get('/pedidos/')
         self.assertNotContains(r, 'Ver para finalizar')
         self.assertNotContains(r, 'Ver por confirmar')
+
+
+class AsignarPantallaTest(BaseVistas):
+    def setUp(self):
+        self.p = self.pedido_de(self.cliente)
+        self.chofer = Usuario.objects.get(DNI=CHOFER)
+        self.ayudante = Usuario.objects.get(DNI=38999888)
+
+    def test_sin_chofer_el_detalle_lleva_a_asignar(self):
+        self.entrar(ADMIN)
+        r = self.client.get(f'/pedidos/{self.p.pk}/')
+        self.assertContains(r, 'Asignar personal para confirmar')
+        self.assertNotContains(r, f'action="/pedidos/{self.p.pk}/confirmar/"')
+
+    def test_asignar_y_despues_confirmar(self):
+        self.entrar(ADMIN)
+        r = self.client.post(f'/pedidos/{self.p.pk}/asignar/', {'chofer': self.chofer.pk, 'ayudantes': [self.ayudante.pk]})
+        self.assertRedirects(r, f'/pedidos/{self.p.pk}/')
+        detalle = self.client.get(f'/pedidos/{self.p.pk}/')
+        self.assertContains(detalle, 'Luciana Fernandez')
+        self.assertContains(detalle, f'action="/pedidos/{self.p.pk}/confirmar/"')
+        self.client.post(f'/pedidos/{self.p.pk}/confirmar/')
+        self.assertEqual(Pedido.objects.get(pk=self.p.pk).estado, 'Confirmado')
+
+    def test_el_formulario_solo_ofrece_personal_libre(self):
+        self.entrar(ADMIN)
+        otro = self.pedido_de(self.otro, patente='AE-123-CD')
+        reglas.asignar_personal(otro.pk, self.chofer.pk)
+        r = self.client.get(f'/pedidos/{self.p.pk}/asignar/')
+        self.assertNotIn(self.chofer, r.context['form'].fields['chofer'].queryset)
+        self.assertContains(r, 'No hay choferes libres ese día')
+
+    def test_sugiere_el_chofer_del_vehiculo(self):
+        from usuarios.models import Vehiculo
+        Vehiculo.objects.filter(pk='AD-321-JK').update(chofer_asignado=self.chofer)
+        self.entrar(ADMIN)
+        r = self.client.get(f'/pedidos/{self.p.pk}/asignar/')
+        self.assertEqual(r.context['form'].initial['chofer'], self.chofer.pk)
+        self.assertContains(r, 'el chofer habitual del vehículo')
+
+    def test_el_cliente_no_asigna(self):
+        self.entrar(CLIENTE)
+        self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/asignar/').status_code, 403)
+
+    def test_el_portal_muestra_las_mudanzas_asignadas_sin_precios(self):
+        reglas.asignar_personal(self.p.pk, self.chofer.pk, [self.ayudante.pk])
+        for dni in (CHOFER, 38999888):
+            self.entrar(dni)
+            Usuario.objects.filter(DNI=dni).update(DebeCambiarClave=False)
+            r = self.client.get('/portal/')
+            self.assertEqual(list(r.context['mudanzas']), [self.p])
+            self.assertContains(r, 'Origen 1')
+            self.assertContains(r, 'Cajas')
+            self.assertNotContains(r, '$')

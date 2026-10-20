@@ -7,12 +7,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from usuarios.models import Pedido
+from usuarios.models import Pedido, PersonalPedido
 from usuarios.permisos import pantalla_inicio
 from usuarios.views import get_usuario_actual
 from . import reglas
 from .pdf import respuesta_pdf
-from .forms import AnularForm, FiltroPedidosForm, InventarioFormSet, PedidoForm, RegistroClienteForm
+from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
+                    RegistroClienteForm)
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -50,6 +51,7 @@ def lista(request):
         'form': form, 've_todos': ve_todos, 'pedidos': pedidos,
         'vencidos': avisos.get(reglas.VENCIDO), 'para_finalizar': avisos.get(reglas.PARA_FINALIZAR),
         'por_confirmar': avisos.get(reglas.POR_CONFIRMAR), 'dias_por_confirmar': reglas.DIAS_POR_CONFIRMAR,
+        'sin_chofer': avisos.get(reglas.SIN_CHOFER),
         'puede_registrar': tiene_permiso(request.usuario, 'PED_REGISTRAR'),
     })
 
@@ -78,8 +80,12 @@ def descargar(request):
 @requiere_permiso('PED_CONSULTAR')
 def detalle(request, id_pedido):
     pedido = _pedido_visible(request, id_pedido)
+    personal = list(pedido.personal.select_related('idUsuario'))
     return render(request, 'pedidos/detalle.html', {
         'pedido': pedido,
+        'chofer': next((x.idUsuario for x in personal if x.Funcion == PersonalPedido.CHOFER), None),
+        'ayudantes': [x.idUsuario for x in personal if x.Funcion == PersonalPedido.AYUDANTE],
+        'se_puede_asignar': pedido.estado in Pedido.ACTIVOS and not pedido.ya_empezo,
         'puede_gestionar': tiene_permiso(request.usuario, 'PED_GESTIONAR'),
         'puede_anular': tiene_permiso(request.usuario, 'PED_ANULAR'),
         'puede_comprobante': tiene_permiso(request.usuario, 'PED_COMPROBANTE'),
@@ -154,6 +160,40 @@ def confirmar(request, id_pedido):
 @require_POST
 def finalizar(request, id_pedido):
     return _accion(request, id_pedido, reglas.finalizar, 'finalizado')
+
+
+@requiere_permiso('PED_GESTIONAR')
+def asignar(request, id_pedido):
+    """Asignar el personal de la mudanza: un chofer y los ayudantes que hagan falta."""
+    pedido = get_object_or_404(Pedido.objects.select_related('idUsuario', 'patente_vehiculo__chofer_asignado'),
+                               pk=id_pedido)
+    if pedido.estado not in Pedido.ACTIVOS or pedido.ya_empezo:
+        messages.error(request, f'El pedido N° {id_pedido} ya no admite cambios de personal.')
+        return redirect('pedidos_detalle', id_pedido=id_pedido)
+    actual = list(pedido.personal.all())
+    inicial = {'chofer': next((x.idUsuario_id for x in actual if x.Funcion == PersonalPedido.CHOFER), None),
+               'ayudantes': [x.idUsuario_id for x in actual if x.Funcion == PersonalPedido.AYUDANTE]}
+    sugerido = None
+    form = AsignarPersonalForm(request.POST or None, pedido=pedido, initial=dict(inicial))
+    if not inicial['chofer']:
+        # se sugiere el chofer habitual del vehículo, si está libre ese día
+        habitual = pedido.patente_vehiculo.chofer_asignado
+        if habitual and form.fields['chofer'].queryset.filter(pk=habitual.pk).exists():
+            form.initial['chofer'] = habitual.pk
+            sugerido = habitual
+    if request.method == 'POST' and form.is_valid():
+        try:
+            reglas.asignar_personal(id_pedido, form.cleaned_data['chofer'].pk,
+                                    [a.pk for a in form.cleaned_data['ayudantes']])
+        except reglas.ErrorPedido as e:
+            for campo, mensaje in e.errores.items():
+                form.add_error(campo if campo in form.fields else None, mensaje)
+        else:
+            messages.success(request, f'Personal del pedido N° {id_pedido} asignado.')
+            return redirect('pedidos_detalle', id_pedido=id_pedido)
+    return render(request, 'pedidos/asignar.html', {
+        'pedido': pedido, 'form': form, 'max_ayudantes': reglas.MAX_AYUDANTES,
+        'sugerido': sugerido})
 
 
 @requiere_permiso('PED_ANULAR')

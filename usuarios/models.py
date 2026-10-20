@@ -266,6 +266,30 @@ class DetallePedido(models.Model):
         return f'Pedido {self.idPedido_id} - {self.idServicio}'
 
 
+class PersonalPedido(models.Model):
+    """Quién hace cada mudanza: un chofer y, si hacen falta, ayudantes de carga."""
+    CHOFER, AYUDANTE = 'Chofer', 'Ayudante'
+    FUNCIONES = [(CHOFER, 'Chofer'), (AYUDANTE, 'Ayudante de carga')]
+
+    id_personal_pedido = models.AutoField(primary_key=True)
+    idPedido = models.ForeignKey('Pedido', on_delete=models.CASCADE, db_column='id_pedido',
+                                 related_name='personal', verbose_name='Pedido')
+    idUsuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column='id_usuario',
+                                  related_name='asignaciones', verbose_name='Empleado')
+    Funcion = models.CharField(max_length=10, choices=FUNCIONES, db_column='funcion_personal',
+                               verbose_name='Función')
+
+    class Meta:
+        db_table = 'PERSONAL_PEDIDO'
+        verbose_name = 'Personal del pedido'
+        verbose_name_plural = 'Personal de los pedidos'
+        ordering = ['-Funcion', 'id_personal_pedido']  # primero el chofer
+        constraints = [models.UniqueConstraint(fields=['idPedido', 'idUsuario'], name='persona_una_vez_por_pedido')]
+
+    def __str__(self):
+        return f'Pedido {self.idPedido_id} - {self.Funcion}: {self.idUsuario}'
+
+
 class Objeto(models.Model):
     """Catálogo de objetos que se pueden mudar. El inventario elige de acá en vez de escribir
     el nombre, así no se llena de variantes («mesa», «meza», «Mesa»). Lo que no está en la

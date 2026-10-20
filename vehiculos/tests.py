@@ -276,6 +276,7 @@ class ParaCerrarTest(TestCase):
             'A 1', 'B 2', Servicio.objects.get(Tipo_servicio='Flete urbano').id_servicio,
             'AD-321-JK', [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 1}])
         hecho, vencido, futuro = nuevo(1), nuevo(2), nuevo(3)
+        reglas.asignar_personal(hecho.pk, Usuario.objects.get(DNI=CHOFER).pk)
         reglas.confirmar(hecho.pk)
         ayer = timezone.localdate() - timedelta(days=1)
         Pedido.objects.filter(pk__in=[hecho.pk, vencido.pk]).update(fecha_servicio=ayer)

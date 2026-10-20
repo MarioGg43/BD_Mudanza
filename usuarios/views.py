@@ -5,7 +5,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.utils import timezone
 import json
 
-from .models import Usuario, Rol, Permiso, Vehiculo
+from .models import Usuario, Rol, Permiso, Pedido, Vehiculo
 from .permisos import (  # noqa: F401
     get_usuario_actual, pantalla_inicio, puede_actuar_sobre_rol, requiere_permiso, requiere_permiso_api,
     tiene_permiso,
@@ -192,12 +192,19 @@ def usuario_portal(request):
     if not tiene_permiso(usuario_actual, 'MUDANZAS_OPERAR'):
         return pantalla_inicio(usuario_actual)
 
+    from pedidos.reglas import filtro_por_venir  # pedidos depende de usuarios: se importa acá
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
+    # sus mudanzas por venir (pendientes o confirmadas), sin precios
+    mudanzas = (Pedido.objects.filter(filtro_por_venir(), personal__idUsuario=usuario_actual)
+                .select_related('patente_vehiculo', 'idUsuario')
+                .prefetch_related('detalles__idServicio', 'inventario__idObjeto', 'personal__idUsuario')
+                .order_by('fecha_servicio', 'hora_servicio'))
     return render(request, 'usuario_portal.html', {
         'usuario_actual': usuario_actual,
         'permisos_rol': permisos,
         'vehiculos': vehiculos,
+        'mudanzas': mudanzas,
     })
 
 def sin_permisos(request):

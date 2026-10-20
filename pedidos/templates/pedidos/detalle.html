@@ -11,8 +11,13 @@
             <a href="{% url 'pedidos_comprobante_pdf' pedido.id_pedido %}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
             {% endif %}
             {% if puede_gestionar and pedido.estado == 'Pendiente' and not pedido.vencido %}
+            {% if chofer %}
             <form method="post" action="{% url 'pedidos_confirmar' pedido.id_pedido %}">{% csrf_token %}
                 <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Confirmar</button></form>
+            {% else %}
+            <a href="{% url 'pedidos_asignar' pedido.id_pedido %}" class="btn btn-primary" title="Para confirmar hace falta el chofer">
+                <i class="bi bi-person-plus me-1"></i>Asignar personal para confirmar</a>
+            {% endif %}
             {% endif %}
             {% if puede_gestionar and pedido.estado == 'Confirmado' %}
             {% if pedido.ya_empezo %}
@@ -32,6 +37,24 @@
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-1"></i><b>Pedido vencido:</b> la mudanza era el {{ pedido.inicio|date:"d/m/Y" }} a las {{ pedido.inicio|time:"H:i" }} y nadie lo confirmó.
         {% if puede_gestionar %}Ya no se puede confirmar: anulalo y, si el cliente quiere, que pida una fecha nueva.{% else %}Si todavía necesitás la mudanza, pedí una fecha nueva.{% endif %}
+    </div>
+    {% endif %}
+
+    {% if puede_gestionar %}
+    <div class="card-panel bg-white p-4 mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-0"><i class="bi bi-people me-1"></i>Personal asignado</h2>
+            {% if se_puede_asignar %}
+            <a href="{% url 'pedidos_asignar' pedido.id_pedido %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-person-gear me-1"></i>{% if chofer %}Cambiar personal{% else %}Asignar personal{% endif %}</a>
+            {% endif %}
+        </div>
+        {% if chofer %}
+        <p class="mb-1"><strong>Chofer:</strong> {{ chofer.Nombre }} {{ chofer.Apellido }}</p>
+        <p class="mb-0"><strong>Ayudantes:</strong> {% for a in ayudantes %}{{ a.Nombre }} {{ a.Apellido }}{% if not forloop.last %}, {% endif %}{% empty %}ninguno{% endfor %}</p>
+        {% else %}
+        <p class="mb-0 {% if pedido.estado == 'Confirmado' %}text-danger fw-semibold{% else %}text-muted{% endif %}">Sin personal asignado.{% if pedido.estado == 'Pendiente' and se_puede_asignar %} Hace falta el chofer para confirmar.{% endif %}</p>
+        {% endif %}
     </div>
     {% endif %}
 

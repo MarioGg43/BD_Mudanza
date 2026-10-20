@@ -106,13 +106,33 @@
   <div class="tarjeta p-6">
     <h3 class="font-bold text-base flex items-center gap-2 mb-3">
       <i class="fa-solid fa-calendar-check text-marca"></i>
-      Mis Tareas de Mudanzas y Fletes
+      Mis próximas mudanzas
     </h3>
+    {% for p in mudanzas %}
+    <div class="caja-suave p-4 rounded-xl mb-3 text-xs space-y-2">
+      <div class="flex flex-wrap justify-between items-center gap-2">
+        <p class="font-bold texto-tinta text-sm"><i class="fa-solid fa-calendar-day text-marca mr-1"></i>{{ p.fecha_servicio|date:"l d/m/Y" }} · {{ p.hora_servicio|time:"H:i" }}</p>
+        <span class="chip-marca px-2 py-0.5 rounded font-semibold">{% if p.estado == 'Confirmado' %}Confirmada{% else %}A confirmar{% endif %}</span>
+      </div>
+      <p><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b> &nbsp;→&nbsp; <span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></p>
+      <p><span class="texto-suave">Vehículo:</span> {{ p.patente_vehiculo.patente }} · {{ p.patente_vehiculo.marca_modelo }}
+         &nbsp;·&nbsp; <span class="texto-suave">Servicios:</span> {% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+      <p><span class="texto-suave">Equipo:</span> {% for x in p.personal.all %}{{ x.idUsuario.Nombre }} {{ x.idUsuario.Apellido }} ({{ x.get_Funcion_display|lower }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
+      <p><span class="texto-suave">Cliente:</span> {{ p.idUsuario.Nombre }} {{ p.idUsuario.Apellido }}{% if p.idUsuario.Telefono %} · Tel. {{ p.idUsuario.Telefono }}{% endif %}</p>
+      <div>
+        <span class="texto-suave">Qué hay que llevar:</span>
+        <ul class="list-disc ml-5 mt-1">
+          {% for i in p.inventario.all %}<li>{{ i.Cantidad }} × {{ i.idObjeto }}{% if i.Fragil %} <b class="text-marca">(frágil)</b>{% endif %}{% if i.Observacion %} — {{ i.Observacion }}{% endif %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% empty %}
     <div class="caja-suave p-5 rounded-xl text-center text-xs texto-suave">
       <span class="icono-marca mb-2"><i class="fa-solid fa-clipboard-check text-2xl"></i></span>
-      <p class="font-semibold texto-tinta">Servicios y turnos sincronizados con éxito</p>
-      <p class="mt-1 texto-suave">Tu cuenta se encuentra habilitada para las operaciones de ruta y logística del día.</p>
+      <p class="font-semibold texto-tinta">No tenés mudanzas asignadas por ahora</p>
+      <p class="mt-1 texto-suave">Cuando el administrador te asigne a una mudanza, la vas a ver acá con la fecha, las direcciones y lo que hay que llevar.</p>
     </div>
+    {% endfor %}
   </div>
 
   <!-- MÓDULO DE FLOTA VEHICULAR (PRESERVADO EN CÓDIGO - OCULTO TEMPORALMENTE) -->

@@ -1,0 +1,39 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Asignar personal · Pedido N° {{ pedido.id_pedido }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 720px;">
+    <a href="{% url 'pedidos_detalle' pedido.id_pedido %}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Volver al pedido</a>
+    <h1 class="h3 fw-bold mt-2 mb-1">Asignar personal</h1>
+    <p class="text-muted mb-4">Pedido N° {{ pedido.id_pedido }} · {{ pedido.idUsuario.Apellido }}, {{ pedido.idUsuario.Nombre }} ·
+        {{ pedido.fecha_servicio|date:"d/m/Y" }} a las {{ pedido.hora_servicio|time:"H:i" }} · Vehículo {{ pedido.patente_vehiculo.patente }}</p>
+
+    <form method="post" class="card-panel bg-white p-4" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <p class="small text-muted">Solo aparece el personal activo que no tiene otra mudanza ese día.</p>
+
+        <div class="mb-4">
+            <label for="{{ form.chofer.id_for_label }}" class="form-label fw-semibold">{{ form.chofer.label }}</label>
+            {{ form.chofer }}
+            {% if sugerido %}<div class="form-text">Sugerido: {{ sugerido.Nombre }} {{ sugerido.Apellido }}, el chofer habitual del vehículo.</div>{% endif %}
+            {% if not form.fields.chofer.queryset %}<div class="form-text text-danger">No hay choferes libres ese día.</div>{% endif %}
+            {% if form.chofer.errors %}<div class="invalid-feedback d-block">{{ form.chofer.errors.as_text }}</div>{% endif %}
+        </div>
+
+        <div class="mb-4">
+            <p class="form-label fw-semibold mb-1">{{ form.ayudantes.label }} <span class="text-muted fw-normal small">(opcional, hasta {{ max_ayudantes }})</span></p>
+            {% for opcion in form.ayudantes %}
+            <div class="form-check">{{ opcion.tag }} <label class="form-check-label" for="{{ opcion.id_for_label }}">{{ opcion.choice_label }}</label></div>
+            {% empty %}
+            <p class="text-muted small mb-0">No hay ayudantes libres ese día.</p>
+            {% endfor %}
+            {% if form.ayudantes.errors %}<div class="invalid-feedback d-block">{{ form.ayudantes.errors.as_text }}</div>{% endif %}
+        </div>
+
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% url 'pedidos_detalle' pedido.id_pedido %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+            <button class="btn btn-success fw-bold px-4">Guardar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
