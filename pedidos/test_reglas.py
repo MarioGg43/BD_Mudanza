@@ -416,3 +416,23 @@ class AvisosTest(BaseReglas):
         Pedido.objects.filter(pk=p.pk).update(fecha_servicio=self.dia(-1))
         avisos = reglas.contar_avisos()
         self.assertEqual((avisos[reglas.VENCIDO], avisos[reglas.POR_CONFIRMAR]), (1, 0))
+
+
+class VehiculoPorDiaTest(BaseReglas):
+    def test_un_pendiente_vencido_no_ocupa_el_vehiculo(self):
+        p = self.registrar(fecha_servicio=self.dia(0), hora_servicio=(timezone.localtime() + timedelta(hours=1)).time()) \
+            if timezone.localtime().hour < 23 else None
+        if p is None:
+            self.skipTest('muy tarde para armar el caso en el mismo día')
+        self.assertNotIn('AD-321-JK', reglas.vehiculos_libres(self.dia(0)).values_list('patente', flat=True))
+        Pedido.objects.filter(pk=p.pk).update(hora_servicio=(timezone.localtime() - timedelta(minutes=1)).time())
+        if timezone.localtime().hour == 0 and timezone.localtime().minute == 0:
+            self.skipTest('cambio de día')
+        self.assertIn('AD-321-JK', reglas.vehiculos_libres(self.dia(0)).values_list('patente', flat=True))
+
+    def test_motivo_cuando_no_hay_vehiculos(self):
+        self.registrar()                               # ocupa AD-321-JK mañana
+        self.registrar(patente='AE-123-CD')            # y AE-123-CD
+        self.assertEqual(list(reglas.vehiculos_libres(self.dia())), [])
+        self.assertEqual(reglas.motivo_sin_vehiculos(self.dia()),
+                         'Los 2 vehículos disponibles ya tienen una mudanza ese día. Probá con otra fecha.')

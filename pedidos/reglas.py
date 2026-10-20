@@ -35,10 +35,22 @@ class ErrorPedido(Exception):
 
 
 def vehiculos_libres(fecha):
-    """Vehículos en estado Disponible que no tienen otro pedido activo ese día."""
+    """Vehículos en estado Disponible que no tienen otro pedido activo ese día.
+    Regla: un vehículo hace una sola mudanza por día (no se sabe cuánto dura cada una).
+    Un pendiente vencido no ocupa el vehículo: nadie lo confirmó y su hora ya pasó."""
     ocupados = Pedido.objects.filter(fecha_servicio=fecha, estado__in=Pedido.ACTIVOS) \
-                             .values('patente_vehiculo')
+                             .exclude(filtro_vencidos()).values('patente_vehiculo')
     return Vehiculo.objects.filter(estado='Disponible').exclude(patente__in=ocupados).order_by('patente')
+
+
+def motivo_sin_vehiculos(fecha):
+    """Por qué no hay vehículos libres ese día, para explicárselo al cliente."""
+    disponibles = Vehiculo.objects.filter(estado='Disponible').count()
+    if not disponibles:
+        return 'No hay vehículos disponibles: están en mantenimiento, en viaje o fuera de servicio.'
+    if disponibles == 1:
+        return 'El único vehículo disponible ya tiene una mudanza ese día. Probá con otra fecha.'
+    return f'Los {disponibles} vehículos disponibles ya tienen una mudanza ese día. Probá con otra fecha.'
 
 
 def _validar_fecha(fecha, errores):

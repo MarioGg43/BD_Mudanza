@@ -127,10 +127,11 @@ def vehiculos_libres(request):
         fecha = date.fromisoformat(request.GET.get('fecha', ''))
     except ValueError:
         return JsonResponse({'vehiculos': []})
-    return JsonResponse({'vehiculos': [
-        {'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
-         'capacidad_kg': float(v.capacidad_kg), 'capacidad_m3': float(v.capacidad_m3)}
-        for v in reglas.vehiculos_libres(fecha)]})
+    libres = [{'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
+               'capacidad_kg': float(v.capacidad_kg), 'capacidad_m3': float(v.capacidad_m3)}
+              for v in reglas.vehiculos_libres(fecha)]
+    return JsonResponse({'vehiculos': libres,
+                         'motivo': '' if libres else reglas.motivo_sin_vehiculos(fecha)})
 
 
 def _accion(request, id_pedido, funcion, hecho):

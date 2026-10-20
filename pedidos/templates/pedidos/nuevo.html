@@ -121,11 +121,11 @@
     if (!fecha.value) return;
     const elegido = select.value;
     const numero = ++ultimaPeticion;
-    let vehiculos;
+    let vehiculos, motivo;
     try {
       const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?fecha=" + encodeURIComponent(fecha.value));
       if (!r.ok) return;
-      ({ vehiculos } = await r.json());
+      ({ vehiculos, motivo } = await r.json());
     } catch (e) {
       return;
     }
@@ -138,6 +138,10 @@
       opciones.push(o);
     });
     select.replaceChildren(...opciones);
+    // Si no hay ninguno libre, se explica por qué (regla: un vehículo, una mudanza por día)
+    const ayuda = document.getElementById('ayudaVehiculo');
+    ayuda.textContent = motivo || 'Se muestran solo los vehículos libres en la fecha elegida.';
+    ayuda.classList.toggle('text-danger', Boolean(motivo));
   }
   fecha.addEventListener('change', cargarVehiculos);
   cargarVehiculos();
