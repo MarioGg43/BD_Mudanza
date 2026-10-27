@@ -182,9 +182,9 @@ modulos = [
     ('Disponibilidad', 'PEDIDOS · VEHICULOS · PERSONAL_PEDIDO', 'Vehículos y personal libres por día'),
     ('Estados del Pedido', 'PEDIDOS', 'Confirma, finaliza o anula con motivo'),
     ('Asignación de Personal', 'PERSONAL_PEDIDO', 'Asigna chofer y ayudantes a cada pedido'),
-    ('Consultas y Avisos', 'PEDIDOS', 'Filtros, vencidos, para finalizar, sin chofer'),
+    ('Consulta de Pedidos', 'PEDIDOS', 'Filtros y avisos: vencidos, para finalizar, sin chofer'),
     ('Agenda del Personal', 'PERSONAL_PEDIDO · PEDIDOS', 'Próximas mudanzas de cada empleado'),
-    ('Comprobantes y Reportes', 'PEDIDOS · DETALLE_PEDIDOS', 'Comprobante y listado de pedidos'),
+    ('Emisión de Documentos', 'PEDIDOS · DETALLE_PEDIDOS', 'Arma el comprobante y el listado de pedidos'),
 ]
 for k, (t, tablas, d) in enumerate(modulos):
     n3b.caja(f'm{k}', 60 + (k % 5) * 214, 370 + (k // 5) * 118, 198, 104, AZUL, t, tablas, d)
