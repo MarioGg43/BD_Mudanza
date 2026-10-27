@@ -90,12 +90,18 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <label for="buscarObjeto" class="form-label fw-semibold">¿Qué hay que llevar?</label>
+        <label for="buscarObjeto" class="form-label fw-semibold">¿Qué hay que llevar? Buscalo en la lista</label>
         <input type="text" class="form-control form-control-lg" id="buscarObjeto" maxlength="50" autocomplete="off"
-               placeholder="Escribí, por ejemplo: heladera, sillas, piano">
+               placeholder="Escribí para buscar: heladera, sillas…">
         <div class="mt-2 small" id="avisoBusqueda" aria-live="polite"></div>
         <p class="small text-muted mt-2 mb-1" id="tituloSugerencias">O tocá uno de la lista:</p>
         <div class="d-flex flex-wrap gap-2 mb-3" id="sugerencias"></div>
+        {# Solo con «Otro»: lo que no está en la lista se cuenta acá #}
+        <div class="mb-3 d-none" id="bloqueOtro">
+          <label for="queEsOtro" class="form-label fw-semibold">Elegiste «Otro»: ¿qué es? <span class="text-danger">(obligatorio)</span></label>
+          <input type="text" class="form-control" id="queEsOtro" maxlength="50" autocomplete="off" placeholder="Ej.: piano, cuna, acuario">
+          <div class="mt-2" id="avisoOtro"></div>
+        </div>
 
         <div class="row g-3 align-items-end">
           <div class="col-5">
@@ -167,8 +173,8 @@
 
   // ---------------------------------------------------------------- 3. Qué hay que llevar
   // Se aplican las mismas reglas que reglas._validar_items, pero mientras la persona escribe:
-  // lo que ya está en el catálogo se elige de ahí, lo nuevo va como «Otro» con su nombre en la
-  // observación, y un objeto no se repite en el pedido. El servidor lo vuelve a controlar igual.
+  // lo que ya está en el catálogo se elige de ahí, lo que no está va como «Otro» con su nombre en la
+  // observación (hay que elegir «Otro» a propósito), y un objeto no se repite en el pedido. El servidor lo vuelve a controlar igual.
   const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
   const OTRO = catalogo.find((o) => o.otro);
   const lista = catalogo.filter((o) => !o.otro);
@@ -217,6 +223,8 @@
     return b;
   }
 
+  const etiqueta = (it) => (it.nuevo ? 'Otro: ' : '') + it.nombre;  // «Otro: Piano»
+
   // Dibuja la lista visible y arma los campos del formset (inv-0-objeto, inv-0-cantidad, ...)
   function dibujar() {
     listaObjetos.replaceChildren();
@@ -228,9 +236,8 @@
       const texto = document.createElement('div');
       const nombre = document.createElement('span');
       nombre.className = 'fw-semibold';
-      nombre.textContent = it.cantidad + ' × ' + it.nombre;
+      nombre.textContent = it.cantidad + ' × ' + etiqueta(it);
       texto.append(nombre);
-      if (it.nuevo) texto.insertAdjacentHTML('beforeend', ' <span class="badge text-bg-secondary">nuevo</span>');
       if (it.fragil) texto.insertAdjacentHTML('beforeend', ' <span class="badge text-bg-warning">frágil</span>');
       if (it.detalle) {
         const d = document.createElement('div');
@@ -241,8 +248,8 @@
       const acciones = document.createElement('div');
       acciones.className = 'd-flex gap-2';
       acciones.append(
-        boton('Editar', 'bi-pencil', 'btn-outline-secondary', () => abrir(k), 'Editar ' + it.nombre),
-        boton('Quitar', 'bi-trash', 'btn-outline-danger', () => { items.splice(k, 1); dibujar(); }, 'Quitar ' + it.nombre));
+        boton('Editar', 'bi-pencil', 'btn-outline-secondary', () => abrir(k), 'Editar ' + etiqueta(it)),
+        boton('Quitar', 'bi-trash', 'btn-outline-danger', () => { items.splice(k, 1); dibujar(); }, 'Quitar ' + etiqueta(it)));
       li.append(texto, acciones);
       listaObjetos.append(li);
 
@@ -272,7 +279,8 @@
     const it = k >= 0 ? items[k] : null;
     document.getElementById('tituloModalObjeto').textContent = it ? 'Editar objeto' : 'Agregar objeto';
     guardar.textContent = it ? 'Guardar cambios' : 'Agregar a la lista';
-    buscar.value = it ? it.nombre : '';
+    buscar.value = it && !it.nuevo ? it.nombre : '';
+    queEs.value = it && it.nuevo ? it.nombre : '';
     seleccion = it ? { id: it.id, nombre: it.nombre, nuevo: it.nuevo } : null;
     cant.value = it ? it.cantidad : 1;
     fragil.checked = it ? it.fragil : false;
@@ -289,72 +297,85 @@
   }
   const esc = (t) => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
 
+  const bloqueOtro = document.getElementById('bloqueOtro');
+  const queEs = document.getElementById('queEsOtro');
+  const avisoOtro = document.getElementById('avisoOtro');
+  const conMayuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);  // «piano» se guarda como «Piano»
+
+  function elegir(o) {
+    buscar.value = o.nombre;
+    queEs.value = '';
+    seleccion = { id: o.id, nombre: o.nombre, nuevo: false };
+    buscando(false);
+  }
+  // Pasar a «Otro»: lo que se buscó y no estaba pasa a «¿qué es?»
+  function elegirOtro(texto) {
+    seleccion = { id: OTRO.id, nombre: conMayuscula(texto || ''), nuevo: true };
+    queEs.value = seleccion.nombre;
+    buscando(false);
+    queEs.focus();
+  }
+
   function chip(o, marcado) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'btn btn-sm rounded-pill ' + (marcado ? 'btn-success' : 'btn-outline-secondary');
     b.textContent = o.nombre;
-    b.addEventListener('click', () => {
-      buscar.value = o.nombre;
-      seleccion = { id: o.id, nombre: o.nombre, nuevo: false };
-      buscando(false);
-    });
+    b.addEventListener('click', () => elegir(o));
+    return b;
+  }
+  // «Otro» siempre está al final, y hay que elegirlo a propósito
+  function chipOtro(escrito) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const marcado = seleccion && seleccion.nuevo;
+    b.className = 'btn btn-sm rounded-pill ' + (marcado ? 'btn-success' : 'btn-outline-dark');
+    b.innerHTML = '<i class="bi bi-three-dots me-1"></i>';
+    b.append('Otro (no está en la lista)');
+    b.addEventListener('click', () => elegirOtro(escrito));
     return b;
   }
 
-  // Cada vez que cambia lo escrito: busca en el catálogo y avisa qué va a pasar
+  // Cada vez que cambia lo buscado: muestra lo que hay en la lista y avisa qué va a pasar
   function buscando(escribiendo) {
     const escrito = buscar.value.trim();
-    const texto = escrito.charAt(0).toUpperCase() + escrito.slice(1);  // «piano» se guarda como «Piano»
-    const q = clave(texto);
-    if (escribiendo) seleccion = null;
+    const q = clave(escrito);
+    if (escribiendo && !(seleccion && seleccion.nuevo)) seleccion = null;
     sugerencias.replaceChildren();
-    if (!q) {
-      seleccion = null;
-      ponerAviso('', '');
-      document.getElementById('tituloSugerencias').textContent = 'O tocá uno de la lista:';
-      lista.forEach((o) => sugerencias.append(chip(o, false)));
-      revisar();
-      return;
-    }
-    const exacto = lista.find((o) => o.clave === q);
-    const parecidos = lista.filter((o) => o !== exacto && (o.clave.startsWith(q) || o.clave.includes(q)))
+    const exacto = q ? lista.find((o) => o.clave === q) : null;
+    const parecidos = !q ? lista : lista.filter((o) => o !== exacto && o.clave.includes(q))
       .sort((a, b) => b.clave.startsWith(q) - a.clave.startsWith(q)).slice(0, 6);
-    if (exacto) {
+    if (exacto && !(seleccion && seleccion.nuevo)) {
       seleccion = { id: exacto.id, nombre: exacto.nombre, nuevo: false };
       ponerAviso(exacto.nombre === escrito ? 'success' : 'info', exacto.nombre === escrito
         ? '<i class="bi bi-check-circle-fill me-1"></i>«' + esc(exacto.nombre) + '» está en la lista.'
         : '<i class="bi bi-info-circle-fill me-1"></i>«' + esc(escrito) + '» ya está en la lista como <b>«'
           + esc(exacto.nombre) + '»</b>. Lo elegimos de ahí.');
     } else if (seleccion && seleccion.nuevo) {
-      ponerAviso('success', '<i class="bi bi-plus-circle-fill me-1"></i>Se va a agregar <b>«' + esc(texto) + '»</b> como objeto nuevo.');
-    } else if (parecidos.length) {
-      ponerAviso('warning', '<i class="bi bi-hand-index-thumb me-1"></i>¿Es alguno de estos? Tocalo. Si no, agregalo como nuevo.');
-    } else if (texto.length >= 2) {
-      seleccion = { id: OTRO.id, nombre: texto, nuevo: true };
-      ponerAviso('success', '<i class="bi bi-plus-circle-fill me-1"></i>«' + esc(texto) + '» no está en la lista: '
-        + 'se va a agregar como <b>objeto nuevo</b>.');
+      ponerAviso('', '');
+    } else if (q && !parecidos.length) {
+      ponerAviso('warning', '<i class="bi bi-exclamation-triangle-fill me-1"></i>«' + esc(escrito) + '» no está en la lista. '
+        + 'Revisá cómo lo escribiste o, si es otra cosa, elegí <b>«Otro»</b> y contá qué es.');
+    } else if (q) {
+      ponerAviso('', '<i class="bi bi-hand-index-thumb me-1"></i>¿Es alguno de estos? Tocalo.');
     } else {
       ponerAviso('', '');
     }
-    document.getElementById('tituloSugerencias').textContent = parecidos.length || exacto ? 'En la lista:' : '';
-    if (exacto) sugerencias.append(chip(exacto, true));
-    parecidos.forEach((o) => sugerencias.append(chip(o, false)));
-    if (!exacto && parecidos.length && texto.length >= 2) {
-      const nuevo = document.createElement('button');
-      nuevo.type = 'button';
-      nuevo.className = 'btn btn-sm rounded-pill ' + (seleccion && seleccion.nuevo ? 'btn-success' : 'btn-outline-success');
-      nuevo.innerHTML = '<i class="bi bi-plus me-1"></i>';
-      nuevo.append('Agregar «' + texto + '» como nuevo');
-      nuevo.addEventListener('click', () => {
-        seleccion = { id: OTRO.id, nombre: texto, nuevo: true };
-        buscando(false);
-      });
-      sugerencias.append(nuevo);
-    }
+    document.getElementById('tituloSugerencias').textContent = q ? 'En la lista:' : 'O tocá uno de la lista:';
+    if (exacto) sugerencias.append(chip(exacto, seleccion && !seleccion.nuevo && seleccion.id === exacto.id));
+    parecidos.forEach((o) => sugerencias.append(chip(o, seleccion && !seleccion.nuevo && seleccion.id === o.id)));
+    sugerencias.append(chipOtro(exacto ? '' : escrito));
+    bloqueOtro.classList.toggle('d-none', !(seleccion && seleccion.nuevo));
     revisar();
   }
-  buscar.addEventListener('input', () => buscando(true));
+  buscar.addEventListener('input', () => {
+    if (seleccion && seleccion.nuevo) seleccion = null;  // si vuelve a buscar, deja «Otro»
+    buscando(true);
+  });
+  queEs.addEventListener('input', () => {
+    if (seleccion && seleccion.nuevo) seleccion.nombre = conMayuscula(queEs.value.trim());
+    revisar();
+  });
 
   // La lista de controles: verde si está bien, rojo si hay que corregir algo, gris si falta
   function marcar(regla, estado, texto) {
@@ -367,14 +388,37 @@
   }
 
   function revisar() {
-    let ok = seleccion
-      ? marcar('objeto', 'ok', seleccion.nuevo ? 'Escribiste un objeto nuevo' : 'Elegiste un objeto de la lista')
-      : marcar('objeto', 'falta', 'Escribí o elegí qué hay que llevar');
+    let ok;
+    avisoOtro.replaceChildren();
+    if (!seleccion) {
+      ok = marcar('objeto', 'falta', 'Elegí qué hay que llevar de la lista (o «Otro»)');
+    } else if (!seleccion.nuevo) {
+      ok = marcar('objeto', 'ok', 'Elegiste «' + seleccion.nombre + '» de la lista');
+    } else {
+      // «Otro» no se usa para algo que ya está en la lista (la misma regla que en el servidor)
+      const enLista = lista.find((o) => o.clave === clave(seleccion.nombre));
+      if (clave(seleccion.nombre).length < 2) {
+        ok = marcar('objeto', 'falta', 'Elegiste «Otro»: contá qué es');
+      } else if (enLista) {
+        const escrito = queEs.value.trim() || seleccion.nombre;
+        ok = marcar('objeto', 'mal', escrito.toLowerCase() === enLista.nombre.toLowerCase()
+          ? '«' + enLista.nombre + '» ya está en la lista: elegilo de ahí, no hace falta «Otro».'
+          : '«' + escrito + '» ya está en la lista como «' + enLista.nombre + '»: elegilo de ahí.');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-sm btn-outline-success';
+        b.textContent = 'Elegir «' + enLista.nombre + '»';
+        b.addEventListener('click', () => elegir(enLista));
+        avisoOtro.append(b);
+      } else {
+        ok = marcar('objeto', 'ok', 'Otro: «' + seleccion.nombre + '»');
+      }
+    }
     if (seleccion) {
       const k = items.findIndex((i, n) => n !== editando && (seleccion.nuevo
         ? i.nuevo && clave(i.nombre) === clave(seleccion.nombre) : !i.nuevo && i.id === seleccion.id));
       ok = (k >= 0
-        ? marcar('repetido', 'mal', 'Ya agregaste ' + items[k].cantidad + ' × ' + items[k].nombre
+        ? marcar('repetido', 'mal', 'Ya agregaste ' + items[k].cantidad + ' × ' + etiqueta(items[k])
                                      + ': cambiá la cantidad desde la lista en vez de agregarlo de nuevo.')
         : marcar('repetido', 'ok', 'No está repetido en tu pedido')) && ok;
     } else {
