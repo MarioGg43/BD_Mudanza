@@ -69,7 +69,7 @@
     <div class="row g-3 mb-3">
         <div class="col-md-6"><div class="card-panel bg-white p-3 h-100">
             <h2 class="h6 fw-bold text-uppercase text-muted">Mudanza</h2>
-            <p class="mb-1"><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }} a las {{ pedido.hora_servicio|time:"H:i" }}</p>
+            <p class="mb-1"><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }}</p>
             <p class="mb-1"><strong>Desde:</strong> {{ pedido.origen }}</p>
             <p class="mb-1"><strong>Hasta:</strong> {{ pedido.destino }}</p>
             <p class="mb-0"><strong>Vehículo:</strong> {{ pedido.patente_vehiculo.patente }} · {{ pedido.patente_vehiculo.marca_modelo }}</p>

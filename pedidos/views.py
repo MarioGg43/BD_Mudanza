@@ -1,5 +1,5 @@
 """Pantallas del pedido de mudanza (Hito 3). Las reglas viven en reglas.py."""
-from datetime import date
+from datetime import date, time
 
 from django.contrib import messages
 from django.http import Http404, JsonResponse
@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from usuarios.models import Pedido, PersonalPedido
+from usuarios.models import Pedido, PersonalPedido, Servicio
 from usuarios.permisos import pantalla_inicio
 from usuarios.views import get_usuario_actual
 from . import reglas
@@ -128,16 +128,22 @@ def nuevo(request):
 @requiere_permiso('PED_REGISTRAR')
 @require_GET
 def vehiculos_libres(request):
-    """Para el formulario: los vehículos libres en la fecha elegida."""
+    """Para el formulario: los vehículos libres en el horario elegido (fecha, hora y la
+    duración del servicio principal)."""
     try:
         fecha = date.fromisoformat(request.GET.get('fecha', ''))
+        hora = time.fromisoformat(request.GET.get('hora', ''))
     except ValueError:
-        return JsonResponse({'vehiculos': []})
+        return JsonResponse({'vehiculos': [], 'motivo': ''})
+    servicio = Servicio.objects.filter(pk=request.GET.get('servicio') or None, Activo=True,
+                                       Categoria=Servicio.PRINCIPAL).first()
+    if not servicio:
+        return JsonResponse({'vehiculos': [], 'motivo': 'Elegí el servicio para ver los vehículos libres.'})
+    horas = servicio.Duracion_horas or reglas.MIN_HORAS
     libres = [{'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
                'capacidad_kg': float(v.capacidad_kg), 'capacidad_m3': float(v.capacidad_m3)}
-              for v in reglas.vehiculos_libres(fecha)]
-    return JsonResponse({'vehiculos': libres,
-                         'motivo': '' if libres else reglas.motivo_sin_vehiculos(fecha)})
+              for v in reglas.vehiculos_libres(reglas.inicio_de(fecha, hora), horas)]
+    return JsonResponse({'vehiculos': libres, 'motivo': '' if libres else reglas.motivo_sin_vehiculos()})
 
 
 def _accion(request, id_pedido, funcion, hecho):
@@ -176,7 +182,7 @@ def asignar(request, id_pedido):
     sugerido = None
     form = AsignarPersonalForm(request.POST or None, pedido=pedido, initial=dict(inicial))
     if not inicial['chofer']:
-        # se sugiere el chofer habitual del vehículo, si está libre ese día
+        # se sugiere el chofer habitual del vehículo, si está libre en ese horario
         habitual = pedido.patente_vehiculo.chofer_asignado
         if habitual and form.fields['chofer'].queryset.filter(pk=habitual.pk).exists():
             form.initial['chofer'] = habitual.pk

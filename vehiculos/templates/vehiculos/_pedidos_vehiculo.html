@@ -7,7 +7,7 @@
             {% for p in pedidos %}
             <tr>
                 <td class="fw-semibold">{{ p.id_pedido }}</td>
-                <td class="text-nowrap">{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }}</td>
+                <td class="text-nowrap">{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }} a {{ p.hasta }}</td>
                 <td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="small">{{ p.origen }} → {{ p.destino }}</td>

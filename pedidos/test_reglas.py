@@ -234,21 +234,60 @@ class RegistrarPedidoTest(BaseReglas):
 
 
 class VehiculosLibresTest(BaseReglas):
-    def patentes(self, fecha):
-        return set(reglas.vehiculos_libres(fecha).values_list('patente', flat=True))
+    """Un vehículo está ocupado solo si los horarios se superponen. La mudanza local dura
+    10 horas, el flete urbano 5 y la mudanza nacional 48 (init_data)."""
+
+    def patentes(self, fecha, hora=time(9, 0), horas=5):
+        return set(reglas.vehiculos_libres(reglas.inicio_de(fecha, hora), horas).values_list('patente', flat=True))
 
     def test_solo_los_disponibles(self):
         self.assertEqual(self.patentes(self.dia()), {'AD-321-JK', 'AE-123-CD'})
 
-    def test_un_pedido_activo_ocupa_el_vehiculo_ese_dia(self):
-        self.registrar()
-        self.assertEqual(self.patentes(self.dia()), {'AE-123-CD'})
-        self.assertEqual(self.patentes(self.dia(2)), {'AD-321-JK', 'AE-123-CD'})
+    def test_un_pedido_ocupa_el_vehiculo_solo_en_su_horario(self):
+        self.registrar()                                                        # mañana de 9 a 19
+        self.assertNotIn('AD-321-JK', self.patentes(self.dia(), time(10, 0)))
+        self.assertNotIn('AD-321-JK', self.patentes(self.dia(), time(6, 0)))    # de 6 a 11: se cruza
+        self.assertIn('AD-321-JK', self.patentes(self.dia(), time(19, 0)))      # empieza cuando termina
+        self.assertIn('AD-321-JK', self.patentes(self.dia(), time(4, 0)))       # termina cuando empieza
+        self.assertIn('AD-321-JK', self.patentes(self.dia(2)))
+
+    def test_dos_fletes_el_mismo_dia_con_el_mismo_vehiculo(self):
+        self.registrar(id_servicio=self.flete.id_servicio)                      # de 9 a 14
+        p = self.registrar(id_servicio=self.flete.id_servicio, hora_servicio=time(14, 0))
+        self.assertEqual(p.patente_vehiculo_id, 'AD-321-JK')
+        self.assertRechaza('vehiculo', 'Ese vehículo no está libre en ese horario. Elegí otro.',
+                           id_servicio=self.flete.id_servicio, hora_servicio=time(13, 0))
+
+    def test_una_mudanza_de_varios_dias_ocupa_todos_esos_dias(self):
+        nacional = Servicio.objects.get(Tipo_servicio='Mudanza nacional')
+        self.registrar(id_servicio=nacional.id_servicio)                        # 48 horas desde mañana a las 9
+        self.assertNotIn('AD-321-JK', self.patentes(self.dia(2), time(12, 0)))
+        self.assertIn('AD-321-JK', self.patentes(self.dia(3), time(9, 0)))
 
     def test_un_pedido_anulado_no_ocupa(self):
         p = self.registrar()
         Pedido.objects.filter(pk=p.pk).update(estado=Pedido.ANULADO)
         self.assertIn('AD-321-JK', self.patentes(self.dia()))
+
+
+class DuracionTest(BaseReglas):
+    def test_el_pedido_copia_la_duracion_del_servicio_principal(self):
+        p = self.registrar()
+        self.assertEqual(p.duracion_horas, 10)
+        Servicio.objects.filter(pk=self.local.pk).update(Duracion_horas=20)
+        p.refresh_from_db()
+        self.assertEqual(p.duracion_horas, 10)  # el pedido no cambia si después cambia el servicio
+
+    def test_fin_y_horario(self):
+        p = self.registrar(hora_servicio=time(8, 30))
+        self.assertEqual(p.fin - p.inicio, timedelta(hours=10))
+        self.assertEqual(p.horario, 'de 08:30 a 18:30 (aprox.)')
+        self.assertEqual(p.hasta, '18:30')
+        nacional = Servicio.objects.get(Tipo_servicio='Mudanza nacional')
+        q = self.registrar(id_servicio=nacional.id_servicio, patente='AE-123-CD')
+        fin = q.fecha_servicio + timedelta(days=2)
+        self.assertEqual(q.horario, f'desde las 09:00 hasta el {fin:%d/%m} a las 09:00 (aprox.)')
+        self.assertEqual(q.hasta, f'{fin:%d/%m} 09:00')
 
 
 class TransicionesTest(BaseReglas):
@@ -298,7 +337,7 @@ class TransicionesTest(BaseReglas):
         self.assertEqual(p.motivo_anulacion, 'El cliente suspendió la mudanza')
         self.assertEqual(p.usuario_anulacion, self.admin)
         self.assertIsNotNone(p.fecha_anulacion)
-        self.assertIn('AD-321-JK', reglas.vehiculos_libres(p.fecha_servicio).values_list('patente', flat=True))
+        self.assertIn('AD-321-JK', reglas.vehiculos_libres(p.inicio, p.duracion_horas).values_list('patente', flat=True))
         self.assertTrue(Pedido.objects.filter(pk=p.pk).exists())  # no se borra
 
     def test_motivo_invalido(self):
@@ -423,24 +462,28 @@ class AvisosTest(BaseReglas):
         self.assertEqual((avisos[reglas.VENCIDO], avisos[reglas.POR_CONFIRMAR]), (1, 0))
 
 
-class VehiculoPorDiaTest(BaseReglas):
+class VehiculoOcupadoTest(BaseReglas):
+    def libres(self, pedido):
+        return reglas.vehiculos_libres(pedido.inicio, pedido.duracion_horas).values_list('patente', flat=True)
+
     def test_un_pendiente_vencido_no_ocupa_el_vehiculo(self):
         p = self.registrar(fecha_servicio=self.dia(0), hora_servicio=(timezone.localtime() + timedelta(hours=1)).time()) \
             if timezone.localtime().hour < 23 else None
         if p is None:
             self.skipTest('muy tarde para armar el caso en el mismo día')
-        self.assertNotIn('AD-321-JK', reglas.vehiculos_libres(self.dia(0)).values_list('patente', flat=True))
+        self.assertNotIn('AD-321-JK', self.libres(p))
         Pedido.objects.filter(pk=p.pk).update(hora_servicio=(timezone.localtime() - timedelta(minutes=1)).time())
         if timezone.localtime().hour == 0 and timezone.localtime().minute == 0:
             self.skipTest('cambio de día')
-        self.assertIn('AD-321-JK', reglas.vehiculos_libres(self.dia(0)).values_list('patente', flat=True))
+        p.refresh_from_db()
+        self.assertIn('AD-321-JK', self.libres(p))
 
     def test_motivo_cuando_no_hay_vehiculos(self):
-        self.registrar()                               # ocupa AD-321-JK mañana
+        p = self.registrar()                           # ocupa AD-321-JK mañana
         self.registrar(patente='AE-123-CD')            # y AE-123-CD
-        self.assertEqual(list(reglas.vehiculos_libres(self.dia())), [])
-        self.assertEqual(reglas.motivo_sin_vehiculos(self.dia()),
-                         'Los 2 vehículos disponibles ya tienen una mudanza ese día. Probá con otra fecha.')
+        self.assertEqual(list(self.libres(p)), [])
+        self.assertEqual(reglas.motivo_sin_vehiculos(), 'Los 2 vehículos disponibles ya tienen una mudanza '
+                                                        'en ese horario. Probá con otra fecha u hora.')
 
 
 class AsignarPersonalTest(BaseReglas):
@@ -480,29 +523,31 @@ class AsignarPersonalTest(BaseReglas):
             reglas.asignar_personal(p.pk, None)
         self.assertEqual(ctx.exception.errores['chofer'], 'Elegí el chofer.')
 
-    def test_una_persona_una_mudanza_por_dia(self):
+    def test_una_persona_no_esta_en_dos_mudanzas_que_se_cruzan(self):
         uno = self.registrar()
         reglas.asignar_personal(uno.pk, self.chofer.pk, [self.ayudante.pk])
         dos = self.registrar(patente='AE-123-CD')
         with self.assertRaises(reglas.ErrorPedido) as ctx:
             reglas.asignar_personal(dos.pk, self.chofer.pk)
-        self.assertEqual(ctx.exception.errores['chofer'], 'Ese chofer no está libre ese día. Elegí otro.')
+        self.assertEqual(ctx.exception.errores['chofer'], 'Ese chofer no está libre en ese horario. Elegí otro.')
         with self.assertRaises(reglas.ErrorPedido) as ctx:
             reglas.asignar_personal(dos.pk, self.chofer2.pk, [self.ayudante.pk])
         self.assertIn('ayudantes', ctx.exception.errores)
         reglas.asignar_personal(dos.pk, self.chofer2.pk)  # con otro chofer sí
         otro_dia = self.registrar(fecha_servicio=self.dia(2))
         reglas.asignar_personal(otro_dia.pk, self.chofer.pk)  # y el mismo chofer otro día también
+        tarde = self.registrar(hora_servicio=time(19, 0))      # el mismo día, cuando termina la primera
+        reglas.asignar_personal(tarde.pk, self.chofer.pk, [self.ayudante.pk])
 
     def test_anular_libera_al_personal(self):
         uno = self.registrar()
         reglas.asignar_personal(uno.pk, self.chofer.pk)
         reglas.anular(uno.pk, self.admin, 'El cliente canceló')
-        self.assertIn(self.chofer, reglas.personal_libre(uno.fecha_servicio, reglas.ROL_CHOFER))
+        self.assertIn(self.chofer, reglas.personal_libre(uno, reglas.ROL_CHOFER))
 
     def test_un_chofer_dado_de_baja_no_se_ofrece(self):
         Usuario.objects.filter(pk=self.chofer2.pk).update(Activo=False)
-        self.assertNotIn(self.chofer2, reglas.personal_libre(self.dia(), reglas.ROL_CHOFER))
+        self.assertNotIn(self.chofer2, reglas.personal_libre(self.registrar(), reglas.ROL_CHOFER))
 
     def test_un_cliente_no_puede_ser_chofer(self):
         p = self.registrar()

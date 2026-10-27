@@ -79,7 +79,7 @@
 
     <h2>Mudanza</h2>
     <div class="datos">
-        <div><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }} a las {{ pedido.hora_servicio|time:"H:i" }}</div>
+        <div><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }}</div>
         <div><strong>Vehículo:</strong> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</div>
         <div><strong>Desde:</strong> {{ pedido.origen }}</div>
         <div><strong>Hasta:</strong> {{ pedido.destino }}</div>

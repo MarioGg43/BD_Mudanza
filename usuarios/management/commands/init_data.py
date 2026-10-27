@@ -91,16 +91,16 @@ class Command(BaseCommand):
         # 6. Servicios y sus materiales: los principales (uno por pedido) y los adicionales
         P, A = Servicio.PRINCIPAL, Servicio.ADICIONAL
         servicios_data = [
-            ('Mudanza local', P, 185000, 'Mantas, film y cintas'),
-            ('Mudanza nacional', P, 640000, 'Mantas, film, cintas y zunchos'),
-            ('Flete urbano', P, 75000, 'Correas y mantas'),
-            ('Embalaje', A, 0, 'Cajas, papel burbuja y cinta'),
-            ('Desarmado y armado de muebles', A, 0, 'Herramientas'),
-            ('Ayudante extra', A, 0, None),
+            ('Mudanza local', P, 185000, 10, 'Mantas, film y cintas'),
+            ('Mudanza nacional', P, 640000, 48, 'Mantas, film, cintas y zunchos'),
+            ('Flete urbano', P, 75000, 5, 'Correas y mantas'),
+            ('Embalaje', A, 0, None, 'Cajas, papel burbuja y cinta'),
+            ('Desarmado y armado de muebles', A, 0, None, 'Herramientas'),
+            ('Ayudante extra', A, 0, None, None),
         ]
-        for tipo, categoria, precio, materiales in servicios_data:
+        for tipo, categoria, precio, horas, materiales in servicios_data:
             serv, creado = Servicio.objects.get_or_create(
-                Tipo_servicio=tipo, defaults={'Precio_base': precio, 'Categoria': categoria})
+                Tipo_servicio=tipo, defaults={'Precio_base': precio, 'Categoria': categoria, 'Duracion_horas': horas})
             if creado:
                 if materiales:
                     RecursoAsignado.objects.create(idServicio=serv, Materiales=materiales)
@@ -114,7 +114,7 @@ class Command(BaseCommand):
             pedido = Pedido.objects.create(
                 patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=date(2026, 9, 15),
                 fecha_servicio=date(2026, 9, 20), hora_servicio=time(9, 0), origen='Av. Belgrano 1250, Salta',
-                destino='Los Ceibos 340, Cerrillos', estado=Pedido.FINALIZADO,
+                destino='Los Ceibos 340, Cerrillos', estado=Pedido.FINALIZADO, duracion_horas=servicio.Duracion_horas,
                 total=servicio.Precio_base)
             DetallePedido.objects.create(idPedido=pedido, idServicio=servicio,
                                          precio_unitario=servicio.Precio_base,

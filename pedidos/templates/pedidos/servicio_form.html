@@ -24,11 +24,11 @@
     </form>
 </div>
 <script>
-// Los adicionales no tienen precio: el campo se oculta cuando se elige esa categoría
+// Los adicionales no tienen precio ni duración: esos campos se ocultan cuando se elige esa categoría
 (function () {
   const categoria = document.querySelector('[name="Categoria"]');
-  const precio = document.getElementById('campo-Precio_base');
-  const mostrar = () => precio.classList.toggle('d-none', categoria.value === 'Adicional');
+  const campos = ['campo-Precio_base', 'campo-Duracion_horas'].map((id) => document.getElementById(id));
+  const mostrar = () => campos.forEach((c) => c.classList.toggle('d-none', categoria.value === 'Adicional'));
   categoria.addEventListener('change', mostrar);
   mostrar();
 })();

@@ -6,7 +6,7 @@ escribe corre en una transacción: o se guarda todo, o no se guarda nada.
 """
 import re
 import unicodedata
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 
 from django.db import transaction
 from django.db.models import Q
@@ -37,23 +37,45 @@ class ErrorPedido(Exception):
         super().__init__(' '.join(errores.values()))
 
 
-def vehiculos_libres(fecha):
-    """Vehículos en estado Disponible que no tienen otro pedido activo ese día.
-    Regla: un vehículo hace una sola mudanza por día (no se sabe cuánto dura cada una).
-    Un pendiente vencido no ocupa el vehículo: nadie lo confirmó y su hora ya pasó."""
-    ocupados = Pedido.objects.filter(fecha_servicio=fecha, estado__in=Pedido.ACTIVOS) \
-                             .exclude(filtro_vencidos()).values('patente_vehiculo')
+# Duración estimada de un servicio principal, en horas (de 5 horas a 5 días)
+MIN_HORAS, MAX_HORAS = 5, 120
+
+
+def inicio_de(fecha, hora):
+    """Fecha y hora de inicio con zona horaria, igual que Pedido.inicio."""
+    return timezone.make_aware(datetime.combine(fecha, hora))
+
+
+def pedidos_que_se_cruzan(inicio, horas, excluir=None):
+    """Pedidos activos cuyo horario se superpone con [inicio, inicio + horas).
+    Uno que termina justo cuando empieza el otro no se cruza. Un pendiente vencido no
+    ocupa nada: nadie lo confirmó y su hora ya pasó."""
+    fin = inicio + timedelta(hours=horas)
+    # Solo pueden cruzarse los que empiezan entre MAX_HORAS antes y el fin del nuevo
+    desde = timezone.localtime(inicio - timedelta(hours=MAX_HORAS)).date()
+    hasta = timezone.localtime(fin).date()
+    cerca = Pedido.objects.filter(estado__in=Pedido.ACTIVOS, fecha_servicio__range=(desde, hasta)) \
+                          .exclude(filtro_vencidos())
+    if excluir is not None:
+        cerca = cerca.exclude(pk=excluir.pk)
+    return [p for p in cerca if p.inicio < fin and p.fin > inicio]
+
+
+def vehiculos_libres(inicio, horas, pedido=None):
+    """Vehículos en estado Disponible sin otra mudanza que se superponga en ese horario."""
+    ocupados = {p.patente_vehiculo_id for p in pedidos_que_se_cruzan(inicio, horas, pedido)}
     return Vehiculo.objects.filter(estado='Disponible').exclude(patente__in=ocupados).order_by('patente')
 
 
-def motivo_sin_vehiculos(fecha):
-    """Por qué no hay vehículos libres ese día, para explicárselo al cliente."""
+def motivo_sin_vehiculos():
+    """Por qué no hay vehículos libres en ese horario, para explicárselo al cliente."""
     disponibles = Vehiculo.objects.filter(estado='Disponible').count()
     if not disponibles:
         return 'No hay vehículos disponibles: están en mantenimiento, en viaje o fuera de servicio.'
     if disponibles == 1:
-        return 'El único vehículo disponible ya tiene una mudanza ese día. Probá con otra fecha.'
-    return f'Los {disponibles} vehículos disponibles ya tienen una mudanza ese día. Probá con otra fecha.'
+        return 'El único vehículo disponible ya tiene una mudanza en ese horario. Probá con otra fecha u hora.'
+    return (f'Los {disponibles} vehículos disponibles ya tienen una mudanza en ese horario. '
+            'Probá con otra fecha u hora.')
 
 
 def _validar_fecha(fecha, errores):
@@ -175,18 +197,20 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
         raise ErrorPedido(errores)
 
     with transaction.atomic():
-        # Bloquea el vehículo: si dos clientes lo eligen para el mismo día, el segundo espera
-        # a que el primero termine y después lo encuentra ocupado.
+        # Bloquea el vehículo: si dos clientes lo eligen para horarios que se cruzan, el segundo
+        # espera a que el primero termine y después lo encuentra ocupado.
         # Este bloqueo depende de que la función abra su propia transacción y no haya leído nada
         # antes dentro de ella: quien la llame no debe envolverla en un atomic() externo que lea primero.
+        horas = principal.Duracion_horas or MIN_HORAS
         vehiculo = Vehiculo.objects.select_for_update().filter(patente=patente).first()
-        if not vehiculo or not vehiculos_libres(fecha_servicio).filter(patente=patente).exists():
-            raise ErrorPedido({'vehiculo': 'Ese vehículo no está libre para esa fecha. Elegí otro.'})
+        libres = vehiculos_libres(inicio_de(fecha_servicio, hora_servicio), horas)
+        if not vehiculo or not libres.filter(patente=patente).exists():
+            raise ErrorPedido({'vehiculo': 'Ese vehículo no está libre en ese horario. Elegí otro.'})
 
         pedido = Pedido.objects.create(
             patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=timezone.localdate(),
-            fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, origen=origen, destino=destino,
-            estado=Pedido.PENDIENTE, total=principal.Precio_base)
+            fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, duracion_horas=horas,
+            origen=origen, destino=destino, estado=Pedido.PENDIENTE, total=principal.Precio_base)
         # Una fila por servicio. El principal guarda el precio del día (si después cambia, el
         # pedido no cambia); los adicionales van en 0 porque no tienen precio.
         DetallePedido.objects.bulk_create(
@@ -300,7 +324,7 @@ def finalizar(id_pedido):
 
 def anular(id_pedido, usuario, motivo):
     """Anula sin borrar: guarda fecha, motivo y usuario. Como un pedido anulado ya no
-    cuenta como activo, el vehículo vuelve a estar libre ese día."""
+    cuenta como activo, el vehículo vuelve a estar libre en ese horario."""
     motivo = (motivo or '').strip()
     if not 5 <= len(motivo) <= 200:
         raise ErrorPedido({'motivo': 'El motivo tiene que tener entre 5 y 200 caracteres.'})
@@ -340,15 +364,13 @@ ROL_CHOFER, ROL_AYUDANTE = 'Chofer', 'Ayudante de Carga'
 MAX_AYUDANTES = 6
 
 
-def personal_libre(fecha, rol, pedido=None):
-    """Empleados activos de ese rol sin otra mudanza ese día (una persona, una mudanza por día,
-    igual que los vehículos). Los del propio pedido cuentan como libres para poder editarlo."""
-    ocupados = PersonalPedido.objects.filter(idPedido__fecha_servicio=fecha, idPedido__estado__in=Pedido.ACTIVOS) \
-                                     .exclude(idPedido__in=Pedido.objects.filter(filtro_vencidos()))
-    if pedido is not None:
-        ocupados = ocupados.exclude(idPedido=pedido)
+def personal_libre(pedido, rol):
+    """Empleados activos de ese rol sin otra mudanza que se superponga con el horario del pedido
+    (igual que los vehículos). Los del propio pedido cuentan como libres para poder editarlo."""
+    cruzados = pedidos_que_se_cruzan(pedido.inicio, pedido.duracion_horas, excluir=pedido)
+    ocupados = PersonalPedido.objects.filter(idPedido__in=[p.pk for p in cruzados]).values('idUsuario')
     return (Usuario.objects.filter(Activo=True, idRol__nom_rol=rol)
-            .exclude(pk__in=ocupados.values('idUsuario')).order_by('Apellido', 'Nombre'))
+            .exclude(pk__in=ocupados).order_by('Apellido', 'Nombre'))
 
 
 def asignar_personal(id_pedido, id_chofer, ids_ayudantes=()):
@@ -364,18 +386,18 @@ def asignar_personal(id_pedido, id_chofer, ids_ayudantes=()):
         # bloquea a las personas elegidas: si dos pedidos del mismo día las piden a la vez, el segundo espera
         list(Usuario.objects.select_for_update().filter(pk__in=[i for i in [id_chofer, *ids] if i]))
         errores = {}
-        chofer = personal_libre(pedido.fecha_servicio, ROL_CHOFER, pedido).filter(pk=id_chofer).first() \
+        chofer = personal_libre(pedido, ROL_CHOFER).filter(pk=id_chofer).first() \
             if id_chofer else None
         if not id_chofer:
             errores['chofer'] = 'Elegí el chofer.'
         elif chofer is None:
-            errores['chofer'] = 'Ese chofer no está libre ese día. Elegí otro.'
+            errores['chofer'] = 'Ese chofer no está libre en ese horario. Elegí otro.'
         if len(ids) > MAX_AYUDANTES:
             errores['ayudantes'] = f'Se pueden asignar hasta {MAX_AYUDANTES} ayudantes.'
         else:
-            ayudantes = list(personal_libre(pedido.fecha_servicio, ROL_AYUDANTE, pedido).filter(pk__in=ids))
+            ayudantes = list(personal_libre(pedido, ROL_AYUDANTE).filter(pk__in=ids))
             if len(ayudantes) != len(ids):
-                errores['ayudantes'] = 'Alguno de los ayudantes no está libre ese día.'
+                errores['ayudantes'] = 'Alguno de los ayudantes no está libre en ese horario.'
         if errores:
             raise ErrorPedido(errores)
         pedido.personal.all().delete()

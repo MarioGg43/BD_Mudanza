@@ -68,7 +68,8 @@
         <div class="col-md-4">
             <div class="card-panel p-4 h-100 d-flex flex-column">
                 <h3 class="h6 fw-bold mb-1">{{ s.Tipo_servicio }}</h3>
-                <p class="h4 fw-bold text-marca mb-3">${{ s.Precio_base|floatformat:"0g" }}</p>
+                <p class="h4 fw-bold text-marca mb-1">${{ s.Precio_base|floatformat:"0g" }}</p>
+                <p class="small text-muted mb-3"><i class="bi bi-clock me-1"></i>Duración estimada: {{ s.Duracion_horas }} horas</p>
                 {% with materiales=s.recursos.all %}
                 {% if materiales %}
                 <p class="text-muted small mb-0">Incluye: {% for r in materiales %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>

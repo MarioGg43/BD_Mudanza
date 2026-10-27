@@ -3,7 +3,7 @@
 {% block content %}
 <div class="mx-auto" style="max-width: 600px;">
     <h1 class="h3 fw-bold mb-1">Anular pedido N° {{ pedido.id_pedido }}</h1>
-    <p class="text-muted mb-4">El pedido no se borra: queda «Anulado» con la fecha, el motivo y tu usuario, y el vehículo vuelve a estar libre ese día.</p>
+    <p class="text-muted mb-4">El pedido no se borra: queda «Anulado» con la fecha, el motivo y tu usuario, y el vehículo vuelve a estar libre en ese horario.</p>
     <form method="post" class="card-panel bg-white p-4" novalidate>
         {% csrf_token %}
         <label for="{{ form.motivo.id_for_label }}" class="form-label fw-semibold">{{ form.motivo.label }}</label>

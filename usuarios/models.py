@@ -7,7 +7,7 @@ obligatorio, fecha de baja y de última modificación) se suman a USUARIOS.
 from django.db import models
 from django.utils import timezone
 import hashlib
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 
 class Permiso(models.Model):
@@ -166,6 +166,9 @@ class Servicio(models.Model):
     Precio_base = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Precio base')
     Categoria = models.CharField(max_length=10, choices=CATEGORIAS, default=PRINCIPAL,
                                  db_column='Categoria', verbose_name='Categoría')
+    # Cuánto ocupa el vehículo y el personal. Solo los principales; los adicionales no suman tiempo.
+    Duracion_horas = models.PositiveSmallIntegerField(blank=True, null=True, db_column='Duracion_horas',
+                                                      verbose_name='Duración estimada (horas)')
     Activo = models.BooleanField(default=True, db_column='Activo', verbose_name='Activo')
 
     class Meta:
@@ -208,7 +211,10 @@ class Pedido(models.Model):
     fecha_servicio = models.DateField(default=timezone.localdate, db_column='Fecha_servicio',
                                       verbose_name='Fecha de la mudanza')
     hora_servicio = models.TimeField(default=time(9, 0), db_column='Hora_servicio', verbose_name='Hora de inicio')
-    origen = models.CharField(max_length=200, default='', db_column='Direccion_origen', verbose_name='Desde')
+    # Copia de la duración del servicio principal al pedir: si el servicio cambia, el pedido no
+    duracion_horas = models.PositiveSmallIntegerField(default=5, db_column='Duracion_horas',
+                                                      verbose_name='Duración estimada (horas)')
+    origen =models.CharField(max_length=200, default='', db_column='Direccion_origen', verbose_name='Desde')
     destino = models.CharField(max_length=200, default='', db_column='Direccion_destino', verbose_name='Hasta')
     estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE, db_column='Estado_pedido')
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Total_pedido')
@@ -230,6 +236,25 @@ class Pedido(models.Model):
     def inicio(self):
         """Fecha y hora en que empieza la mudanza (con zona horaria)."""
         return timezone.make_aware(datetime.combine(self.fecha_servicio, self.hora_servicio))
+
+    @property
+    def fin(self):
+        """Hasta cuándo ocupa el vehículo y el personal (estimado)."""
+        return self.inicio + timedelta(hours=self.duracion_horas)
+
+    @property
+    def hasta(self):
+        """El fin para mostrar al lado del inicio: solo la hora si termina el mismo día."""
+        ini, fin = timezone.localtime(self.inicio), timezone.localtime(self.fin)
+        return f'{fin:%H:%M}' if fin.date() == ini.date() else f'{fin:%d/%m} {fin:%H:%M}'
+
+    @property
+    def horario(self):
+        """Ej.: «de 09:00 a 14:00 (aprox.)» o «desde las 08:00 hasta el 23/10 a las 08:00 (aprox.)»."""
+        ini, fin = timezone.localtime(self.inicio), timezone.localtime(self.fin)
+        if fin.date() == ini.date():
+            return f'de {ini:%H:%M} a {fin:%H:%M} (aprox.)'
+        return f'desde las {ini:%H:%M} hasta el {fin:%d/%m} a las {fin:%H:%M} (aprox.)'
 
     @property
     def ya_empezo(self):

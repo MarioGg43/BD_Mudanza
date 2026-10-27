@@ -136,7 +136,7 @@ class RegistrarPantallaTest(BaseVistas):
         self.assertEqual(p.inventario.count(), 2)
         detalle = self.client.get(r.url)
         self.assertContains(detalle, f'Pedido N° {p.pk} registrado')
-        self.assertContains(detalle, 'a las 10:15')
+        self.assertContains(detalle, 'de 10:15 a 20:15 (aprox.)')
         self.assertContains(self.client.get('/pedidos/'), '10:15')
 
     def test_el_formulario_ofrece_un_servicio_y_la_lista_de_objetos(self):
@@ -214,13 +214,23 @@ class RegistrarPantallaTest(BaseVistas):
 
     def test_vehiculos_libres_en_json(self):
         self.entrar(CLIENTE)
-        self.pedido_de(self.otro)  # ocupa AD-321-JK mañana
+        self.pedido_de(self.otro)  # ocupa AD-321-JK mañana de 9 a 19 (mudanza local)
         manana = (timezone.localdate() + timedelta(days=1)).isoformat()
-        r = self.client.get('/pedidos/vehiculos-libres/', {'fecha': manana}).json()
+        flete = Servicio.objects.get(Tipo_servicio='Flete urbano').pk
+
+        def libres(hora):
+            r = self.client.get('/pedidos/vehiculos-libres/', {'fecha': manana, 'hora': hora, 'servicio': flete})
+            return r.json()
+
+        r = libres('10:00')
         self.assertEqual([v['patente'] for v in r['vehiculos']], ['AE-123-CD'])
         self.assertEqual(r['vehiculos'][0]['capacidad_kg'], 5000.0)
         self.assertIn('capacidad_m3', r['vehiculos'][0])
-        self.assertEqual(self.client.get('/pedidos/vehiculos-libres/', {'fecha': 'mal'}).json(), {'vehiculos': []})
+        self.assertEqual([v['patente'] for v in libres('19:00')['vehiculos']], ['AD-321-JK', 'AE-123-CD'])
+        self.assertEqual(self.client.get('/pedidos/vehiculos-libres/', {'fecha': 'mal'}).json(),
+                         {'vehiculos': [], 'motivo': ''})
+        sin_servicio = self.client.get('/pedidos/vehiculos-libres/', {'fecha': manana, 'hora': '10:00'}).json()
+        self.assertEqual(sin_servicio['motivo'], 'Elegí el servicio para ver los vehículos libres.')
 
 
 class AccionesTest(BaseVistas):
@@ -309,7 +319,7 @@ class ComprobanteTest(BaseVistas):
         self.assertContains(r, f'Pedido N° {self.p.pk}')
         self.assertContains(r, 'Mudanza local')
         self.assertContains(r, '185.000,00')
-        self.assertContains(r, 'a las 09:00')
+        self.assertContains(r, 'de 09:00 a 19:00 (aprox.)')
         self.assertNotContains(r, 'Peso total')
         self.assertContains(r, 'window.print()')
 
@@ -521,7 +531,7 @@ class AsignarPantallaTest(BaseVistas):
         reglas.asignar_personal(otro.pk, self.chofer.pk)
         r = self.client.get(f'/pedidos/{self.p.pk}/asignar/')
         self.assertNotIn(self.chofer, r.context['form'].fields['chofer'].queryset)
-        self.assertContains(r, 'No hay choferes libres ese día')
+        self.assertContains(r, 'No hay choferes libres en ese horario')
 
     def test_sugiere_el_chofer_del_vehiculo(self):
         from usuarios.models import Vehiculo

@@ -27,9 +27,9 @@
             {% for s in servicios %}
             <div class="form-check">
                 <input class="form-check-input servicio" type="radio" name="servicio" value="{{ s.id_servicio }}"
-                       id="srv{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}"
+                       id="srv{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}" data-horas="{{ s.Duracion_horas|default:5 }}"
                        {% if s.id_servicio|stringformat:'s' == elegido %}checked{% endif %}>
-                <label class="form-check-label" for="srv{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }}</label>
+                <label class="form-check-label" for="srv{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }} <span class="text-muted small">· unas {{ s.Duracion_horas|default:5 }} h</span></label>
             </div>
             {% endfor %}
             {% if form.servicio.errors %}<div class="invalid-feedback d-block">{{ form.servicio.errors.as_text }}</div>{% endif %}
@@ -49,6 +49,7 @@
             </div>
             {% endif %}
             <p class="fw-bold mt-3 mb-0">Total: $<span id="total">0</span></p>
+            <p class="text-muted small mb-0" id="duracion"></p>
         </div>
 
         <div class="card-panel bg-white p-4 mb-3">
@@ -67,7 +68,7 @@
             <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-truck me-1"></i>4. Vehículo</h2>
             <label for="{{ form.vehiculo.id_for_label }}" class="form-label fw-semibold">{{ form.vehiculo.label }}</label>
             {{ form.vehiculo }}
-            <div class="form-text" id="ayudaVehiculo">Se muestran solo los vehículos libres en la fecha elegida.</div>
+            <div class="form-text" id="ayudaVehiculo">Se muestran solo los vehículos libres en el horario elegido.</div>
             {% if form.vehiculo.errors %}<div class="invalid-feedback d-block">{{ form.vehiculo.errors.as_text }}</div>{% endif %}
         </div>
 
@@ -90,6 +91,26 @@
     const elegido = form.querySelector('.servicio:checked');
     if (bloqueAdicionales && elegido) bloqueAdicionales.classList.remove('d-none');
     document.getElementById('total').textContent = fmt(elegido ? parseFloat(elegido.dataset.precio) : 0);
+    mostrarDuracion();
+  }
+
+  // Cuánto dura el servicio elegido y a qué hora termina más o menos
+  function mostrarDuracion() {
+    const elegido = form.querySelector('.servicio:checked');
+    const hora = form.querySelector('[name="hora_servicio"]').value;
+    const caja = document.getElementById('duracion');
+    if (!elegido) { caja.textContent = ''; return; }
+    const horas = parseInt(elegido.dataset.horas, 10);
+    let texto = 'Duración estimada: ' + horas + ' horas';
+    if (hora) {
+      const [h, m] = hora.split(':').map(Number);
+      const total = h * 60 + m + horas * 60;
+      const dias = Math.floor(total / 1440);
+      const fin = String(Math.floor((total % 1440) / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+      const cuando = dias === 0 ? '' : dias === 1 ? ' del día siguiente' : ', ' + dias + ' días después';
+      texto += ' (termina aprox. a las ' + fin + cuando + ')';
+    }
+    caja.textContent = texto + '.';
   }
 
   const totalForms = form.querySelector('[name="inv-TOTAL_FORMS"]');
@@ -113,24 +134,27 @@
   form.addEventListener('input', recalcular);
   form.addEventListener('change', recalcular);
 
-  // Al cambiar la fecha se piden los vehículos libres ese día
+  // Al cambiar la fecha, la hora o el servicio se piden los vehículos libres en ese horario
   const fecha = form.querySelector('[name="fecha_servicio"]');
+  const horaInicio = form.querySelector('[name="hora_servicio"]');
   const select = form.querySelector('[name="vehiculo"]');
   let ultimaPeticion = 0;
   async function cargarVehiculos() {
-    if (!fecha.value) return;
+    const servicio = form.querySelector('.servicio:checked');
+    if (!fecha.value || !horaInicio.value || !servicio) return;
     const elegido = select.value;
     const numero = ++ultimaPeticion;
     let vehiculos, motivo;
     try {
-      const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?fecha=" + encodeURIComponent(fecha.value));
+      const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?" + new URLSearchParams(
+        { fecha: fecha.value, hora: horaInicio.value, servicio: servicio.value }));
       if (!r.ok) return;
       ({ vehiculos, motivo } = await r.json());
     } catch (e) {
       return;
     }
     if (numero !== ultimaPeticion) return;
-    const opciones = [new Option(vehiculos.length ? 'Elegí un vehículo' : 'No hay vehículos libres ese día', '')];
+    const opciones = [new Option(vehiculos.length ? 'Elegí un vehículo' : 'No hay vehículos libres en ese horario', '')];
     vehiculos.forEach((v) => {
       const o = new Option(v.patente + ' · ' + v.descripcion + ' · hasta ' + fmt(v.capacidad_kg) + ' kg / '
                            + fmt(v.capacidad_m3) + ' m³', v.patente);
@@ -138,12 +162,14 @@
       opciones.push(o);
     });
     select.replaceChildren(...opciones);
-    // Si no hay ninguno libre, se explica por qué (regla: un vehículo, una mudanza por día)
+    // Si no hay ninguno libre, se explica por qué (regla: dos mudanzas de un vehículo no se superponen)
     const ayuda = document.getElementById('ayudaVehiculo');
-    ayuda.textContent = motivo || 'Se muestran solo los vehículos libres en la fecha elegida.';
+    ayuda.textContent = motivo || 'Se muestran solo los vehículos libres en el horario elegido.';
     ayuda.classList.toggle('text-danger', Boolean(motivo));
   }
   fecha.addEventListener('change', cargarVehiculos);
+  horaInicio.addEventListener('change', cargarVehiculos);
+  form.querySelectorAll('.servicio').forEach((r) => r.addEventListener('change', cargarVehiculos));
   cargarVehiculos();
   recalcular();
 })();

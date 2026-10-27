@@ -82,7 +82,7 @@ class PedidoForm(forms.Form):
     adicionales = forms.ModelMultipleChoiceField(queryset=Servicio.objects.none(), required=False,
                                                  label='Adicionales', widget=forms.CheckboxSelectMultiple)
     vehiculo = VehiculoField(queryset=Vehiculo.objects.none(), label='Vehículo',
-                             empty_label='Elegí primero la fecha')
+                             empty_label='Elegí primero la fecha, la hora y el servicio')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -179,10 +179,12 @@ class ServicioForm(forms.ModelForm):
 
     class Meta:
         model = Servicio
-        fields = ['Tipo_servicio', 'Categoria', 'Precio_base', 'Activo']
+        fields = ['Tipo_servicio', 'Categoria', 'Precio_base', 'Duracion_horas', 'Activo']
         labels = {'Tipo_servicio': 'Tipo de servicio', 'Precio_base': 'Precio base ($)'}
         help_texts = {'Categoria': 'El cliente elige un principal por pedido y, si quiere, le suma adicionales. '
-                                   'Los adicionales no tienen precio.'}
+                                   'Los adicionales no tienen precio.',
+                      'Duracion_horas': f'Cuánto ocupa el vehículo y el personal: de {reglas.MIN_HORAS} horas '
+                                        f'a {reglas.MAX_HORAS} (5 días). Un día de trabajo son unas 10.'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -190,16 +192,26 @@ class ServicioForm(forms.ModelForm):
             self.fields['materiales'].initial = ', '.join(
                 self.instance.recursos.values_list('Materiales', flat=True))
         self.fields['Precio_base'].required = False  # lo exige clean() solo para los principales
+        self.fields['Duracion_horas'].widget.attrs.update(min=reglas.MIN_HORAS, max=reglas.MAX_HORAS)
         con_bootstrap(self)
         self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
 
     def clean(self):
         d = super().clean()
         if d.get('Categoria') == Servicio.ADICIONAL:
-            d['Precio_base'] = 0  # los adicionales no tienen precio
+            d['Precio_base'] = 0  # los adicionales no tienen precio ni duración propia
+            d['Duracion_horas'] = None
             self.errors.pop('Precio_base', None)
-        elif d.get('Categoria') == Servicio.PRINCIPAL and not (d.get('Precio_base') or 0) > 0:
-            self.add_error('Precio_base', 'El precio tiene que ser mayor a 0.')
+            self.errors.pop('Duracion_horas', None)
+        elif d.get('Categoria') == Servicio.PRINCIPAL:
+            if not (d.get('Precio_base') or 0) > 0:
+                self.add_error('Precio_base', 'El precio tiene que ser mayor a 0.')
+            horas = d.get('Duracion_horas')
+            if horas is None:
+                self.add_error('Duracion_horas', 'Indicá cuántas horas dura el servicio.')
+            elif not reglas.MIN_HORAS <= horas <= reglas.MAX_HORAS:
+                self.add_error('Duracion_horas', f'La duración tiene que ser de {reglas.MIN_HORAS} '
+                                                 f'a {reglas.MAX_HORAS} horas.')
         return d
 
     def clean_materiales(self):
@@ -254,13 +266,13 @@ class PersonasField(forms.ModelMultipleChoiceField):
 
 
 class AsignarPersonalForm(forms.Form):
-    """Solo ofrece al personal libre ese día; las reglas se vuelven a controlar en reglas.py."""
+    """Solo ofrece al personal libre en el horario del pedido; las reglas se vuelven a controlar en reglas.py."""
     chofer = PersonaField(queryset=Usuario.objects.none(), label='Chofer', empty_label='Elegí el chofer')
     ayudantes = PersonasField(queryset=Usuario.objects.none(), required=False, label='Ayudantes de carga',
                               widget=forms.CheckboxSelectMultiple)
 
     def __init__(self, *args, pedido, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['chofer'].queryset = reglas.personal_libre(pedido.fecha_servicio, reglas.ROL_CHOFER, pedido)
-        self.fields['ayudantes'].queryset = reglas.personal_libre(pedido.fecha_servicio, reglas.ROL_AYUDANTE, pedido)
+        self.fields['chofer'].queryset = reglas.personal_libre(pedido, reglas.ROL_CHOFER)
+        self.fields['ayudantes'].queryset = reglas.personal_libre(pedido, reglas.ROL_AYUDANTE)
         con_bootstrap(self)

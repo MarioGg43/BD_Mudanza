@@ -11,7 +11,7 @@
 <h2>Cliente</h2>
 <p>{{ pedido.idUsuario.Apellido }}, {{ pedido.idUsuario.Nombre }} · DNI {{ pedido.idUsuario.DNI }} · {{ pedido.idUsuario.Correo }}{% if pedido.idUsuario.Telefono %} · {{ pedido.idUsuario.Telefono }}{% endif %}</p>
 <h2>Mudanza</h2>
-<p><b>Fecha:</b> {{ pedido.fecha_servicio|date:"d/m/Y" }} a las {{ pedido.hora_servicio|time:"H:i" }}<br>
+<p><b>Fecha:</b> {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }}<br>
 <b>Desde:</b> {{ pedido.origen }}<br><b>Hasta:</b> {{ pedido.destino }}<br>
 <b>Vehículo:</b> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</p>
 <h2>Servicios</h2>

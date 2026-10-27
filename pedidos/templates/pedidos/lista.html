@@ -70,7 +70,7 @@
             <tr>
                 <td class="fw-bold">{{ p.id_pedido }}</td>
                 <td>{{ p.Fecha_pedido|date:"d/m/Y" }}</td>
-                <td>{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }}</td>
+                <td>{{ p.fecha_servicio|date:"d/m/Y" }} {{ p.hora_servicio|time:"H:i" }} a {{ p.hasta }}</td>
                 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="text-end">${{ p.total|floatformat:"2g" }}</td>

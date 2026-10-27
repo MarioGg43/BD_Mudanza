@@ -55,9 +55,9 @@ class ServiciosTest(TestCase):
         self.entrar(ADMIN)
         s = Servicio.objects.get(Tipo_servicio='Flete urbano')
         self.client.post(f'/servicios/{s.pk}/editar/', {'Tipo_servicio': 'Flete urbano', 'Categoria': 'Principal', 'Precio_base': '80000',
-                                                        'Activo': 'on', 'materiales': 'Correas'})
+                                                        'Duracion_horas': '6', 'Activo': 'on', 'materiales': 'Correas'})
         s.refresh_from_db()
-        self.assertEqual(s.Precio_base, 80000)
+        self.assertEqual((s.Precio_base, s.Duracion_horas), (80000, 6))
         self.assertEqual(list(s.recursos.values_list('Materiales', flat=True)), ['Correas'])
 
     def test_baja_logica_conserva_los_pedidos_viejos(self):
@@ -83,10 +83,28 @@ class ServiciosTest(TestCase):
                                                'Precio_base': '9999', 'Activo': 'on', 'materiales': ''})
         self.assertEqual(Servicio.objects.get(Tipo_servicio='Seguro').Precio_base, 0)
 
+    def test_un_principal_necesita_duracion_de_5_a_120_horas(self):
+        self.entrar(ADMIN)
+        datos = {'Tipo_servicio': 'Flete corto', 'Categoria': 'Principal', 'Precio_base': '50000', 'materiales': ''}
+        for horas, error in [('', 'Indicá cuántas horas dura el servicio.'),
+                             ('4', 'La duración tiene que ser de 5 a 120 horas.'),
+                             ('121', 'La duración tiene que ser de 5 a 120 horas.')]:
+            r = self.client.post('/servicios/nuevo/', dict(datos, Duracion_horas=horas))
+            self.assertEqual(r.context['form'].errors['Duracion_horas'], [error])
+        self.assertRedirects(self.client.post('/servicios/nuevo/', dict(datos, Duracion_horas='5')), '/servicios/')
+        self.assertEqual(Servicio.objects.get(Tipo_servicio='Flete corto').Duracion_horas, 5)
+
+    def test_un_adicional_no_guarda_duracion(self):
+        self.entrar(ADMIN)
+        self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Seguro', 'Categoria': 'Adicional', 'Precio_base': '',
+                                               'Duracion_horas': '30', 'Activo': 'on', 'materiales': ''})
+        self.assertIsNone(Servicio.objects.get(Tipo_servicio='Seguro').Duracion_horas)
+
     def test_la_lista_muestra_la_categoria(self):
         self.entrar(ADMIN)
         r = self.client.get('/servicios/')
         self.assertContains(r, '<td>Adicional</td>', html=True)
+        self.assertContains(r, '<td class="text-end">10 h</td>', html=True)  # la mudanza local
         self.assertContains(r, 'Embalaje')
         self.assertContains(r, 'Sin precio')
 
