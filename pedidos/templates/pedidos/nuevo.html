@@ -90,15 +90,18 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <label for="buscarObjeto" class="form-label fw-semibold">¿Qué hay que llevar? Buscalo en la lista</label>
-        <input type="text" class="form-control form-control-lg" id="buscarObjeto" maxlength="50" autocomplete="off"
-               placeholder="Escribí para buscar: heladera, sillas…">
-        <div class="mt-2 small" id="avisoBusqueda" aria-live="polite"></div>
-        <p class="small text-muted mt-2 mb-1" id="tituloSugerencias">O tocá uno de la lista:</p>
-        <div class="d-flex flex-wrap gap-2 mb-3" id="sugerencias"></div>
-        {# Solo con «Otro»: lo que no está en la lista se cuenta acá #}
+        <div id="bloqueBuscar">
+          <label for="buscarObjeto" class="form-label fw-semibold">¿Qué hay que llevar? Buscalo en la lista</label>
+          <input type="text" class="form-control form-control-lg" id="buscarObjeto" maxlength="50" autocomplete="off"
+                 placeholder="Escribí para buscar: heladera, sillas…">
+          <div class="mt-2 small" id="avisoBusqueda" aria-live="polite"></div>
+          <p class="small text-muted mt-2 mb-1" id="tituloSugerencias">O tocá uno de la lista:</p>
+          <div class="d-flex flex-wrap gap-2 mb-3" id="sugerencias"></div>
+        </div>
+        {# Solo con «Otro»: lo que no está en la lista se cuenta acá (el buscador se esconde) #}
         <div class="mb-3 d-none" id="bloqueOtro">
-          <label for="queEsOtro" class="form-label fw-semibold">Elegiste «Otro»: ¿qué es? <span class="text-danger">(obligatorio)</span></label>
+          <button type="button" class="btn btn-link px-0 mb-2" id="volverALista"><i class="bi bi-arrow-left me-1"></i>Volver a buscar en la lista</button>
+          <label for="queEsOtro" class="form-label fw-semibold d-block">Elegiste «Otro»: ¿qué es? <span class="text-danger">(obligatorio)</span></label>
           <input type="text" class="form-control" id="queEsOtro" maxlength="50" autocomplete="off" placeholder="Ej.: piano, cuna, acuario">
           <div class="mt-2" id="avisoOtro"></div>
         </div>
@@ -288,7 +291,7 @@
     buscando(false);
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
-  modalEl.addEventListener('shown.bs.modal', () => buscar.focus());
+  modalEl.addEventListener('shown.bs.modal', () => (seleccion && seleccion.nuevo ? queEs : buscar).focus());
   document.getElementById('agregarObjeto').addEventListener('click', () => abrir(-1));
 
   function ponerAviso(tipo, html) {
@@ -365,12 +368,20 @@
     if (exacto) sugerencias.append(chip(exacto, seleccion && !seleccion.nuevo && seleccion.id === exacto.id));
     parecidos.forEach((o) => sugerencias.append(chip(o, seleccion && !seleccion.nuevo && seleccion.id === o.id)));
     sugerencias.append(chipOtro(exacto ? '' : escrito));
-    bloqueOtro.classList.toggle('d-none', !(seleccion && seleccion.nuevo));
+    const enOtro = !!(seleccion && seleccion.nuevo);
+    bloqueOtro.classList.toggle('d-none', !enOtro);
+    document.getElementById('bloqueBuscar').classList.toggle('d-none', enOtro);
     revisar();
   }
   buscar.addEventListener('input', () => {
     if (seleccion && seleccion.nuevo) seleccion = null;  // si vuelve a buscar, deja «Otro»
     buscando(true);
+  });
+  document.getElementById('volverALista').addEventListener('click', () => {
+    seleccion = null;
+    queEs.value = '';
+    buscando(false);
+    buscar.focus();
   });
   queEs.addEventListener('input', () => {
     if (seleccion && seleccion.nuevo) seleccion.nombre = conMayuscula(queEs.value.trim());
@@ -417,10 +428,20 @@
     if (seleccion) {
       const k = items.findIndex((i, n) => n !== editando && (seleccion.nuevo
         ? i.nuevo && clave(i.nombre) === clave(seleccion.nombre) : !i.nuevo && i.id === seleccion.id));
-      ok = (k >= 0
-        ? marcar('repetido', 'mal', 'Ya agregaste ' + items[k].cantidad + ' × ' + etiqueta(items[k])
-                                     + ': cambiá la cantidad desde la lista en vez de agregarlo de nuevo.')
-        : marcar('repetido', 'ok', 'No está repetido en tu pedido')) && ok;
+      if (k >= 0) {
+        marcar('repetido', 'mal', 'Ya agregaste ' + items[k].cantidad + ' × ' + etiqueta(items[k])
+                                  + ': no hace falta agregarlo de nuevo.');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-sm btn-outline-danger d-block mt-2 fw-normal';
+        b.innerHTML = '<i class="bi bi-pencil me-1"></i>';
+        b.append('Cambiar la cantidad de ' + etiqueta(items[k]));
+        b.addEventListener('click', () => abrir(k));
+        document.querySelector('#chequeos [data-regla="repetido"]').append(b);
+        ok = false;
+      } else {
+        ok = marcar('repetido', 'ok', 'No está repetido en tu pedido') && ok;
+      }
     } else {
       marcar('repetido', 'falta', 'Que no esté repetido en tu pedido');
       ok = false;
