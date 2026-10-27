@@ -144,12 +144,25 @@ class RegistrarPantallaTest(BaseVistas):
         r = self.client.get('/pedidos/nuevo/')
         self.assertContains(r, 'type="radio"')
         self.assertContains(r, 'name="hora_servicio"')
-        self.assertContains(r, '<select name="inv-0-objeto"')
-        bolsos = id_obj('Bolsos y valijas')
-        self.assertContains(r, f'<option value="{bolsos}">Bolsos y valijas</option>', html=True)
-        self.assertNotContains(r, '<datalist')  # ya no se escribe el nombre
-        self.assertContains(r, 'name="inv-0-observacion"')
+        # el inventario se carga con la ventana «Agregar objeto», que busca en el catálogo
+        self.assertContains(r, 'id="modalObjeto"')
+        self.assertContains(r, 'id="buscarObjeto"')
+        bolsos = {'id': int(id_obj('Bolsos y valijas')), 'nombre': 'Bolsos y valijas', 'clave': 'bolso y valija', 'otro': False}
+        self.assertIn(bolsos, r.context['catalogo'])
+        self.assertTrue(r.context['catalogo'][-1]['otro'])  # «Otro» al final
+        self.assertContains(r, 'id="catalogo"')
+        self.assertEqual(r.context['items_iniciales'], [])
+        self.assertNotContains(r, '<datalist')
         self.assertNotContains(r, 'Peso total')
+
+    def test_si_vuelve_con_errores_conserva_los_objetos_cargados(self):
+        self.entrar(CLIENTE)
+        r = self.client.post('/pedidos/nuevo/', self.datos(vehiculo='', **{
+            'inv-1-objeto': id_obj('Otro'), 'inv-1-observacion': 'Piano — tiene ruedas'}))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.context['items_iniciales'], [
+            {'objeto': str(id_obj('Heladera')), 'cantidad': '1', 'fragil': True, 'observacion': ''},
+            {'objeto': str(id_obj('Otro')), 'cantidad': '10', 'fragil': False, 'observacion': 'Piano — tiene ruedas'}])
 
     def test_registra_con_adicionales_y_el_comprobante_los_lista(self):
         self.entrar(CLIENTE)

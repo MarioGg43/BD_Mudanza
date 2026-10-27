@@ -13,7 +13,7 @@ from usuarios.views import get_usuario_actual
 from . import reglas
 from .pdf import respuesta_pdf
 from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
-                    RegistroClienteForm)
+                    RegistroClienteForm, objetos_para_elegir)
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -116,8 +116,16 @@ def nuevo(request):
     else:
         form = PedidoForm()
         items = InventarioFormSet(prefix='inv')
+    # Para la ventana «Agregar objeto»: el catálogo con la clave de comparación (la misma de las
+    # reglas) y, si el formulario vuelve con errores, lo que la persona ya había cargado
+    catalogo = [{'id': o.pk, 'nombre': o.nom_objeto, 'clave': reglas.clave_objeto(o.nom_objeto), 'otro': o.es_otro}
+                for o in objetos_para_elegir()]
+    items_iniciales = [{'objeto': f['objeto'].value(), 'cantidad': f['cantidad'].value(),
+                        'fragil': bool(f['fragil'].value()), 'observacion': f['observacion'].value() or ''}
+                       for f in items.forms if items.is_bound and f['objeto'].value()]
     return render(request, 'pedidos/nuevo.html', {
-        'form': form, 'items': items,
+        'form': form, 'items': items, 'catalogo': catalogo, 'items_iniciales': items_iniciales,
+        'max_cantidad': reglas.MAX_CANTIDAD,
         'servicios': form.fields['servicio'].queryset,
         'adicionales': form.fields['adicionales'].queryset,
         'elegido': str(form['servicio'].value() or ''),

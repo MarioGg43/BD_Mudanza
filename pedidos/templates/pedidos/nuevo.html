@@ -56,12 +56,14 @@
             <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-box-seam me-1"></i>3. Qué hay que llevar</h2>
             {{ items.management_form }}
             {% if items.non_form_errors %}<div class="alert alert-danger py-2">{{ items.non_form_errors|join:" " }}</div>{% endif %}
-            <div id="filas">
-                {% for f in items %}{% include 'pedidos/_fila_inventario.html' with f=f %}{% endfor %}
-            </div>
-            <p class="form-text mt-0 mb-2">¿No está en la lista? Elegí <b>Otro</b> y contá qué es en la observación.</p>
-            <template id="filaVacia">{% include 'pedidos/_fila_inventario.html' with f=items.empty_form %}</template>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="agregarFila"><i class="bi bi-plus"></i> Agregar objeto</button>
+            {% for f in items %}{% if f.errors %}<div class="alert alert-danger py-2">Objeto {{ forloop.counter }}: {% for e in f.errors.values %}{{ e.as_text }} {% endfor %}</div>{% endif %}{% endfor %}
+            {# Lo que se va agregando con la ventana «Agregar objeto». Los campos ocultos son los del formset. #}
+            <ul class="list-group mb-3" id="listaObjetos" aria-live="polite"></ul>
+            <p class="text-muted mb-3" id="listaVacia">Todavía no agregaste nada.</p>
+            <div id="camposInventario"></div>
+            <div class="alert alert-danger py-2 d-none" id="errorInventario" role="alert"></div>
+            <button type="button" class="btn btn-outline-success fw-semibold" id="agregarObjeto">
+                <i class="bi bi-plus-circle me-1"></i>Agregar objeto</button>
         </div>
 
         <div class="card-panel bg-white p-4 mb-4">
@@ -78,6 +80,56 @@
         </div>
     </form>
 </div>
+
+{# Ventana para agregar o editar un objeto: guía a la persona mientras escribe #}
+<div class="modal fade" id="modalObjeto" tabindex="-1" aria-labelledby="tituloModalObjeto" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5 fw-bold" id="tituloModalObjeto">Agregar objeto</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <label for="buscarObjeto" class="form-label fw-semibold">¿Qué hay que llevar?</label>
+        <input type="text" class="form-control form-control-lg" id="buscarObjeto" maxlength="50" autocomplete="off"
+               placeholder="Escribí, por ejemplo: heladera, sillas, piano">
+        <div class="mt-2 small" id="avisoBusqueda" aria-live="polite"></div>
+        <p class="small text-muted mt-2 mb-1" id="tituloSugerencias">O tocá uno de la lista:</p>
+        <div class="d-flex flex-wrap gap-2 mb-3" id="sugerencias"></div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-5">
+            <label for="cantObjeto" class="form-label fw-semibold">Cantidad</label>
+            <input type="number" class="form-control" id="cantObjeto" min="1" max="{{ max_cantidad }}" value="1" inputmode="numeric">
+          </div>
+          <div class="col-7">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="fragilObjeto">
+              <label class="form-check-label" for="fragilObjeto">Es frágil</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <label for="detalleObjeto" class="form-label fw-semibold">Detalle <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="text" class="form-control" id="detalleObjeto" maxlength="140" autocomplete="off"
+                   placeholder="Ej.: se desarma, tiene vidrio">
+          </div>
+        </div>
+
+        <ul class="list-unstyled small mt-3 mb-0" id="chequeos">
+          <li data-regla="objeto"></li>
+          <li data-regla="repetido"></li>
+          <li data-regla="cantidad"></li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success fw-bold" id="guardarObjeto" disabled>Agregar a la lista</button>
+      </div>
+    </div>
+  </div>
+</div>
+{{ catalogo|json_script:"catalogo" }}
+{{ items_iniciales|json_script:"items-iniciales" }}
 
 <script>
 (function () {
@@ -113,24 +165,254 @@
     caja.textContent = texto + '.';
   }
 
-  const totalForms = form.querySelector('[name="inv-TOTAL_FORMS"]');
-  document.getElementById('agregarFila').addEventListener('click', () => {
-    const html = document.getElementById('filaVacia').innerHTML.replace(/__prefix__/g, totalForms.value);
-    document.getElementById('filas').insertAdjacentHTML('beforeend', html);
-    totalForms.value = parseInt(totalForms.value, 10) + 1;
-  });
-  // Con «Otro» la observación es obligatoria: ahí se cuenta qué es
-  function marcarOtro(select) {
-    const fila = select.closest('.fila');
-    const obs = fila.querySelector('[name$="-observacion"]');
-    const aviso = fila.querySelector('.aviso-obs');
-    const esOtro = select.selectedOptions[0] && select.selectedOptions[0].text === 'Otro';
-    obs.required = esOtro;
-    obs.placeholder = esOtro ? 'Contá qué es (obligatorio)' : 'Ej.: se desarma, tiene vidrio';
-    aviso.textContent = esOtro ? '(obligatoria)' : '(opcional)';
+  // ---------------------------------------------------------------- 3. Qué hay que llevar
+  // Se aplican las mismas reglas que reglas._validar_items, pero mientras la persona escribe:
+  // lo que ya está en el catálogo se elige de ahí, lo nuevo va como «Otro» con su nombre en la
+  // observación, y un objeto no se repite en el pedido. El servidor lo vuelve a controlar igual.
+  const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
+  const OTRO = catalogo.find((o) => o.otro);
+  const lista = catalogo.filter((o) => !o.otro);
+  const SEP = ' — ';  // separa el nombre de un objeto nuevo de su detalle en la observación
+  const MAX_CANT = {{ max_cantidad }};
+
+  // Igual que reglas.clave_objeto: sin mayúsculas, tildes ni signos, y en singular
+  function clave(texto) {
+    return (texto || '').normalize('NFKD').replace(/[^\x00-\x7f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean)
+      .map((p) => (p.endsWith('es') && p.length > 4 ? p.slice(0, -2) : p.endsWith('s') && p.length > 3 ? p.slice(0, -1) : p))
+      .join(' ');
   }
-  form.addEventListener('change', (e) => { if (e.target.name && e.target.name.endsWith('-objeto')) marcarOtro(e.target); });
-  form.querySelectorAll('[name$="-objeto"]').forEach(marcarOtro);
+
+  function desdeServidor(i) {
+    const o = catalogo.find((c) => String(c.id) === String(i.objeto));
+    if (!o) return null;
+    const obs = (i.observacion || '').trim();
+    const cantidad = parseInt(i.cantidad, 10) || 1;
+    if (o.otro) {
+      const [nombre, ...resto] = obs.split(SEP);
+      return { id: o.id, nombre: nombre.trim(), nuevo: true, cantidad, fragil: !!i.fragil, detalle: resto.join(SEP).trim() };
+    }
+    return { id: o.id, nombre: o.nombre, nuevo: false, cantidad, fragil: !!i.fragil, detalle: obs };
+  }
+  let items = JSON.parse(document.getElementById('items-iniciales').textContent).map(desdeServidor).filter(Boolean);
+
+  const totalForms = form.querySelector('[name="inv-TOTAL_FORMS"]');
+  const listaObjetos = document.getElementById('listaObjetos');
+  const errorInventario = document.getElementById('errorInventario');
+
+  function campoOculto(nombre, valor) {
+    const i = document.createElement('input');
+    Object.assign(i, { type: 'hidden', name: nombre, value: valor });
+    return i;
+  }
+
+  function boton(texto, icono, clase, alClic, etiqueta) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm ' + clase;
+    b.innerHTML = '<i class="bi ' + icono + ' me-1"></i>';
+    b.append(texto);
+    b.setAttribute('aria-label', etiqueta);
+    b.addEventListener('click', alClic);
+    return b;
+  }
+
+  // Dibuja la lista visible y arma los campos del formset (inv-0-objeto, inv-0-cantidad, ...)
+  function dibujar() {
+    listaObjetos.replaceChildren();
+    const campos = document.getElementById('camposInventario');
+    campos.replaceChildren();
+    items.forEach((it, k) => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap';
+      const texto = document.createElement('div');
+      const nombre = document.createElement('span');
+      nombre.className = 'fw-semibold';
+      nombre.textContent = it.cantidad + ' × ' + it.nombre;
+      texto.append(nombre);
+      if (it.nuevo) texto.insertAdjacentHTML('beforeend', ' <span class="badge text-bg-secondary">nuevo</span>');
+      if (it.fragil) texto.insertAdjacentHTML('beforeend', ' <span class="badge text-bg-warning">frágil</span>');
+      if (it.detalle) {
+        const d = document.createElement('div');
+        d.className = 'small text-muted';
+        d.textContent = it.detalle;
+        texto.append(d);
+      }
+      const acciones = document.createElement('div');
+      acciones.className = 'd-flex gap-2';
+      acciones.append(
+        boton('Editar', 'bi-pencil', 'btn-outline-secondary', () => abrir(k), 'Editar ' + it.nombre),
+        boton('Quitar', 'bi-trash', 'btn-outline-danger', () => { items.splice(k, 1); dibujar(); }, 'Quitar ' + it.nombre));
+      li.append(texto, acciones);
+      listaObjetos.append(li);
+
+      campos.append(campoOculto(`inv-${k}-objeto`, it.id), campoOculto(`inv-${k}-cantidad`, it.cantidad),
+        campoOculto(`inv-${k}-observacion`, it.nuevo ? it.nombre + (it.detalle ? SEP + it.detalle : '') : it.detalle));
+      if (it.fragil) campos.append(campoOculto(`inv-${k}-fragil`, 'on'));
+    });
+    totalForms.value = items.length;
+    document.getElementById('listaVacia').classList.toggle('d-none', items.length > 0);
+    if (items.length) errorInventario.classList.add('d-none');
+  }
+
+  // ----- la ventana
+  const modalEl = document.getElementById('modalObjeto');
+  const buscar = document.getElementById('buscarObjeto');
+  const cant = document.getElementById('cantObjeto');
+  const fragil = document.getElementById('fragilObjeto');
+  const detalle = document.getElementById('detalleObjeto');
+  const aviso = document.getElementById('avisoBusqueda');
+  const sugerencias = document.getElementById('sugerencias');
+  const guardar = document.getElementById('guardarObjeto');
+  let editando = -1;    // posición del que se edita, o -1 si es nuevo
+  let seleccion = null; // { id, nombre, nuevo }
+
+  function abrir(k) {
+    editando = k;
+    const it = k >= 0 ? items[k] : null;
+    document.getElementById('tituloModalObjeto').textContent = it ? 'Editar objeto' : 'Agregar objeto';
+    guardar.textContent = it ? 'Guardar cambios' : 'Agregar a la lista';
+    buscar.value = it ? it.nombre : '';
+    seleccion = it ? { id: it.id, nombre: it.nombre, nuevo: it.nuevo } : null;
+    cant.value = it ? it.cantidad : 1;
+    fragil.checked = it ? it.fragil : false;
+    detalle.value = it ? it.detalle : '';
+    buscando(false);
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+  modalEl.addEventListener('shown.bs.modal', () => buscar.focus());
+  document.getElementById('agregarObjeto').addEventListener('click', () => abrir(-1));
+
+  function ponerAviso(tipo, html) {
+    aviso.className = 'mt-2 small' + (tipo ? ' alert py-2 mb-0 alert-' + tipo : '');
+    aviso.innerHTML = html;
+  }
+  const esc = (t) => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+
+  function chip(o, marcado) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm rounded-pill ' + (marcado ? 'btn-success' : 'btn-outline-secondary');
+    b.textContent = o.nombre;
+    b.addEventListener('click', () => {
+      buscar.value = o.nombre;
+      seleccion = { id: o.id, nombre: o.nombre, nuevo: false };
+      buscando(false);
+    });
+    return b;
+  }
+
+  // Cada vez que cambia lo escrito: busca en el catálogo y avisa qué va a pasar
+  function buscando(escribiendo) {
+    const escrito = buscar.value.trim();
+    const texto = escrito.charAt(0).toUpperCase() + escrito.slice(1);  // «piano» se guarda como «Piano»
+    const q = clave(texto);
+    if (escribiendo) seleccion = null;
+    sugerencias.replaceChildren();
+    if (!q) {
+      seleccion = null;
+      ponerAviso('', '');
+      document.getElementById('tituloSugerencias').textContent = 'O tocá uno de la lista:';
+      lista.forEach((o) => sugerencias.append(chip(o, false)));
+      revisar();
+      return;
+    }
+    const exacto = lista.find((o) => o.clave === q);
+    const parecidos = lista.filter((o) => o !== exacto && (o.clave.startsWith(q) || o.clave.includes(q)))
+      .sort((a, b) => b.clave.startsWith(q) - a.clave.startsWith(q)).slice(0, 6);
+    if (exacto) {
+      seleccion = { id: exacto.id, nombre: exacto.nombre, nuevo: false };
+      ponerAviso(exacto.nombre === escrito ? 'success' : 'info', exacto.nombre === escrito
+        ? '<i class="bi bi-check-circle-fill me-1"></i>«' + esc(exacto.nombre) + '» está en la lista.'
+        : '<i class="bi bi-info-circle-fill me-1"></i>«' + esc(escrito) + '» ya está en la lista como <b>«'
+          + esc(exacto.nombre) + '»</b>. Lo elegimos de ahí.');
+    } else if (seleccion && seleccion.nuevo) {
+      ponerAviso('success', '<i class="bi bi-plus-circle-fill me-1"></i>Se va a agregar <b>«' + esc(texto) + '»</b> como objeto nuevo.');
+    } else if (parecidos.length) {
+      ponerAviso('warning', '<i class="bi bi-hand-index-thumb me-1"></i>¿Es alguno de estos? Tocalo. Si no, agregalo como nuevo.');
+    } else if (texto.length >= 2) {
+      seleccion = { id: OTRO.id, nombre: texto, nuevo: true };
+      ponerAviso('success', '<i class="bi bi-plus-circle-fill me-1"></i>«' + esc(texto) + '» no está en la lista: '
+        + 'se va a agregar como <b>objeto nuevo</b>.');
+    } else {
+      ponerAviso('', '');
+    }
+    document.getElementById('tituloSugerencias').textContent = parecidos.length || exacto ? 'En la lista:' : '';
+    if (exacto) sugerencias.append(chip(exacto, true));
+    parecidos.forEach((o) => sugerencias.append(chip(o, false)));
+    if (!exacto && parecidos.length && texto.length >= 2) {
+      const nuevo = document.createElement('button');
+      nuevo.type = 'button';
+      nuevo.className = 'btn btn-sm rounded-pill ' + (seleccion && seleccion.nuevo ? 'btn-success' : 'btn-outline-success');
+      nuevo.innerHTML = '<i class="bi bi-plus me-1"></i>';
+      nuevo.append('Agregar «' + texto + '» como nuevo');
+      nuevo.addEventListener('click', () => {
+        seleccion = { id: OTRO.id, nombre: texto, nuevo: true };
+        buscando(false);
+      });
+      sugerencias.append(nuevo);
+    }
+    revisar();
+  }
+  buscar.addEventListener('input', () => buscando(true));
+
+  // La lista de controles: verde si está bien, rojo si hay que corregir algo, gris si falta
+  function marcar(regla, estado, texto) {
+    const li = document.querySelector('#chequeos [data-regla="' + regla + '"]');
+    const icono = { ok: 'bi-check-circle-fill text-success', mal: 'bi-x-circle-fill text-danger', falta: 'bi-circle text-muted' }[estado];
+    li.className = 'mb-1 ' + (estado === 'mal' ? 'text-danger fw-semibold' : estado === 'ok' ? 'text-success' : 'text-muted');
+    li.innerHTML = '<i class="bi ' + icono + ' me-1"></i>';
+    li.append(texto);
+    return estado === 'ok';
+  }
+
+  function revisar() {
+    let ok = seleccion
+      ? marcar('objeto', 'ok', seleccion.nuevo ? 'Escribiste un objeto nuevo' : 'Elegiste un objeto de la lista')
+      : marcar('objeto', 'falta', 'Escribí o elegí qué hay que llevar');
+    if (seleccion) {
+      const k = items.findIndex((i, n) => n !== editando && (seleccion.nuevo
+        ? i.nuevo && clave(i.nombre) === clave(seleccion.nombre) : !i.nuevo && i.id === seleccion.id));
+      ok = (k >= 0
+        ? marcar('repetido', 'mal', 'Ya agregaste ' + items[k].cantidad + ' × ' + items[k].nombre
+                                     + ': cambiá la cantidad desde la lista en vez de agregarlo de nuevo.')
+        : marcar('repetido', 'ok', 'No está repetido en tu pedido')) && ok;
+    } else {
+      marcar('repetido', 'falta', 'Que no esté repetido en tu pedido');
+      ok = false;
+    }
+    const n = Number(cant.value);
+    ok = (Number.isInteger(n) && n >= 1 && n <= MAX_CANT
+      ? marcar('cantidad', 'ok', 'Cantidad: ' + n)
+      : marcar('cantidad', 'mal', 'La cantidad tiene que ser un número entero de 1 a ' + MAX_CANT)) && ok;
+    guardar.disabled = !ok;
+    return ok;
+  }
+  cant.addEventListener('input', revisar);
+
+  guardar.addEventListener('click', () => {
+    if (!revisar()) return;
+    const it = { id: seleccion.id, nombre: seleccion.nombre, nuevo: seleccion.nuevo, cantidad: Number(cant.value),
+                 fragil: fragil.checked, detalle: detalle.value.trim() };
+    if (editando >= 0) items[editando] = it; else items.push(it);
+    dibujar();
+    bootstrap.Modal.getInstance(modalEl).hide();
+  });
+  // Enter en la ventana = agregar, si se puede (y no manda el formulario de afuera)
+  modalEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); if (!guardar.disabled) guardar.click(); }
+  });
+
+  form.addEventListener('submit', (e) => {
+    if (!items.length) {
+      e.preventDefault();
+      errorInventario.textContent = 'Agregá al menos un objeto con el botón «Agregar objeto».';
+      errorInventario.classList.remove('d-none');
+      errorInventario.scrollIntoView({ block: 'center' });
+    }
+  });
+  dibujar();
+
   form.addEventListener('input', recalcular);
   form.addEventListener('change', recalcular);
 
