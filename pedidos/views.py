@@ -47,8 +47,12 @@ def _consulta(request):
 def lista(request):
     form, ve_todos, pedidos = _consulta(request)
     avisos = reglas.contar_avisos() if ve_todos else {}
+    atrasadas = {p.pk for p in reglas.mudanzas_atrasadas()} if ve_todos else set()
+    pedidos = list(pedidos)
+    for p in pedidos:
+        p.atrasada = p.pk in atrasadas
     return render(request, 'pedidos/lista.html', {
-        'form': form, 've_todos': ve_todos, 'pedidos': pedidos,
+        'form': form, 've_todos': ve_todos, 'pedidos': pedidos, 'atrasadas': avisos.get(reglas.ATRASADA),
         'vencidos': avisos.get(reglas.VENCIDO), 'para_finalizar': avisos.get(reglas.PARA_FINALIZAR),
         'por_confirmar': avisos.get(reglas.POR_CONFIRMAR), 'dias_por_confirmar': reglas.DIAS_POR_CONFIRMAR,
         'sin_chofer': avisos.get(reglas.SIN_CHOFER),
@@ -81,8 +85,16 @@ def descargar(request):
 def detalle(request, id_pedido):
     pedido = _pedido_visible(request, id_pedido)
     personal = list(pedido.personal.select_related('idUsuario'))
+    # Aviso de mudanza atrasada: en la atrasada (quién la espera) y en la que espera
+    siguiente = anterior = None
+    if _ve_todos(request.usuario):
+        atrasadas = reglas.mudanzas_atrasadas()
+        siguiente = atrasadas.get(pedido)
+        anterior = next((p for p, q in atrasadas.items() if q.pk == pedido.pk), None)
     return render(request, 'pedidos/detalle.html', {
         'pedido': pedido,
+        'siguiente': siguiente, 'comparte_siguiente': siguiente and reglas.que_comparten(pedido, siguiente),
+        'anterior': anterior, 'comparte_anterior': anterior and reglas.que_comparten(anterior, pedido),
         'chofer': next((x.idUsuario for x in personal if x.Funcion == PersonalPedido.CHOFER), None),
         'ayudantes': [x.idUsuario for x in personal if x.Funcion == PersonalPedido.AYUDANTE],
         'se_puede_asignar': pedido.estado in Pedido.ACTIVOS and not pedido.ya_empezo,

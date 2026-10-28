@@ -593,3 +593,94 @@ class OtroRepetidoTest(BaseReglas):
         Objeto.objects.filter(nom_objeto='Plantas').update(Activo=False)
         p = self.registrar(items=[{'objeto': obj('Otro'), 'cantidad': 2, 'observacion': 'plantas'}])
         self.assertEqual(p.inventario.count(), 1)
+
+
+class AtrasadaTest(BaseReglas):
+    """Atrasada: confirmada, pasó su fin estimado sin finalizar y la espera otra mudanza con el
+    mismo vehículo o personal dentro de las HORAS_SIGUIENTE horas."""
+
+    def setUp(self):
+        from usuarios.models import Rol
+        from usuarios.utils import hash_password
+        self.chofer = Usuario.objects.get(DNI=40987654)
+        self.ayudante = Usuario.objects.get(DNI=38999888)
+        self.chofer2 = Usuario.objects.create(
+            DNI=30111222, Nombre='Pablo', Apellido='Ruiz', Correo='pablo.ruiz@ejemplo.com', NombreUsuario='ruizp',
+            Clave=hash_password('Usuario123!'), idRol=Rol.objects.get(nom_rol='Chofer'))
+        # un flete mañana de 9 a 14, confirmado con chofer y ayudante
+        self.primera = self.registrar(id_servicio=self.flete.id_servicio)
+        reglas.asignar_personal(self.primera.pk, self.chofer.pk, [self.ayudante.pk])
+        reglas.confirmar(self.primera.pk)
+
+    def a_las(self, hora, minuto=0, dias=1):
+        momento = timezone.make_aware(datetime.combine(self.dia(dias), time(hora, minuto)))
+        return mock.patch('django.utils.timezone.now', return_value=momento)
+
+    def segunda(self, chofer=None, ayudantes=(), **cambios):
+        """Otro flete mañana de 14 a 19, confirmado (por defecto con otro chofer)."""
+        datos = dict(id_servicio=self.flete.id_servicio, hora_servicio=time(14, 0))
+        datos.update(cambios)
+        otra = self.registrar(**datos)
+        reglas.asignar_personal(otra.pk, (chofer or self.chofer2).pk, [a.pk for a in ayudantes])
+        reglas.confirmar(otra.pk)
+        return otra
+
+    def test_el_mismo_vehiculo_la_espera(self):
+        otra = self.segunda()
+        with self.a_las(13, 59):
+            self.assertEqual(reglas.mudanzas_atrasadas(), {})        # todavía no terminó
+        with self.a_las(14, 30):
+            self.assertEqual(reglas.mudanzas_atrasadas(), {self.primera: otra})
+            self.assertEqual(reglas.contar_avisos()[reglas.ATRASADA], 1)
+            self.assertEqual(reglas.que_comparten(self.primera, otra), 'el vehículo AD-321-JK')
+        with self.a_las(15, 0):
+            self.assertIn(self.primera, reglas.mudanzas_atrasadas())  # la otra ya debía empezar: sigue el aviso
+
+    def test_el_mismo_chofer_la_espera_aunque_sea_otro_vehiculo(self):
+        otra = self.segunda(patente='AE-123-CD', chofer=self.chofer)
+        with self.a_las(14, 30):
+            self.assertEqual(reglas.mudanzas_atrasadas(), {self.primera: otra})
+            self.assertEqual(reglas.que_comparten(self.primera, otra), 'Luciana Fernandez')
+
+    def test_vehiculo_y_personal(self):
+        otra = self.segunda(ayudantes=[self.ayudante])
+        self.assertEqual(reglas.que_comparten(self.primera, otra), 'el vehículo AD-321-JK y Lucas Romero')
+
+    def test_sin_nada_en_comun_no_es_atrasada(self):
+        self.segunda(patente='AE-123-CD')
+        with self.a_las(14, 30):
+            self.assertEqual(reglas.mudanzas_atrasadas(), {})
+            self.assertTrue(Pedido.objects.filter(reglas.filtro_para_finalizar(), pk=self.primera.pk).exists())  # el de siempre
+
+    def test_si_se_finaliza_deja_de_estar_atrasada(self):
+        self.segunda()
+        with self.a_las(14, 30):
+            reglas.finalizar(self.primera.pk)
+            self.assertEqual(reglas.mudanzas_atrasadas(), {})
+
+    def test_una_mudanza_que_empieza_mucho_despues_no_cuenta(self):
+        self.segunda(fecha_servicio=self.dia(2), hora_servicio=time(9, 0))  # 19 horas después del fin
+        with self.a_las(14, 30):
+            self.assertEqual(reglas.mudanzas_atrasadas(), {})
+
+    def test_una_anulada_no_espera_a_nadie(self):
+        otra = self.segunda()
+        reglas.anular(otra.pk, self.admin, 'El cliente canceló')
+        with self.a_las(14, 30):
+            self.assertEqual(reglas.mudanzas_atrasadas(), {})
+
+    def test_filtro_y_pantallas(self):
+        otra = self.segunda()
+        with self.a_las(14, 30):
+            self.assertEqual(list(reglas.filtrar_pedidos(Pedido.objects.all(), estado=reglas.ATRASADA)), [self.primera])
+            s = self.client.session
+            s['usuario_dni'], s['usuario_rol'] = ADMIN, 'Administrador'
+            s.save()
+            r = self.client.get('/pedidos/')
+            self.assertContains(r, 'mudanza viene <b>atrasada</b>')
+            r = self.client.get(f'/pedidos/{self.primera.pk}/')
+            self.assertContains(r, 'Mudanza atrasada:')
+            self.assertContains(r, f'pedido N° {otra.pk}</a>')
+            self.assertContains(r, 'con el vehículo AD-321-JK.')
+            r = self.client.get(f'/pedidos/{otra.pk}/')
+            self.assertContains(r, 'Puede empezar tarde:')

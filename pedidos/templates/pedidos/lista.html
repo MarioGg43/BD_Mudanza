@@ -14,6 +14,12 @@
     </div>
 </div>
 
+{% if atrasadas %}
+<div class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2" role="alert">
+    <span><i class="bi bi-alarm me-1"></i>{% if atrasadas == 1 %}<b>1</b> mudanza viene <b>atrasada</b>: ya tenía que terminar y el mismo vehículo o personal tiene otra que empieza enseguida.{% else %}<b>{{ atrasadas }}</b> mudanzas vienen <b>atrasadas</b>: ya tenían que terminar y el mismo vehículo o personal tiene otra que empieza enseguida.{% endif %}</span>
+    <a href="{% url 'pedidos_lista' %}?estado=Atrasada" class="btn btn-sm btn-outline-dark">Ver atrasadas</a>
+</div>
+{% endif %}
 {% if vencidos %}
 <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
     <span><i class="bi bi-exclamation-triangle me-1"></i>Hay <b>{{ vencidos }}</b> pedido{{ vencidos|pluralize }} vencido{{ vencidos|pluralize }}: pendiente{{ vencidos|pluralize }} con la fecha ya pasada, sin confirmar.</span>
@@ -38,7 +44,7 @@
     <a href="{% url 'pedidos_lista' %}?estado=Sin+chofer" class="btn btn-sm btn-outline-dark">Ver sin chofer</a>
 </div>
 {% endif %}
-{% if vencidos or para_finalizar or por_confirmar or sin_chofer %}<div class="mb-3"></div>{% endif %}
+{% if atrasadas or vencidos or para_finalizar or por_confirmar or sin_chofer %}<div class="mb-3"></div>{% endif %}
 
 <form method="get" class="card-panel bg-white p-3 mb-4">
     <div class="row g-2 align-items-end">
@@ -74,7 +80,7 @@
                 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="text-end">${{ p.total|floatformat:"2g" }}</td>
-                <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar %}</td>
+                <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar atrasada=p.atrasada %}</td>
                 <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
             </tr>
             {% empty %}

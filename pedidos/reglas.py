@@ -288,8 +288,49 @@ def filtro_por_venir_sin_chofer():
                                    .values('idPedido'))
 
 
-AVISOS = {VENCIDO: filtro_vencidos, PARA_FINALIZAR: filtro_para_finalizar, POR_CONFIRMAR: filtro_por_confirmar,
-          SIN_CHOFER: filtro_sin_chofer}
+ATRASADA = 'Atrasada'              # Confirmado que ya debía terminar y lo espera otra mudanza
+HORAS_SIGUIENTE = 12               # cuánto después del fin se mira si hay otra mudanza esperando
+
+
+def mudanzas_atrasadas():
+    """{mudanza atrasada: la mudanza que la espera}. Está atrasada la confirmada que ya pasó su
+    fin estimado, nadie finalizó, y cuyo vehículo o alguien de su personal tiene otra mudanza que
+    empieza dentro de las HORAS_SIGUIENTE horas siguientes a ese fin. Si no la espera ninguna,
+    alcanza con el aviso «Para finalizar»."""
+    ahora = timezone.now()
+    desde = timezone.localtime(ahora - timedelta(hours=MAX_HORAS + HORAS_SIGUIENTE)).date()
+    confirmados = Pedido.objects.filter(estado=Pedido.CONFIRMADO, fecha_servicio__range=(desde, timezone.localdate()))
+    pasadas = [p for p in confirmados.prefetch_related('personal') if p.fin <= ahora]
+    atrasadas = {}
+    for p in sorted(pasadas, key=lambda p: p.fin):
+        limite = p.fin + timedelta(hours=HORAS_SIGUIENTE)
+        personal = [x.idUsuario_id for x in p.personal.all()]
+        candidatas = Pedido.objects.filter(
+            Q(patente_vehiculo=p.patente_vehiculo_id) | Q(personal__idUsuario__in=personal),
+            estado__in=Pedido.ACTIVOS,
+            fecha_servicio__range=(timezone.localtime(p.fin).date(), timezone.localtime(limite).date()),
+        ).exclude(pk=p.pk).exclude(filtro_vencidos()).distinct()
+        siguientes = sorted((q for q in candidatas if p.fin <= q.inicio <= limite), key=lambda q: q.inicio)
+        if siguientes:
+            atrasadas[p] = siguientes[0]
+    return atrasadas
+
+
+def que_comparten(p, q):
+    """Qué tienen en común dos mudanzas, para el aviso: «el vehículo AA123XR y Luciana Fernández»."""
+    partes = [f'el vehículo {p.patente_vehiculo_id}'] if p.patente_vehiculo_id == q.patente_vehiculo_id else []
+    comunes = Usuario.objects.filter(asignaciones__idPedido=p).filter(asignaciones__idPedido=q) \
+                             .order_by('Apellido', 'Nombre').distinct()
+    partes += [f'{u.Nombre} {u.Apellido}' for u in comunes]
+    return ' y '.join([', '.join(partes[:-1]), partes[-1]]) if len(partes) > 1 else (partes[0] if partes else '')
+
+
+def filtro_atrasadas():
+    return Q(pk__in=[p.pk for p in mudanzas_atrasadas()])
+
+
+AVISOS = {ATRASADA: filtro_atrasadas, VENCIDO: filtro_vencidos, PARA_FINALIZAR: filtro_para_finalizar,
+          POR_CONFIRMAR: filtro_por_confirmar, SIN_CHOFER: filtro_sin_chofer}
 
 
 def contar_avisos():
