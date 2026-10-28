@@ -88,7 +88,7 @@ def tabla(encabezado, filas, anchos=None):
 t = doc.add_heading('Cambios pendientes en el DER y los DFD', 0)
 for r in t.runs:
     r.font.color.rgb = TINTA
-p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Actualizado al 20/10/2026')
+p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Actualizado al 27/10/2026')
 p.runs[0].italic = True
 parrafo('Este documento junta todo lo que hay que agregar o corregir en el DER de alto refinamiento '
         'y en los DFD del documento oficial para que coincidan con lo que ya hace el sistema y con '
@@ -132,8 +132,11 @@ parrafo('Un pedido lleva un servicio principal (Mudanza local, Mudanza nacional 
         'opcionales, adicionales sin precio (Embalaje, Desarmado y armado de muebles, Ayudante extra).')
 tabla(['Campo nuevo', 'Tipo', 'Valores'], [
     ['categoria_servicio', 'VARCHAR(10)', 'Principal / Adicional'],
+    ['Duracion_horas', 'SMALLINT (puede ser nulo)', 'Horas que ocupa el vehículo y el personal: de 5 a 120 '
+                                                   '(5 días). Solo los principales; los adicionales quedan vacíos'],
 ], [140, 100, 220])
-parrafo('Precio_base de los adicionales queda en 0. Estado_servicio (BOOLEAN) ya está en el DER.')
+parrafo('Precio_base de los adicionales queda en 0. Estado_servicio (BOOLEAN) ya está en el DER. '
+        'Duraciones cargadas: Flete urbano 5 h, Mudanza local 10 h, Mudanza nacional 48 h.')
 
 titulo('1.4 DETALLE_PEDIDOS: precio del día', 2)
 parrafo('Hay una fila por cada servicio del pedido (el principal y los adicionales). El sistema guarda el '
@@ -144,19 +147,22 @@ tabla(['Campo nuevo', 'Tipo', 'Descripción'], [
     ['subtotal', 'DECIMAL', 'Igual al precio (no hay cantidades por servicio)'],
 ], [120, 80, 260])
 
-titulo('1.5 PEDIDOS: fechas, total y anulación', 2)
+titulo('1.5 PEDIDOS: fechas, duración, total y anulación', 2)
 parrafo('En el DER, «Fec_pedido» no deja claro si es el día en que se pidió o el día de la mudanza. '
         'El sistema guarda las dos.')
 tabla(['Campo', 'Tipo', 'Descripción'], [
     ['Fec_pedido', 'DATE', 'Día en que el cliente registró el pedido'],
     ['Fec_servicio (nuevo)', 'DATE', 'Día de la mudanza'],
     ['Hora_pedido', 'TIME', 'Hora de inicio de la mudanza (ya está)'],
+    ['Duracion_horas (nuevo)', 'SMALLINT', 'Copia de la duración del servicio principal al pedir (si el '
+                                           'servicio cambia, el pedido no). Fin = inicio + duración'],
     ['Total_pedido (nuevo)', 'DECIMAL', 'Precio del servicio principal'],
     ['id_usuario_anulacion (nuevo)', 'INT (FK → USUARIOS)', 'Quién anuló el pedido'],
 ], [140, 110, 210])
-parrafo('Estados posibles de Estado_pedido: Pendiente, Confirmado, Finalizado, Anulado. «Vencido» y '
-        '«Para finalizar» NO son estados guardados: el sistema los calcula con la fecha y la hora, así '
-        'que no van en el DER.')
+parrafo('Estados posibles de Estado_pedido: Pendiente, Confirmado, Finalizado, Anulado. «Vencido», '
+        '«Para finalizar» y «Atrasada» NO son estados guardados: el sistema los calcula con la fecha, la '
+        'hora y la duración, así que no van en el DER. Atrasada = confirmada, pasó su fin estimado sin '
+        'finalizar y el mismo vehículo o personal tiene otra mudanza dentro de las 12 horas siguientes.')
 
 titulo('1.6 VEHICULOS: tipo y chofer', 2)
 tabla(['Campo', 'Tipo', 'Descripción'], [
@@ -171,7 +177,8 @@ parrafo('Opción si la profesora lo pide: pasar el tipo a una tabla TIPO_VEHICUL
 titulo('1.7 Tabla nueva: PERSONAL_PEDIDO (ya está en el sistema)', 2)
 parrafo('El documento dice que RECURSOS_ASIGNADOS «asocia los empleados», pero en el DER solo relaciona '
         'servicio con materiales. El sistema ya guarda qué chofer y qué ayudantes van a cada mudanza en '
-        'esta tabla: el chofer es obligatorio para confirmar el pedido y una persona hace una sola mudanza por día.')
+        'esta tabla: el chofer es obligatorio para confirmar el pedido y una persona no puede estar en dos '
+        'mudanzas cuyos horarios se crucen.')
 tabla(['Campo', 'Tipo', 'Clave'], [
     ['id_personal_pedido', 'INT', 'PK'],
     ['id_pedido', 'INT', 'FK → PEDIDOS'],
@@ -180,7 +187,28 @@ tabla(['Campo', 'Tipo', 'Clave'], [
 ], [160, 80, 220])
 parrafo('Relaciones: PEDIDOS 1 : N PERSONAL_PEDIDO y USUARIOS 1 : N PERSONAL_PEDIDO.')
 
-titulo('1.8 Diferencias entre el DER del documento y el sistema', 2)
+titulo('1.8 Tabla nueva: REPROGRAMACIONES (ya está en el sistema)', 2)
+parrafo('Cuando una mudanza cambia de fecha, hora o vehículo (por ejemplo, por una demora en la mudanza '
+        'anterior o un problema técnico), PEDIDOS guarda el horario nuevo y esta tabla guarda el historial: '
+        'de cuándo a cuándo, por qué y quién lo hizo. El cliente ve el cambio en «Mis pedidos».')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_reprogramacion', 'INT', 'PK'],
+    ['id_pedido', 'INT', 'FK → PEDIDOS'],
+    ['Fecha_anterior, Hora_anterior', 'DATE, TIME', 'Horario de antes'],
+    ['patente_anterior', 'VARCHAR(15)', 'FK → VEHICULOS (vehículo de antes)'],
+    ['Fecha_nueva, Hora_nueva', 'DATE, TIME', 'Horario nuevo'],
+    ['patente_nueva', 'VARCHAR(15)', 'FK → VEHICULOS (puede ser el mismo)'],
+    ['Motivo_reprog', 'VARCHAR(40)', 'Lista cerrada: Demora en una mudanza anterior, Problema técnico del '
+                                     'vehículo, Clima, Pedido del cliente, Falta de personal, Otro'],
+    ['Observacion_reprog', 'VARCHAR(200)', 'Obligatoria con «Otro»'],
+    ['id_usuario', 'INT', 'FK → USUARIOS (quién reprogramó)'],
+    ['Fec_reprog', 'DATETIME', 'Cuándo se hizo'],
+    ['Visto_cliente', 'BOOLEAN', 'Si el cliente ya abrió el pedido después del cambio'],
+], [150, 90, 220])
+parrafo('Relaciones: PEDIDOS 1 : N REPROGRAMACIONES, VEHICULOS 1 : N REPROGRAMACIONES (dos veces: '
+        'anterior y nuevo) y USUARIOS 1 : N REPROGRAMACIONES.')
+
+titulo('1.9 Diferencias entre el DER del documento y el sistema', 2)
 parrafo('El DER del documento tiene 16 tablas y el sistema trabaja con las del DER anterior. Estas tablas '
         'están en el DER pero el sistema todavía no las usa (hay que programarlas o explicarlo):')
 lista([('ESTADO_USUARIO: ', 'el sistema usa Estado_usuario (BOOLEAN) dentro de USUARIOS.'),
@@ -198,8 +226,8 @@ tabla(['Qué está', 'Problema', 'Cómo corregirlo'], [
      'A un almacén se le manda la clave para consultar, no una «selección»',
      'Hacia Servicios: «id_servicio»; hacia Vehículos: «Patente»'],
     ['Un solo servicio', 'Ahora hay principal + adicionales', '«Servicios elegidos» (id_servicio principal + adicionales)'],
-    ['Disponibilidad del vehículo', 'Depende de los pedidos de ese día',
-     'Consultar Pedidos con «Fecha de la mudanza» y que vuelvan los «Vehículos ocupados»'],
+    ['Disponibilidad del vehículo', 'Depende de los pedidos que se cruzan con ese horario',
+     'Consultar Pedidos con «Fecha, hora y duración» y que vuelvan los «Vehículos ocupados»'],
     ['«Confirmación pedido» (Administrador y Usuario)', '«Confirmación» es una acción',
      'Para el administrador: «Pedido confirmado» o «Estado del pedido»; al cliente le llega el «Comprobante»'],
     ['«Datos servicio», «Datos vehículo», «Datos usuario» hacia Pedidos', 'Está bien, pero son 3 flechas para un solo guardado',
@@ -244,7 +272,7 @@ tabla(['Qué está', 'Problema', 'Cómo corregirlo'], [
     ['«Asignación de usuario»', 'Es una acción', '«Personal asignado» (id_pedido, id_usuario)'],
     ['Entidad externa «usuarios» con el mismo nombre que el almacén', 'Se confunde', 'Llamar a la entidad «Personal»'],
     ['El personal se guarda en «recursos asignados»', 'Esa tabla es servicio–materiales',
-     'Guardar en el almacén nuevo PERSONAL_PEDIDO (consulta: «Fecha de la mudanza» → «Personal ocupado»)'],
+     'Guardar en el almacén nuevo PERSONAL_PEDIDO (consulta: «Horario de la mudanza» → «Personal ocupado»)'],
     ['«Usuario actualizado», «Vehículo actualizado»', 'El proceso no modifica usuarios ni vehículos',
      'Revisar: si solo se asignan, sacarlas'],
 ], [150, 130, 180])
@@ -258,7 +286,11 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Confirmar Pedido', 'Administrador', 'Pedidos'],
     ['Finalizar Pedido', 'Administrador (solo desde la fecha y hora de la mudanza)', 'Pedidos'],
     ['Anular Pedido', 'Administrador (con motivo; queda quién y cuándo)', 'Pedidos'],
-    ['Consultar Pedidos', 'Administrador (todos) o Cliente (los suyos), con filtros', 'Pedidos, Usuarios, Servicios, Vehículos'],
+    ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Aviso de cambio '
+                           'de horario»', 'Pedidos, Reprogramaciones, Vehículos, Personal pedido'],
+    ['Consultar Pedidos', 'Administrador (todos, con los avisos: atrasadas, vencidos, para finalizar, por '
+                          'confirmar, sin chofer) o Cliente (los suyos), con filtros',
+     'Pedidos, Usuarios, Servicios, Vehículos, Personal pedido'],
     ['Emitir Comprobante', 'Administrador o Cliente', 'Pedidos, Detalle pedidos, Inventario detalles'],
 ], [130, 190, 140])
 
@@ -281,11 +313,6 @@ parrafo('Registrar el cobro al finalizar el pedido: monto y método de pago eleg
         '(Efectivo, Transferencia, Tarjeta, Mercado Pago). Usa COBRANZAS y DETALLE_COBRANZAS, que ya '
         'están en el DER. Si se decide no hacerlo, hay que sacar esas tablas del DER y la cobranza del '
         'documento y la presentación.')
-
-titulo('4.3 Duración de los servicios', 2)
-parrafo('Hoy un vehículo hace una sola mudanza por día. Para permitir dos trabajos cortos en el mismo día: '
-        'agregar a SERVICIOS «duracion_estimada» (mínimo 5 o 6 horas para un flete, un día para una mudanza '
-        'local, varios días para una nacional) y cambiar la regla de disponibilidad de «por día» a «por horario».')
 
 doc.save(SALIDA)
 print('ok', SALIDA)
