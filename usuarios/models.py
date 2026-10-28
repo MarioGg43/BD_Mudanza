@@ -320,6 +320,47 @@ class PersonalPedido(models.Model):
         return f'Pedido {self.idPedido_id} - {self.Funcion}: {self.idUsuario}'
 
 
+class Reprogramacion(models.Model):
+    """Cada cambio de horario de un pedido: de cuándo a cuándo, por qué y quién lo hizo.
+    El pedido guarda solo el horario vigente; acá queda el historial."""
+    MOTIVOS = [(m, m) for m in ('Demora en una mudanza anterior', 'Problema técnico del vehículo', 'Clima',
+                                'Pedido del cliente', 'Falta de personal', 'Otro')]
+
+    id_reprogramacion = models.AutoField(primary_key=True)
+    idPedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, db_column='id_pedido',
+                                 related_name='reprogramaciones', verbose_name='Pedido')
+    fecha_anterior = models.DateField(db_column='Fecha_anterior')
+    hora_anterior = models.TimeField(db_column='Hora_anterior')
+    vehiculo_anterior = models.ForeignKey(Vehiculo, on_delete=models.PROTECT, db_column='patente_anterior',
+                                          related_name='+', verbose_name='Vehículo anterior')
+    fecha_nueva = models.DateField(db_column='Fecha_nueva')
+    hora_nueva = models.TimeField(db_column='Hora_nueva')
+    vehiculo_nuevo = models.ForeignKey(Vehiculo, on_delete=models.PROTECT, db_column='patente_nueva',
+                                       related_name='+', verbose_name='Vehículo nuevo')
+    motivo = models.CharField(max_length=40, choices=MOTIVOS, db_column='Motivo_reprog')
+    observacion = models.CharField(max_length=200, blank=True, null=True, db_column='Observacion_reprog')
+    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column='id_usuario',
+                                related_name='reprogramaciones', verbose_name='Reprogramado por')
+    fecha_registro = models.DateTimeField(default=timezone.now, db_column='Fec_reprog')
+    visto_cliente = models.BooleanField(default=False, db_column='Visto_cliente')
+
+    class Meta:
+        db_table = 'REPROGRAMACIONES'
+        verbose_name = 'Reprogramación'
+        verbose_name_plural = 'Reprogramaciones'
+        ordering = ['-fecha_registro', '-id_reprogramacion']  # la última primero
+
+    def __str__(self):
+        return f'Pedido {self.idPedido_id}: {self.fecha_anterior} → {self.fecha_nueva}'
+
+    @property
+    def motivo_completo(self):
+        """«Clima» o, para «Otro», lo que se escribió."""
+        if self.motivo == 'Otro':
+            return self.observacion or 'Otro'
+        return f'{self.motivo} ({self.observacion})' if self.observacion else self.motivo
+
+
 class Objeto(models.Model):
     """Catálogo de objetos que se pueden mudar. El inventario elige de acá en vez de escribir
     el nombre, así no se llena de variantes («mesa», «meza», «Mesa»). Lo que no está en la

@@ -1,5 +1,6 @@
 """Pantallas del pedido de mudanza (Hito 3). Las reglas viven en reglas.py."""
 from datetime import date, time
+from urllib.parse import quote
 
 from django.contrib import messages
 from django.http import Http404, JsonResponse
@@ -7,13 +8,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from usuarios.models import Pedido, PersonalPedido, Servicio
+from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio
 from usuarios.permisos import pantalla_inicio
 from usuarios.views import get_usuario_actual
 from . import reglas
 from .pdf import respuesta_pdf
 from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
-                    RegistroClienteForm, objetos_para_elegir)
+                    RegistroClienteForm, ReprogramarForm, objetos_para_elegir)
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -49,8 +50,12 @@ def lista(request):
     avisos = reglas.contar_avisos() if ve_todos else {}
     atrasadas = {p.pk for p in reglas.mudanzas_atrasadas()} if ve_todos else set()
     pedidos = list(pedidos)
+    # al cliente se le marca el pedido que cambió de horario y todavía no abrió
+    cambiados = set() if ve_todos else set(Reprogramacion.objects.filter(
+        idPedido__in=[p.pk for p in pedidos], visto_cliente=False).values_list('idPedido', flat=True))
     for p in pedidos:
         p.atrasada = p.pk in atrasadas
+        p.horario_cambiado = p.pk in cambiados
     return render(request, 'pedidos/lista.html', {
         'form': form, 've_todos': ve_todos, 'pedidos': pedidos, 'atrasadas': avisos.get(reglas.ATRASADA),
         'vencidos': avisos.get(reglas.VENCIDO), 'para_finalizar': avisos.get(reglas.PARA_FINALIZAR),
@@ -91,8 +96,21 @@ def detalle(request, id_pedido):
         atrasadas = reglas.mudanzas_atrasadas()
         siguiente = atrasadas.get(pedido)
         anterior = next((p for p, q in atrasadas.items() if q.pk == pedido.pk), None)
+    # Cambios de horario: el administrador ve el historial y puede avisar por WhatsApp; el
+    # cliente ve el último, y al abrir su pedido queda como visto
+    reprogramaciones = list(pedido.reprogramaciones.select_related('usuario'))
+    ultima = reprogramaciones[0] if reprogramaciones else None
+    cambio_nuevo = bool(ultima and not ultima.visto_cliente)
+    whatsapp = ''
+    if ultima and pedido.estado in Pedido.ACTIVOS:
+        telefono = reglas.telefono_whatsapp(pedido.idUsuario.Telefono)
+        if telefono:
+            whatsapp = f'https://wa.me/{telefono}?text={quote(reglas.mensaje_reprogramacion(ultima))}'
+    if cambio_nuevo and pedido.idUsuario_id == request.usuario.id_usuario:
+        pedido.reprogramaciones.filter(visto_cliente=False).update(visto_cliente=True)
     return render(request, 'pedidos/detalle.html', {
-        'pedido': pedido,
+        'pedido': pedido, 'reprogramaciones': reprogramaciones, 'ultima': ultima, 'cambio_nuevo': cambio_nuevo,
+        'whatsapp': whatsapp,
         'siguiente': siguiente, 'comparte_siguiente': siguiente and reglas.que_comparten(pedido, siguiente),
         'anterior': anterior, 'comparte_anterior': anterior and reglas.que_comparten(anterior, pedido),
         'chofer': next((x.idUsuario for x in personal if x.Funcion == PersonalPedido.CHOFER), None),
@@ -220,6 +238,32 @@ def asignar(request, id_pedido):
     return render(request, 'pedidos/asignar.html', {
         'pedido': pedido, 'form': form, 'max_ayudantes': reglas.MAX_AYUDANTES,
         'sugerido': sugerido})
+
+
+@requiere_permiso('PED_GESTIONAR')
+def reprogramar(request, id_pedido):
+    """Cambiar la fecha, la hora o el vehículo de un pedido, con el motivo. Queda en el historial
+    y el cliente lo ve en su pedido; desde el detalle se le puede avisar por WhatsApp."""
+    pedido = get_object_or_404(Pedido.objects.select_related('idUsuario', 'patente_vehiculo')
+                                             .prefetch_related('personal__idUsuario'), pk=id_pedido)
+    if pedido.estado not in Pedido.ACTIVOS:
+        messages.error(request, f'El pedido N° {id_pedido} está {pedido.estado.lower()}: no se puede reprogramar.')
+        return redirect('pedidos_detalle', id_pedido=id_pedido)
+    form = ReprogramarForm(request.POST or None, pedido=pedido, initial={
+        'fecha_servicio': pedido.fecha_servicio, 'hora_servicio': pedido.hora_servicio,
+        'vehiculo': pedido.patente_vehiculo_id, 'motivo': request.GET.get('motivo', '')})
+    if request.method == 'POST' and form.is_valid():
+        d = form.cleaned_data
+        try:
+            reglas.reprogramar(id_pedido, request.usuario, d['fecha_servicio'], d['hora_servicio'],
+                               d['vehiculo'].patente, d['motivo'], d['observacion'], d['quitar_ocupados'])
+        except reglas.ErrorPedido as e:
+            for campo, mensaje in e.errores.items():
+                form.add_error(campo if campo in form.fields else None, mensaje)
+        else:
+            messages.success(request, f'Pedido N° {id_pedido} reprogramado. Avisale al cliente.')
+            return redirect('pedidos_detalle', id_pedido=id_pedido)
+    return render(request, 'pedidos/reprogramar.html', {'pedido': pedido, 'form': form})
 
 
 @requiere_permiso('PED_ANULAR')

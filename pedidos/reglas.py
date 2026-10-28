@@ -12,8 +12,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from usuarios.models import (DetallePedido, InventarioDetalle, Objeto, Pedido, PersonalPedido, Servicio,
-                             Usuario, Vehiculo)
+from usuarios.models import (DetallePedido, InventarioDetalle, Objeto, Pedido, PersonalPedido, Reprogramacion,
+                             Servicio, Usuario, Vehiculo)
 
 MAX_DIAS_ADELANTO = 365
 MAX_CANTIDAD = 999
@@ -446,3 +446,83 @@ def asignar_personal(id_pedido, id_chofer, ids_ayudantes=()):
             [PersonalPedido(idPedido=pedido, idUsuario=chofer, Funcion=PersonalPedido.CHOFER)]
             + [PersonalPedido(idPedido=pedido, idUsuario=a, Funcion=PersonalPedido.AYUDANTE) for a in ayudantes])
     return pedido
+
+
+# ---------------------------------------------------------------- reprogramar
+def reprogramar(id_pedido, usuario, fecha, hora, patente, motivo, observacion='', quitar_ocupados=False):
+    """Cambia la fecha, la hora y, si hace falta, el vehículo de un pedido activo, y guarda el
+    cambio en REPROGRAMACIONES (de cuándo a cuándo, por qué y quién). El vehículo tiene que estar
+    libre en el horario nuevo. Si alguien del personal no lo está, se avisa quién; con
+    quitar_ocupados se lo saca del pedido (si era el chofer, queda en el aviso «Sin chofer»).
+    Si algo no es válido lanza ErrorPedido."""
+    errores = {}
+    observacion = (observacion or '').strip()
+    _validar_fecha(fecha, errores)
+    _validar_hora(fecha, hora, errores)
+    if motivo not in dict(Reprogramacion.MOTIVOS):
+        errores['motivo'] = 'Elegí el motivo de la lista.'
+    elif motivo == 'Otro' and len(observacion) < 5:
+        errores['observacion'] = 'Con «Otro», contá el motivo (5 caracteres o más).'
+    if len(observacion) > MAX_OBSERVACION:
+        errores['observacion'] = f'La observación puede tener hasta {MAX_OBSERVACION} caracteres.'
+    if errores:
+        raise ErrorPedido(errores)
+
+    with transaction.atomic():
+        pedido = Pedido.objects.select_for_update().get(pk=id_pedido)
+        if pedido.estado not in Pedido.ACTIVOS:
+            raise ErrorPedido(f'No se puede reprogramar un pedido {pedido.estado.lower()}.')
+        if (fecha, hora, patente) == (pedido.fecha_servicio, pedido.hora_servicio, pedido.patente_vehiculo_id):
+            raise ErrorPedido('Es el mismo horario y el mismo vehículo que ya tiene: cambiá algo.')
+        inicio = inicio_de(fecha, hora)
+        vehiculo = Vehiculo.objects.select_for_update().filter(patente=patente).first()
+        if not vehiculo or not vehiculos_libres(inicio, pedido.duracion_horas, pedido).filter(patente=patente).exists():
+            raise ErrorPedido({'vehiculo': f'El vehículo {patente} no está libre en ese horario. '
+                                           'Elegí otro vehículo u horario.'})
+
+        # el personal asignado tiene que estar libre en el horario nuevo
+        cruzados = pedidos_que_se_cruzan(inicio, pedido.duracion_horas, excluir=pedido)
+        ocupados = list(pedido.personal.select_related('idUsuario')
+                        .filter(idUsuario__in=PersonalPedido.objects.filter(idPedido__in=[p.pk for p in cruzados])
+                                                                    .values('idUsuario')))
+        if ocupados and not quitar_ocupados:
+            nombres = ', '.join(f'{x.idUsuario.Nombre} {x.idUsuario.Apellido}' for x in ocupados)
+            raise ErrorPedido({'quitar_ocupados': f'No está libre en ese horario: {nombres}. Marcá «sacarlo del '
+                                                  'pedido» y después asigná a otra persona, o elegí otro horario.'})
+        PersonalPedido.objects.filter(pk__in=[x.pk for x in ocupados]).delete()
+
+        Reprogramacion.objects.create(
+            idPedido=pedido, fecha_anterior=pedido.fecha_servicio, hora_anterior=pedido.hora_servicio,
+            vehiculo_anterior_id=pedido.patente_vehiculo_id, fecha_nueva=fecha, hora_nueva=hora,
+            vehiculo_nuevo=vehiculo, motivo=motivo, observacion=observacion or None, usuario=usuario)
+        pedido.fecha_servicio, pedido.hora_servicio, pedido.patente_vehiculo = fecha, hora, vehiculo
+        pedido.save(update_fields=['fecha_servicio', 'hora_servicio', 'patente_vehiculo'])
+    return pedido
+
+
+def telefono_whatsapp(telefono):
+    """El teléfono como lo pide wa.me (código de país sin «+»): «387 411-2233» → «5493874112233».
+    Vacío si no hay un número que sirva."""
+    digitos = re.sub(r'\D', '', telefono or '')
+    if digitos.startswith('54'):
+        return digitos
+    digitos = digitos.lstrip('0')
+    return '549' + digitos if len(digitos) >= 8 else ''
+
+
+def mensaje_reprogramacion(r):
+    """Texto para avisarle al cliente por WhatsApp."""
+    p, cliente = r.idPedido, r.idPedido.idUsuario
+    antes = inicio_de(r.fecha_anterior, r.hora_anterior)
+    ahora = inicio_de(r.fecha_nueva, r.hora_nueva)
+    dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+    cuando = lambda d: f'el {dias[d.weekday()]} {d:%d/%m} a las {d:%H:%M}'
+    motivo = r.motivo_completo
+    if r.motivo != 'Otro':
+        motivo = motivo[0].lower() + motivo[1:]
+    texto = (f'Hola {cliente.Nombre}, te escribimos de Mudanzas y Fletes Salta. Tu mudanza (pedido N° {p.pk}) '
+             f'cambió de horario: era {cuando(timezone.localtime(antes))} y ahora es {cuando(timezone.localtime(ahora))}. '
+             f'Motivo: {motivo}.')
+    if r.vehiculo_nuevo_id != r.vehiculo_anterior_id:
+        texto += f' Va el vehículo {r.vehiculo_nuevo_id}.'
+    return texto + ' Disculpá las molestias.'

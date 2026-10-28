@@ -1,9 +1,9 @@
 from django import forms
 from django.db import transaction
 
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 
-from usuarios.models import Objeto, Pedido, RecursoAsignado, Rol, Servicio, Usuario, Vehiculo
+from usuarios.models import Objeto, Pedido, RecursoAsignado, Reprogramacion, Rol, Servicio, Usuario, Vehiculo
 from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
 from . import reglas
 
@@ -117,6 +117,29 @@ class ItemInventarioForm(forms.Form):
 
 InventarioFormSet = forms.formset_factory(ItemInventarioForm, extra=0, min_num=1,
                                           validate_min=True, max_num=50, validate_max=True)
+
+
+class ReprogramarForm(forms.Form):
+    """Solo convierte tipos; lo que decide si el horario sirve está en reglas.reprogramar."""
+    fecha_servicio = forms.DateField(label='Fecha nueva',
+                                     widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
+    hora_servicio = forms.TimeField(label='Hora nueva', widget=forms.TimeInput(
+        attrs={'type': 'time', 'step': 900}, format='%H:%M'))
+    vehiculo = VehiculoField(queryset=Vehiculo.objects.none(), label='Vehículo', empty_label=None)
+    motivo = forms.ChoiceField(choices=[('', 'Elegí el motivo')] + Reprogramacion.MOTIVOS, label='Motivo')
+    observacion = forms.CharField(max_length=reglas.MAX_OBSERVACION, required=False, label='Observación',
+                                  widget=forms.TextInput(attrs={'autocomplete': 'off',
+                                                                'placeholder': 'Opcional; con «Otro», contá el motivo'}))
+    quitar_ocupados = forms.BooleanField(required=False, label='Si alguien del personal no está libre en el '
+                                                                'horario nuevo, sacarlo del pedido')
+
+    def __init__(self, *args, pedido, **kwargs):
+        super().__init__(*args, **kwargs)
+        # los disponibles, más el que ya tiene (aunque ahora esté en mantenimiento)
+        self.fields['vehiculo'].queryset = Vehiculo.objects.filter(
+            Q(estado='Disponible') | Q(pk=pedido.patente_vehiculo_id)).order_by('patente')
+        con_bootstrap(self)
+        self.fields['quitar_ocupados'].widget.attrs['class'] = 'form-check-input'
 
 
 class AnularForm(forms.Form):

@@ -28,6 +28,9 @@
                 <i class="bi bi-clock me-1"></i>Se puede finalizar desde el {{ pedido.inicio|date:"d/m/Y" }} a las {{ pedido.inicio|time:"H:i" }}</span>
             {% endif %}
             {% endif %}
+            {% if puede_gestionar and pedido.estado == 'Pendiente' or puede_gestionar and pedido.estado == 'Confirmado' %}
+            <a href="{% url 'pedidos_reprogramar' pedido.id_pedido %}" class="btn btn-outline-primary"><i class="bi bi-calendar2-week me-1"></i>Reprogramar</a>
+            {% endif %}
             {% if puede_anular and pedido.estado == 'Pendiente' or puede_anular and pedido.estado == 'Confirmado' %}
             <a href="{% url 'pedidos_anular' pedido.id_pedido %}" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Anular</a>
             {% endif %}
@@ -39,7 +42,9 @@
         {% if siguiente.ya_empezo %}El{% else %}A las {{ siguiente.inicio|time:"H:i" }}{% if siguiente.fecha_servicio != pedido.fecha_servicio %} del {{ siguiente.inicio|date:"d/m" }}{% endif %} empieza el{% endif %}
         <a href="{% url 'pedidos_detalle' siguiente.id_pedido %}" class="alert-link">pedido N° {{ siguiente.id_pedido }}</a>{% if siguiente.ya_empezo %} ya tendría que haber empezado{% endif %}
         con {{ comparte_siguiente }}.
-        Si ya terminó, finalizala; si no, avisale al cliente del pedido N° {{ siguiente.id_pedido }} que puede haber demora.
+        Si ya terminó, finalizala; si no, reprogramá el pedido N° {{ siguiente.id_pedido }} y avisale al cliente.
+        {% if puede_gestionar %}<div class="mt-2"><a href="{% url 'pedidos_reprogramar' siguiente.id_pedido %}?motivo=Demora+en+una+mudanza+anterior" class="btn btn-sm btn-danger">
+            <i class="bi bi-calendar2-week me-1"></i>Reprogramar el pedido N° {{ siguiente.id_pedido }}</a></div>{% endif %}
     </div>
     {% endif %}
     {% if anterior %}
@@ -47,12 +52,22 @@
         <i class="bi bi-alarm me-1"></i><b>Puede empezar tarde:</b> la mudanza anterior con {{ comparte_anterior }}
         (<a href="{% url 'pedidos_detalle' anterior.id_pedido %}" class="alert-link">pedido N° {{ anterior.id_pedido }}</a>)
         tenía que terminar a las {{ anterior.fin|time:"H:i" }} y todavía no se finalizó.
+        {% if puede_gestionar %}<div class="mt-2"><a href="{% url 'pedidos_reprogramar' pedido.id_pedido %}?motivo=Demora+en+una+mudanza+anterior" class="btn btn-sm btn-outline-dark">
+            <i class="bi bi-calendar2-week me-1"></i>Reprogramar este pedido</a></div>{% endif %}
+    </div>
+    {% endif %}
+    {% if not puede_gestionar and ultima and pedido.estado != 'Anulado' %}
+    <div class="alert alert-info" role="status">
+        <i class="bi bi-calendar2-week me-1"></i>{% if cambio_nuevo %}<span class="badge text-bg-primary me-1">Nuevo</span>{% endif %}
+        <b>Tu mudanza cambió de horario.</b> Era el {{ ultima.fecha_anterior|date:"d/m/Y" }} a las {{ ultima.hora_anterior|time:"H:i" }};
+        ahora es el <b>{{ ultima.fecha_nueva|date:"l"|lower }} {{ ultima.fecha_nueva|date:"d/m/Y" }} a las {{ ultima.hora_nueva|time:"H:i" }}</b>.
+        Motivo: {{ ultima.motivo_completo }}.{% if ultima.vehiculo_nuevo_id != ultima.vehiculo_anterior_id %} Va el vehículo {{ ultima.vehiculo_nuevo_id }}.{% endif %}
     </div>
     {% endif %}
     {% if pedido.vencido %}
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-1"></i><b>Pedido vencido:</b> la mudanza era el {{ pedido.inicio|date:"d/m/Y" }} a las {{ pedido.inicio|time:"H:i" }} y nadie lo confirmó.
-        {% if puede_gestionar %}Ya no se puede confirmar: anulalo y, si el cliente quiere, que pida una fecha nueva.{% else %}Si todavía necesitás la mudanza, pedí una fecha nueva.{% endif %}
+        {% if puede_gestionar %}Así no se puede confirmar: reprogramalo a una fecha nueva o anulalo.{% else %}Si todavía necesitás la mudanza, pedí una fecha nueva.{% endif %}
     </div>
     {% endif %}
 
@@ -72,6 +87,28 @@
         <p class="mb-0 {% if pedido.estado == 'Confirmado' %}text-danger fw-semibold{% else %}text-muted{% endif %}">Sin personal asignado.{% if pedido.estado == 'Pendiente' and se_puede_asignar %} Hace falta el chofer para confirmar.{% endif %}</p>
         {% endif %}
     </div>
+    {% if reprogramaciones %}
+    <div class="card-panel bg-white p-4 mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-0"><i class="bi bi-clock-history me-1"></i>Cambios de horario</h2>
+            {% if whatsapp %}
+            <a href="{{ whatsapp }}" target="_blank" rel="noopener" class="btn btn-sm btn-success"><i class="bi bi-whatsapp me-1"></i>Avisar al cliente por WhatsApp</a>
+            {% elif pedido.estado != 'Anulado' %}
+            <span class="small text-muted">El cliente no tiene un teléfono cargado para avisarle por WhatsApp.</span>
+            {% endif %}
+        </div>
+        <ul class="list-unstyled mb-0 small">
+            {% for r in reprogramaciones %}
+            <li class="{% if not forloop.last %}border-bottom pb-2 mb-2{% endif %}">
+                <b>{{ r.fecha_anterior|date:"d/m/Y" }} {{ r.hora_anterior|time:"H:i" }}</b> → <b>{{ r.fecha_nueva|date:"d/m/Y" }} {{ r.hora_nueva|time:"H:i" }}</b>
+                {% if r.vehiculo_nuevo_id != r.vehiculo_anterior_id %} · vehículo {{ r.vehiculo_anterior_id }} → {{ r.vehiculo_nuevo_id }}{% endif %}
+                <br>Motivo: {{ r.motivo_completo }} · {{ r.usuario.Nombre }} {{ r.usuario.Apellido }}, {{ r.fecha_registro|date:"d/m/Y H:i" }}
+                · {% if r.visto_cliente %}<span class="text-success">el cliente ya lo vio</span>{% else %}<span class="text-muted">el cliente todavía no lo vio</span>{% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     {% endif %}
 
     {% if pedido.estado == 'Anulado' %}
