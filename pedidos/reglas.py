@@ -332,6 +332,19 @@ def que_comparten(p, q):
     return ' y '.join([', '.join(partes[:-1]), partes[-1]]) if len(partes) > 1 else (partes[0] if partes else '')
 
 
+def recordatorio_finalizar():
+    """Confirmadas cuyo fin estimado ya pasó y nadie finalizó (las más viejas primero), con
+    `atrasada` en las que además otra mudanza está esperando. Para el aviso de todas las pantallas
+    del administrador (idea del proyecto de José)."""
+    ahora = timezone.now()
+    atrasadas = {p.pk for p in mudanzas_atrasadas()}
+    confirmadas = Pedido.objects.filter(estado=Pedido.CONFIRMADO, fecha_servicio__lte=timezone.localdate())                                 .select_related('idUsuario', 'patente_vehiculo')
+    vencidas = sorted((p for p in confirmadas if p.fin <= ahora), key=lambda p: p.fin)
+    for p in vencidas:
+        p.atrasada = p.pk in atrasadas
+    return vencidas
+
+
 def filtro_atrasadas():
     return Q(pk__in=[p.pk for p in mudanzas_atrasadas()])
 

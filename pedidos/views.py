@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio
@@ -191,6 +192,10 @@ def _accion(request, id_pedido, funcion, hecho):
         messages.success(request, f'Pedido N° {id_pedido} {hecho}.')
     except reglas.ErrorPedido as e:
         messages.error(request, str(e))
+    # el recordatorio de finalizar vuelve a la pantalla desde donde se tocó el botón
+    volver = request.POST.get('next', '')
+    if volver and url_has_allowed_host_and_scheme(volver, allowed_hosts={request.get_host()}):
+        return redirect(volver)
     return redirect('pedidos_detalle', id_pedido=id_pedido)
 
 

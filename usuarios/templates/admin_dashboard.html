@@ -33,6 +33,26 @@
   </div>
 </header>
 
+{% if recordatorio_finalizar %}
+<div class="aviso-atencion mx-6 mt-4 p-4 rounded-xl" role="region" aria-label="Mudanzas para finalizar">
+  <p class="font-bold text-sm mb-2"><i class="fa-solid fa-bell mr-1"></i>{% if recordatorio_finalizar|length == 1 %}Hay 1 mudanza que ya tendría que haber terminado.{% else %}Hay {{ recordatorio_finalizar|length }} mudanzas que ya tendrían que haber terminado.{% endif %} Si el equipo terminó, tocá «Finalizar»:</p>
+  <div class="space-y-2">
+    {% for r in recordatorio_finalizar %}
+    <div class="flex flex-wrap justify-between items-center gap-2 bg-white px-3 py-2 rounded-lg text-xs texto-tinta">
+      <span><strong>Pedido N° {{ r.id_pedido }}</strong> · {{ r.idUsuario.Nombre }} {{ r.idUsuario.Apellido }} · {{ r.patente_vehiculo_id }} · {{ r.fecha_servicio|date:"d/m" }}, fin estimado {{ r.hasta }}{% if r.atrasada %} · <strong>Otra mudanza la espera</strong>{% endif %}</span>
+      <span class="flex items-center gap-2">
+        <a href="{% url 'pedidos_detalle' r.id_pedido %}" class="btn-secundario px-3 py-1 rounded-lg">Ver pedido</a>
+        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" class="inline">{% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="btn-primary px-3 py-1 rounded-lg font-semibold cursor-pointer"><i class="fa-solid fa-flag-checkered mr-1"></i>Finalizar</button>
+        </form>
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- CONTENIDO PRINCIPAL -->
 <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 

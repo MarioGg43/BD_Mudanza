@@ -696,3 +696,36 @@ class AtrasadaTest(BaseReglas):
             self.assertContains(r, 'con el vehículo AD-321-JK.')
             r = self.client.get(f'/pedidos/{otra.pk}/')
             self.assertContains(r, 'Puede empezar tarde:')
+
+
+class RecordatorioFinalizarTest(BaseReglas):
+    """El aviso de todas las pantallas: confirmadas que ya debían terminar y nadie finalizó."""
+
+    def a_las(self, hora, dias=1):
+        momento = timezone.make_aware(datetime.combine(self.dia(dias), time(hora, 0)))
+        return mock.patch('django.utils.timezone.now', return_value=momento)
+
+    def test_aparece_cuando_paso_el_fin_y_se_va_al_finalizar(self):
+        p = self.confirmar(self.registrar(id_servicio=self.flete.id_servicio))  # mañana de 9 a 14
+        with self.a_las(13):
+            self.assertEqual(reglas.recordatorio_finalizar(), [])
+        with self.a_las(15):
+            [r] = reglas.recordatorio_finalizar()
+            self.assertEqual((r.pk, r.atrasada), (p.pk, False))
+            s = self.client.session
+            s['usuario_dni'], s['usuario_rol'] = ADMIN, 'Administrador'
+            s.save()
+            self.assertContains(self.client.get('/vehiculos/'), 'Hay 1 mudanza que ya tendría que haber terminado.')
+            r = self.client.post(f'/pedidos/{p.pk}/finalizar/', {'next': '/vehiculos/'})
+            self.assertRedirects(r, '/vehiculos/', fetch_redirect_response=False)
+            self.assertEqual(reglas.recordatorio_finalizar(), [])
+            r = self.client.post(f'/pedidos/{p.pk}/finalizar/', {'next': 'https://otro-sitio.com/'})
+            self.assertRedirects(r, f'/pedidos/{p.pk}/', fetch_redirect_response=False)  # no sale del sistema
+
+    def test_el_cliente_no_lo_ve(self):
+        self.confirmar(self.registrar(id_servicio=self.flete.id_servicio))
+        with self.a_las(15):
+            s = self.client.session
+            s['usuario_dni'], s['usuario_rol'] = CLIENTE, 'Cliente'
+            s.save()
+            self.assertNotContains(self.client.get('/pedidos/'), 'ya tendría que haber terminado')
