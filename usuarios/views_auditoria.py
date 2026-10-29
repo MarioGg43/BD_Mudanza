@@ -1,6 +1,7 @@
 """Consulta del log de auditoría: qué se modificó o anuló, cuándo y quién."""
 import json
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 
 from django import forms
 from django.apps import apps
@@ -9,6 +10,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render
+from django.urls import reverse
 
 from .models import LogAuditoria, Usuario
 from .permisos import requiere_permiso
@@ -45,22 +47,60 @@ class FiltroAuditoriaForm(forms.Form):
 
 MODELOS = {m._meta.db_table: m for m in apps.get_app_config('usuarios').get_models()}
 
+# Nombres para mostrar donde el del modelo no sirve («fecha anulacion», «estado», «total»…)
+ETIQUETAS = {
+    'estado': 'Estado', 'total': 'Total', 'fecha_anulacion': 'Fecha de anulación',
+    'motivo_anulacion': 'Motivo de anulación', 'Precio_base': 'Precio', 'subtotal': 'Subtotal',
+    'kilometraje': 'Kilometraje', 'observaciones': 'Observaciones', 'Activo': 'Activo', 'Clave': 'Clave',
+    'Telefono': 'Teléfono', 'fecha_anterior': 'Fecha anterior', 'hora_anterior': 'Hora anterior',
+    'fecha_nueva': 'Fecha nueva', 'hora_nueva': 'Hora nueva', 'motivo': 'Motivo', 'observacion': 'Observación',
+    'visto_cliente': 'Visto por el cliente', 'estado_objeto': 'Activo',
+}
+# Campos de plata: se muestran como «$20.000»
+DINERO = {'Precio_base', 'total', 'precio_unitario', 'subtotal', 'Monto', 'Monto_cob'}
+VERBOS = {LogAuditoria.ANULACION: 'anuló', LogAuditoria.BAJA: 'dio de baja', LogAuditoria.REACTIVACION: 'reactivó',
+          LogAuditoria.ELIMINACION: 'quitó', LogAuditoria.MODIFICACION: 'modificó'}
+
+
+def _campo(log, nombre):
+    modelo = MODELOS.get(log.tabla)
+    try:
+        return modelo._meta.get_field(nombre) if modelo else None
+    except FieldDoesNotExist:
+        return None
+
+
+def _etiqueta(log, nombre):
+    if nombre in ETIQUETAS:
+        return ETIQUETAS[nombre]
+    f = _campo(log, nombre)
+    texto = str(f.verbose_name) if f is not None else nombre.replace('_', ' ')
+    return texto[:1].upper() + texto[1:]
+
+
+def _plata(valor):
+    """«20000» → «$20.000»; con centavos solo si los hay."""
+    try:
+        n = Decimal(str(valor))
+    except InvalidOperation:
+        return valor
+    texto = f'{n:,.2f}' if n != n.to_integral_value() else f'{n:,.0f}'
+    return '$' + texto.replace(',', 'X').replace('.', ',').replace('X', '.')
+
 
 def _legible(log, campo, valor, nombres):
-    """El valor como lo entiende una persona: fechas en hora de Salta, Sí/No y usuarios por su nombre."""
+    """El valor como lo entiende una persona: plata con $, fechas en hora de Salta, Sí/No y personas por su nombre."""
     if valor in (None, ''):
         return '—'
     if isinstance(valor, bool):
         return 'Sí' if valor else 'No'
-    modelo = MODELOS.get(log.tabla)
-    try:
-        f = modelo._meta.get_field(campo) if modelo else None
-    except FieldDoesNotExist:
-        f = None
+    if campo in DINERO:
+        return _plata(valor)
+    f = _campo(log, campo)
     if f is not None and f.is_relation and f.related_model is Usuario:
         if valor not in nombres:
             u = Usuario.objects.filter(pk=valor).first()
-            nombres[valor] = f'{u.Apellido}, {u.Nombre}' if u else f'usuario {valor}'
+            nombres[valor] = f'{u.Nombre} {u.Apellido}' if u else f'usuario {valor}'
         return nombres[valor]
     if isinstance(f, models.DateTimeField):
         try:
@@ -77,14 +117,78 @@ def _legible(log, campo, valor, nombres):
     return valor
 
 
-def _cambios(log, nombres):
-    """[(campo, antes, después)] para mostrar en la tabla."""
+def _valores(log):
     try:
         antes = json.loads(log.valores_anteriores or '{}')
         despues = json.loads(log.valores_nuevos) if log.valores_nuevos else {}
     except ValueError:
-        return [('—', log.valores_anteriores, log.valores_nuevos)]
-    return [(c, _legible(log, c, antes.get(c), nombres), _legible(log, c, despues.get(c), nombres)) for c in antes]
+        return {}, {}
+    return antes, despues
+
+
+def _que_registro(log, antes, nombres):
+    """(texto, link) del registro: «el pedido N° 13», «el vehículo AA123XR», «a María Gómez»…"""
+    t, pk = log.tabla, log.id_registro
+    if t == 'PEDIDOS':
+        return f'el pedido N° {pk}', reverse('pedidos_detalle', args=[pk])
+    if t == 'VEHICULOS':
+        return f'el vehículo {pk}', reverse('detalleVehiculo', args=[pk])
+    if t == 'USUARIOS':
+        return f'a {_nombre_usuario(pk, nombres)}', None
+    if t in ('PERSONAL_PEDIDO', 'DETALLE_PEDIDOS', 'INVENTARIO_DETALLES', 'REPROGRAMACIONES') and antes.get('idPedido'):
+        return f'del pedido N° {antes["idPedido"]}', reverse('pedidos_detalle', args=[antes['idPedido']])
+    modelo = MODELOS.get(t)
+    obj = modelo.objects.filter(pk=pk).first() if modelo else None
+    if t == 'SERVICIOS':
+        return f'el servicio «{obj or pk}»', reverse('servicios_editar', args=[pk]) if obj else None
+    if t == 'OBJETOS':
+        return f'el objeto «{obj or pk}»', reverse('objetos_editar', args=[pk]) if obj else None
+    if t == 'ROLES':
+        return f'el rol «{obj or pk}»', reverse('roles_editar', args=[pk]) if obj else None
+    if t == 'RECURSOS_ASIGNADOS':
+        return f'el material «{antes.get("Materiales", pk)}»', None
+    if t == 'PERMISOS_ROLES':
+        return 'un permiso de un rol', None
+    return f'el registro {pk} de {TABLAS.get(t, t).lower()}', None
+
+
+def _nombre_usuario(pk, nombres):
+    if pk not in nombres:
+        u = Usuario.objects.filter(pk=pk).first()
+        nombres[pk] = f'{u.Nombre} {u.Apellido}' if u else f'usuario {pk}'
+    return nombres[pk]
+
+
+def _resumen(log, antes, despues, nombres):
+    """La frase de arriba de cada cambio: «Carlos Sarmiento anuló el pedido N° 13» y un detalle corto."""
+    quien = f'{log.usuario.Nombre} {log.usuario.Apellido}' if log.usuario else 'El sistema'
+    registro, link = _que_registro(log, antes, nombres)
+    verbo, detalle = VERBOS.get(log.accion, 'modificó'), ''
+    if log.accion == LogAuditoria.ANULACION:
+        detalle = despues.get('motivo_anulacion') or ''
+    elif log.accion == LogAuditoria.ELIMINACION and log.tabla == 'PERSONAL_PEDIDO':
+        verbo = f'sacó a {_nombre_usuario(antes.get("idUsuario"), nombres)} ({str(antes.get("Funcion", "")).lower()})'
+    elif log.tabla == 'PEDIDOS' and despues.get('estado') == 'Confirmado':
+        verbo = 'confirmó'
+    elif log.tabla == 'PEDIDOS' and despues.get('estado') == 'Finalizado':
+        verbo = 'finalizó'
+    elif log.tabla == 'PEDIDOS' and {'fecha_servicio', 'hora_servicio'} & set(antes):
+        verbo = 'reprogramó'
+    elif log.tabla == 'USUARIOS' and set(antes) == {'Clave'}:
+        verbo = 'cambió la clave de'
+        registro = registro[2:]  # «a María» → «María»
+    if not detalle and log.accion == LogAuditoria.MODIFICACION and len(antes) == 1:
+        campo = next(iter(antes))
+        if campo != 'Clave':
+            detalle = (f'{_etiqueta(log, campo)}: {_legible(log, campo, antes[campo], nombres)} → '
+                       f'{_legible(log, campo, despues.get(campo), nombres)}')
+    return f'{quien} {verbo} {registro}', detalle, link
+
+
+def _cambios(log, antes, despues, nombres):
+    """[(campo, antes, después)] para mostrar debajo de la frase."""
+    return [(_etiqueta(log, c), _legible(log, c, antes.get(c), nombres), _legible(log, c, despues.get(c), nombres))
+            for c in antes]
 
 
 @requiere_permiso('AUD_CONSULTAR')
@@ -108,7 +212,11 @@ def lista(request):
     pagina = Paginator(logs, 50).get_page(request.GET.get('pagina'))
     nombres = {}
     for log in pagina:
-        log.cambios = _cambios(log, nombres)
+        antes, despues = _valores(log)
+        log.frase, log.detalle, log.link = _resumen(log, antes, despues, nombres)
+        log.cambios = _cambios(log, antes, despues, nombres)
+        if log.accion == LogAuditoria.MODIFICACION and len(log.cambios) == 1 and log.detalle:
+            log.cambios = []  # la frase ya dice el único cambio: no se repite abajo
         log.nombre_tabla = TABLAS.get(log.tabla, log.tabla)
     filtros = request.GET.copy()
     filtros.pop('pagina', None)

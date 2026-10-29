@@ -25,25 +25,27 @@
 <p class="small text-muted">{{ pagina.paginator.count }} registro{{ pagina.paginator.count|pluralize }}.</p>
 <div class="card-panel bg-white p-0 overflow-auto">
     <table class="table align-middle mb-0 small">
-        <thead class="table-light"><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Tabla</th><th>Registro</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
+        <thead class="table-light"><tr><th style="width: 9rem;">Fecha y hora</th><th style="width: 7rem;">Acción</th><th>Qué pasó</th><th>Antes</th><th>Después</th></tr></thead>
         <tbody>
             {% for log in pagina %}
+            <tr class="border-top border-2">
+                <td rowspan="{{ log.cambios|length|add:1 }}" class="text-nowrap align-top">{{ log.fecha_hora|date:"d/m/Y" }}<br><span class="text-muted">{{ log.fecha_hora|date:"H:i:s" }}</span></td>
+                <td rowspan="{{ log.cambios|length|add:1 }}" class="align-top"><span class="badge {% if log.accion == 'Anulación' or log.accion == 'Eliminación' or log.accion == 'Baja' %}text-bg-danger{% elif log.accion == 'Reactivación' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ log.accion }}</span></td>
+                <td colspan="3">
+                    <span class="fw-bold">{{ log.frase }}</span>
+                    {% if log.link %}<a href="{{ log.link }}" class="ms-1 small text-decoration-none">Ver <i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+                    {% if log.detalle %}<div class="text-muted">{{ log.detalle }}</div>{% endif %}
+                </td>
+            </tr>
             {% for campo, antes, despues in log.cambios %}
             <tr>
-                {% if forloop.first %}
-                <td rowspan="{{ log.cambios|length }}" class="text-nowrap">{{ log.fecha_hora|date:"d/m/Y H:i:s" }}</td>
-                <td rowspan="{{ log.cambios|length }}">{% if log.usuario %}{{ log.usuario.Apellido }}, {{ log.usuario.Nombre }}{% else %}<span class="text-muted">Sistema</span>{% endif %}</td>
-                <td rowspan="{{ log.cambios|length }}"><span class="badge {% if log.accion == 'Anulación' or log.accion == 'Eliminación' or log.accion == 'Baja' %}text-bg-danger{% elif log.accion == 'Reactivación' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ log.accion }}</span></td>
-                <td rowspan="{{ log.cambios|length }}">{{ log.nombre_tabla }}</td>
-                <td rowspan="{{ log.cambios|length }}">{{ log.id_registro }}</td>
-                {% endif %}
-                <td class="fw-semibold">{{ campo }}</td>
+                <td class="ps-4 text-muted">{{ campo }}</td>
                 <td class="text-danger">{{ antes }}</td>
-                <td class="text-success">{% if log.accion == 'Eliminación' %}<span class="text-muted">(borrado)</span>{% else %}{{ despues }}{% endif %}</td>
+                <td class="text-success">{% if log.accion == 'Eliminación' %}<span class="text-muted">(se quitó)</span>{% else %}{{ despues }}{% endif %}</td>
             </tr>
             {% endfor %}
             {% empty %}
-            <tr><td colspan="8" class="text-center text-muted py-4">No hay registros con esos filtros.</td></tr>
+            <tr><td colspan="5" class="text-center text-muted py-4">No hay registros con esos filtros.</td></tr>
             {% endfor %}
         </tbody>
     </table>

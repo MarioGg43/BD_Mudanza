@@ -112,10 +112,32 @@ class AuditoriaLegibleTest(AuditoriaTest):
             reglas.anular(p.pk, self.admin, 'Prueba de formato')
         self.entrar(ADMIN)
         r = self.client.get('/auditoria/', {'accion': 'Anulación'})
-        cambios = dict((c, (a, d)) for c, a, d in r.context['pagina'][0].cambios)
-        self.assertEqual(cambios['usuario_anulacion'], ('—', 'Sarmiento, Carlos'))
-        self.assertEqual(cambios['fecha_anulacion'][1], timezone.localtime(Pedido.objects.get(pk=p.pk).fecha_anulacion)
+        log = r.context['pagina'][0]
+        cambios = dict((c, (a, d)) for c, a, d in log.cambios)
+        self.assertEqual(cambios['Anulado por'], ('—', 'Carlos Sarmiento'))
+        self.assertEqual(cambios['Fecha de anulación'][1], timezone.localtime(Pedido.objects.get(pk=p.pk).fecha_anulacion)
                          .strftime('%d/%m/%Y %H:%M'))
+        self.assertEqual(cambios['Estado'], ('Pendiente', 'Anulado'))
+        self.assertEqual((log.frase, log.detalle), (f'Carlos Sarmiento anuló el pedido N° {p.pk}', 'Prueba de formato'))
+        self.assertEqual(log.link, f'/pedidos/{p.pk}/')
+        self.assertContains(r, f'Carlos Sarmiento anuló el pedido N° {p.pk}')
+
+    def test_frases_y_plata(self):
+        from usuarios.models import Servicio
+        s = Servicio.objects.get(Tipo_servicio='Ayudante extra')
+        with con_usuario(self.admin):
+            s.Precio_base = 22500
+            s.save()
+            p = self.pedido()
+            reglas.asignar_personal(p.pk, Usuario.objects.get(DNI=40987654).pk)
+            reglas.confirmar(p.pk)
+            reglas.reprogramar(p.pk, self.admin, p.fecha_servicio, time(11, 0), 'AD-321-JK', 'Clima')
+        self.entrar(ADMIN)
+        logs = list(self.client.get('/auditoria/').context['pagina'])
+        frases = [(l.frase, l.detalle) for l in logs]
+        self.assertIn((f'Carlos Sarmiento reprogramó el pedido N° {p.pk}', 'Hora de inicio: 09:00 → 11:00'), frases)
+        self.assertIn((f'Carlos Sarmiento confirmó el pedido N° {p.pk}', 'Estado: Pendiente → Confirmado'), frases)
+        self.assertIn(('Carlos Sarmiento modificó el servicio «Ayudante extra»', 'Precio: $20.000 → $22.500'), frases)
 
     def test_sin_permiso_muestra_una_pantalla_y_no_texto_suelto(self):
         self.entrar(CLIENTE)
