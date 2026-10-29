@@ -85,8 +85,9 @@ class UtilidadesTest(TestCase):
 
     def test_clave_se_guarda_hasheada(self):
         h = hash_password('Admin123!')
-        self.assertEqual(len(h), 64)
+        self.assertIn('$', h)                 # formato de Django: algoritmo$...$sal$hash
         self.assertNotIn('Admin123!', h)
+        self.assertNotEqual(h, hash_password('Admin123!'))  # cada vez con otra sal
 
 
 class LoginTest(BaseHito2):
@@ -366,3 +367,32 @@ class PersonalMuestraTest(TestCase):
         self.assertEqual(Usuario.objects.count(), antes + 10)
         self.assertEqual(Usuario.objects.filter(idRol__nom_rol='Ayudante de Carga').count(), 8)
         self.assertEqual(Usuario.objects.get(DNI=39111222).NombreUsuario, 'gutierrezd')
+
+
+class ClavesTest(TestCase):
+    """Las claves se guardan con el cifrado de Django y las viejas en SHA-256 se actualizan al entrar."""
+
+    def setUp(self):
+        call_command('init_data', stdout=io.StringIO())
+        self.u = Usuario.objects.get(DNI=40987654)
+
+    def test_dos_usuarios_con_la_misma_clave_no_quedan_iguales(self):
+        otro = Usuario.objects.get(DNI=35123456)
+        self.u.set_clave('MismaClave1!')
+        otro.set_clave('MismaClave1!')
+        self.assertNotEqual(self.u.Clave, otro.Clave)  # tienen sal distinta
+        self.assertTrue(self.u.verificar_clave('MismaClave1!'))
+        self.assertFalse(self.u.verificar_clave('OtraClave1!'))
+
+    def test_una_clave_vieja_en_sha256_entra_y_se_actualiza(self):
+        import hashlib
+        vieja = hashlib.sha256('Usuario123!'.encode()).hexdigest()
+        Usuario.objects.filter(pk=self.u.pk).update(Clave=vieja)
+        self.u.refresh_from_db()
+        self.assertFalse(self.u.verificar_clave('Otra123!'))
+        self.assertTrue(self.u.verificar_clave('Usuario123!'))
+        self.u.refresh_from_db()
+        self.assertIn('$', self.u.Clave)                      # ya no es el SHA-256 viejo
+        self.assertTrue(self.u.verificar_clave('Usuario123!'))
+        from usuarios.models import LogAuditoria
+        self.assertFalse(LogAuditoria.objects.filter(tabla='USUARIOS').exists())  # no cuenta como cambio

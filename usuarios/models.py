@@ -104,10 +104,22 @@ class Usuario(models.Model):
         return f'{self.Apellido}, {self.Nombre} ({self.NombreUsuario})'
 
     def verificar_clave(self, clave_plana):
-        return self.Clave == hashlib.sha256(clave_plana.strip().encode('utf-8')).hexdigest()
+        """Las claves se guardan con PBKDF2. Una clave vieja (SHA-256 sin sal) se acepta y, en
+        ese mismo ingreso, se vuelve a guardar con PBKDF2: nadie tiene que cambiarla."""
+        from django.contrib.auth.hashers import check_password, make_password
+        plana = (clave_plana or '').strip()
+        if '$' in self.Clave:  # formato de Django («algoritmo$vueltas$sal$hash»); el SHA-256 viejo no tiene «$»
+            return check_password(plana, self.Clave)
+        if self.Clave == hashlib.sha256(plana.encode('utf-8')).hexdigest():
+            self.Clave = make_password(plana)
+            # update() y no save(): es el mismo valor de clave, no un cambio para la auditoría
+            Usuario.objects.filter(pk=self.pk).update(Clave=self.Clave)
+            return True
+        return False
 
     def set_clave(self, clave_plana):
-        self.Clave = hashlib.sha256(clave_plana.strip().encode('utf-8')).hexdigest()
+        from django.contrib.auth.hashers import make_password
+        self.Clave = make_password(clave_plana.strip())
 
     def registrar_acceso(self):
         self.FechaUltimoAcceso = timezone.now()

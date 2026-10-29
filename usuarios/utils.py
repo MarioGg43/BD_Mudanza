@@ -4,7 +4,9 @@ import unicodedata
 import hashlib
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.strip().encode('utf-8')).hexdigest()
+    """La clave cifrada con PBKDF2 (el algoritmo de Django: con sal y miles de vueltas)."""
+    from django.contrib.auth.hashers import make_password
+    return make_password(password.strip())
 
 def generate_username(apellido: str, nombre: str) -> str:
     def clean(text: str) -> str:

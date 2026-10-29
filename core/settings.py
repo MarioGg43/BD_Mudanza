@@ -95,6 +95,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 from django.contrib.messages import constants as messages_constants
 
+# Claves con PBKDF2 (el de Django). En las pruebas se usa uno rápido para no esperar en cada usuario.
+import sys
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 MESSAGE_TAGS = {
     messages_constants.ERROR: 'danger',
 }
