@@ -7,11 +7,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-cambia-esta-clave-en-produccion'
+# Salen del .env (ver .env.example). Sin .env quedan los valores de desarrollo.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or 'django-insecure-cambia-esta-clave-en-produccion'
 
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
 
 INSTALLED_APPS = [
