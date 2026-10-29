@@ -103,3 +103,23 @@ class AuditoriaTest(TestCase):
         self.assertEqual(self.client.get('/auditoria/', {'tabla': 'VEHICULOS'}).context['pagina'].paginator.count, 0)
         self.entrar(CLIENTE)
         self.assertEqual(self.client.get('/auditoria/').status_code, 403)
+
+
+class AuditoriaLegibleTest(AuditoriaTest):
+    def test_fechas_en_hora_local_y_usuarios_por_nombre(self):
+        p = self.pedido()
+        with con_usuario(self.admin):
+            reglas.anular(p.pk, self.admin, 'Prueba de formato')
+        self.entrar(ADMIN)
+        r = self.client.get('/auditoria/', {'accion': 'Anulación'})
+        cambios = dict((c, (a, d)) for c, a, d in r.context['pagina'][0].cambios)
+        self.assertEqual(cambios['usuario_anulacion'], ('—', 'Sarmiento, Carlos'))
+        self.assertEqual(cambios['fecha_anulacion'][1], timezone.localtime(Pedido.objects.get(pk=p.pk).fecha_anulacion)
+                         .strftime('%d/%m/%Y %H:%M'))
+
+    def test_sin_permiso_muestra_una_pantalla_y_no_texto_suelto(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/auditoria/')
+        self.assertEqual(r.status_code, 403)
+        self.assertContains(r, 'No tenés permiso para esta operación', status_code=403)
+        self.assertContains(r, 'Volver', status_code=403)

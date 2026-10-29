@@ -1,7 +1,12 @@
 """Consulta del log de auditoría: qué se modificó o anuló, cuándo y quién."""
 import json
+from datetime import date, datetime
 
 from django import forms
+from django.apps import apps
+from django.core.exceptions import FieldDoesNotExist
+from django.db import models
+from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render
 
@@ -38,16 +43,48 @@ class FiltroAuditoriaForm(forms.Form):
         return d
 
 
-def _cambios(log):
+MODELOS = {m._meta.db_table: m for m in apps.get_app_config('usuarios').get_models()}
+
+
+def _legible(log, campo, valor, nombres):
+    """El valor como lo entiende una persona: fechas en hora de Salta, Sí/No y usuarios por su nombre."""
+    if valor in (None, ''):
+        return '—'
+    if isinstance(valor, bool):
+        return 'Sí' if valor else 'No'
+    modelo = MODELOS.get(log.tabla)
+    try:
+        f = modelo._meta.get_field(campo) if modelo else None
+    except FieldDoesNotExist:
+        f = None
+    if f is not None and f.is_relation and f.related_model is Usuario:
+        if valor not in nombres:
+            u = Usuario.objects.filter(pk=valor).first()
+            nombres[valor] = f'{u.Apellido}, {u.Nombre}' if u else f'usuario {valor}'
+        return nombres[valor]
+    if isinstance(f, models.DateTimeField):
+        try:
+            return timezone.localtime(datetime.fromisoformat(str(valor).replace('Z', '+00:00'))).strftime('%d/%m/%Y %H:%M')
+        except ValueError:
+            return valor
+    if isinstance(f, models.DateField):
+        try:
+            return date.fromisoformat(str(valor)).strftime('%d/%m/%Y')
+        except ValueError:
+            return valor
+    if isinstance(f, models.TimeField):
+        return str(valor)[:5]
+    return valor
+
+
+def _cambios(log, nombres):
     """[(campo, antes, después)] para mostrar en la tabla."""
     try:
         antes = json.loads(log.valores_anteriores or '{}')
         despues = json.loads(log.valores_nuevos) if log.valores_nuevos else {}
     except ValueError:
         return [('—', log.valores_anteriores, log.valores_nuevos)]
-    vacio = '—'
-    return [(c, vacio if antes.get(c) in (None, '') else antes.get(c),
-             vacio if despues.get(c) in (None, '') else despues.get(c)) for c in antes]
+    return [(c, _legible(log, c, antes.get(c), nombres), _legible(log, c, despues.get(c), nombres)) for c in antes]
 
 
 @requiere_permiso('AUD_CONSULTAR')
@@ -69,8 +106,9 @@ def lista(request):
         if d['registro']:
             logs = logs.filter(id_registro=d['registro'].strip())
     pagina = Paginator(logs, 50).get_page(request.GET.get('pagina'))
+    nombres = {}
     for log in pagina:
-        log.cambios = _cambios(log)
+        log.cambios = _cambios(log, nombres)
         log.nombre_tabla = TABLAS.get(log.tabla, log.tabla)
     filtros = request.GET.copy()
     filtros.pop('pagina', None)

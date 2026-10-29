@@ -1,8 +1,8 @@
 """Control de acceso de todo el sistema: se consulta PERMISOS_ROLES, nunca el nombre del rol."""
 from functools import wraps
 
-from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import redirect
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
 
 from .models import PermisoRol, Usuario
 
@@ -85,7 +85,7 @@ def requiere_permiso(codigo):
             if not usuario:
                 return redirect('login')
             if not tiene_permiso(usuario, codigo):
-                return HttpResponseForbidden('No tenés permiso para esta operación.')
+                return render(request, 'sin_permiso_accion.html', status=403)
             request.usuario = usuario
             return vista(request, *args, **kwargs)
         return envoltura
