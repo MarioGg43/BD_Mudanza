@@ -179,11 +179,6 @@ def _resumen(log, antes, despues, nombres):
     elif log.tabla == 'USUARIOS' and set(antes) == {'Clave'}:
         verbo = 'cambió la clave de'
         registro = registro[2:]  # «a María» → «María»
-    if not detalle and log.accion == LogAuditoria.MODIFICACION and len(antes) == 1:
-        campo = next(iter(antes))
-        if campo != 'Clave':
-            detalle = (f'{_etiqueta(log, campo)}: {_legible(log, campo, antes[campo], nombres)} → '
-                       f'{_legible(log, campo, despues.get(campo), nombres)}')
     return f'{quien} {verbo} {registro}', detalle, link
 
 
@@ -223,9 +218,7 @@ def _preparar(logs):
     for log in logs:
         antes, despues = _valores(log)
         log.frase, log.detalle, log.link = _resumen(log, antes, despues, nombres)
-        log.cambios = _cambios(log, antes, despues, nombres)
-        if log.accion == LogAuditoria.MODIFICACION and len(log.cambios) == 1 and log.detalle:
-            log.cambios = []  # la frase ya dice el único cambio: no se repite abajo
+        log.cambios = _cambios(log, antes, despues, nombres)  # siempre en Antes / Después, aunque sea uno
         log.nombre_tabla = TABLAS.get(log.tabla, log.tabla)
     return logs
 

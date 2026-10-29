@@ -134,10 +134,12 @@ class AuditoriaLegibleTest(AuditoriaTest):
             reglas.reprogramar(p.pk, self.admin, p.fecha_servicio, time(11, 0), 'AD-321-JK', 'Clima')
         self.entrar(ADMIN)
         logs = list(self.client.get('/auditoria/').context['pagina'])
-        frases = [(l.frase, l.detalle) for l in logs]
-        self.assertIn((f'Carlos Sarmiento reprogramó el pedido N° {p.pk}', 'Hora de inicio: 09:00 → 11:00'), frases)
-        self.assertIn((f'Carlos Sarmiento confirmó el pedido N° {p.pk}', 'Estado: Pendiente → Confirmado'), frases)
-        self.assertIn(('Carlos Sarmiento modificó el servicio «Ayudante extra»', 'Precio: $20.000 → $22.500'), frases)
+        frases = {l.frase: l.cambios for l in logs}
+        # aunque cambie un solo dato, va en las columnas Antes / Después
+        self.assertEqual(frases[f'Carlos Sarmiento reprogramó el pedido N° {p.pk}'], [('Hora de inicio', '09:00', '11:00')])
+        self.assertEqual(frases[f'Carlos Sarmiento confirmó el pedido N° {p.pk}'], [('Estado', 'Pendiente', 'Confirmado')])
+        self.assertEqual(frases['Carlos Sarmiento modificó el servicio «Ayudante extra»'], [('Precio', '$20.000', '$22.500')])
+        self.assertTrue(all(l.detalle == '' for l in logs))  # el texto de abajo de la frase es solo para el motivo
 
     def test_sin_permiso_muestra_una_pantalla_y_no_texto_suelto(self):
         self.entrar(CLIENTE)
