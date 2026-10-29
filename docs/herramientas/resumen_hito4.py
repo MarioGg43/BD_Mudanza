@@ -93,7 +93,7 @@ def tabla(encabezado, filas, anchos=None, col_estado=None):
 t = doc.add_heading('Hito 4 · Taller de Programación', 0)
 for r in t.runs:
     r.font.color.rgb = TINTA
-p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Estado al 28/10/2026')
+p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Estado al 28/10/2026 (con capturas y borrador del DER)')
 p.runs[0].italic = True
 parrafo('Este documento marca qué pide la consigna del Hito 4 y cómo lo cumple el sistema: qué ya estaba, qué '
         'se agregó ahora y qué falta entregar. También explica qué se trajo del proyecto que adelantó José y '
@@ -158,14 +158,16 @@ tabla(['Lo que pide el Hito 4', 'Estado', 'Cómo lo cumple el sistema'], [
 titulo('Entregables', 2)
 tabla(['Entregable', 'Estado', 'Dónde está o qué falta'], [
     ['Documento de avance del proyecto', 'Falta', 'Lo arma el grupo; este documento sirve de base.'],
-    ['DER (cambió)', 'Falta dibujar',
-     'La lista completa de cambios está en «Cambios_pendientes_DER_DFD_Grupo5.docx»: OBJETOS, PERSONAL_PEDIDO, '
-     'REPROGRAMACIONES, LOG_AUDITORIA y los campos nuevos.'],
+    ['DER (cambió)', 'Agregado ahora (borrador)',
+     '«DER_borrador_Mudanzas_Grupo5.drawio»: las 17 tablas reales con PK, FK y relaciones, armado desde la base. '
+     'Revisarlo y darle el estilo del grupo. Los cambios explicados están en «Cambios_pendientes_DER_DFD_Grupo5.docx».'],
     ['DFD del proceso', 'Falta dibujar', 'Registrar un Pedido, Anular y Reprogramar; correcciones en el mismo Word.'],
     ['Scripts de base de datos actualizados', A,
      'docs/base_de_datos/01_estructura.sql (todas las tablas) y 02_datos_maestros.sql (roles, permisos, '
      'servicios, objetos, vehículos). Probados en una base vacía.'],
-    ['Capturas del proceso completo', 'Falta', 'Registración, consulta, anulación y comprobante (y la auditoría).'],
+    ['Capturas del proceso completo', 'Agregado ahora',
+     'Carpeta «Capturas»: 28 pantallas numeradas en orden (registración con la ventana de objetos, consulta con '
+     'filtros, asignar y confirmar, reprogramar, anulación, comprobante y PDF, auditoría, ABM y permisos).'],
 ], [150, 75, 235], col_estado=1)
 
 # ---------------------------------------------------------------- José
@@ -209,7 +211,8 @@ titulo('4. Cómo probarlo y sacar las capturas')
 lista([('Administrador: ', 'DNI 35123456 (Admin123!). Pedidos, reprogramar, anular, auditoría.'),
        ('Cliente: ', 'DNI 29876543 (Cliente123!). Pedir mudanza, mis pedidos, comprobante.'),
        ('Chofer: ', 'DNI 40987654 (Usuario123!). Portal con sus mudanzas.')])
-lista(['Registración: como cliente, «Pedir mudanza», elegir un camión mediano y un adicional y mirar el total.',
+lista(['Las capturas se pueden volver a sacar con: python docs/herramientas/capturas_hito4.py',
+       'Registración: como cliente, «Pedir mudanza», elegir un camión mediano y un adicional y mirar el total.',
        'Consulta: como administrador, «Pedidos» con filtros de fecha, estado y cliente, y abrir el detalle.',
        'Anulación: desde el detalle, «Anular» con un motivo; después mirarlo en «Auditoría».',
        'Comprobante: «Comprobante» y «Descargar PDF» desde el detalle.'])
