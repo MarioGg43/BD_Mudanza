@@ -88,7 +88,7 @@ def tabla(encabezado, filas, anchos=None):
 t = doc.add_heading('Cambios pendientes en el DER y los DFD', 0)
 for r in t.runs:
     r.font.color.rgb = TINTA
-p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Actualizado al 27/10/2026')
+p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Actualizado al 28/10/2026')
 p.runs[0].italic = True
 parrafo('Este documento junta todo lo que hay que agregar o corregir en el DER de alto refinamiento '
         'y en los DFD del documento oficial para que coincidan con lo que ya hace el sistema y con '
@@ -129,13 +129,15 @@ tabla(['Cambio', 'Antes', 'Después'], [
 
 titulo('1.3 SERVICIOS: principal y adicionales', 2)
 parrafo('Un pedido lleva un servicio principal (Mudanza local, Mudanza nacional o Flete urbano) y, '
-        'opcionales, adicionales sin precio (Embalaje, Desarmado y armado de muebles, Ayudante extra).')
+        'opcionales, adicionales con su precio (Embalaje $25.000, Desarmado y armado de muebles $35.000, '
+        'Ayudante extra $20.000).')
 tabla(['Campo nuevo', 'Tipo', 'Valores'], [
     ['categoria_servicio', 'VARCHAR(10)', 'Principal / Adicional'],
     ['Duracion_horas', 'SMALLINT (puede ser nulo)', 'Horas que ocupa el vehículo y el personal: de 5 a 120 '
                                                    '(5 días). Solo los principales; los adicionales quedan vacíos'],
 ], [140, 100, 220])
-parrafo('Precio_base de los adicionales queda en 0. Estado_servicio (BOOLEAN) ya está en el DER. '
+parrafo('El precio del principal es el de un camión chico: con uno mediano se suma un 25 % y con uno '
+        'grande, un 50 % (ver VEHICULOS). Estado_servicio (BOOLEAN) ya está en el DER. '
         'Duraciones cargadas: Flete urbano 5 h, Mudanza local 10 h, Mudanza nacional 48 h.')
 
 titulo('1.4 DETALLE_PEDIDOS: precio del día', 2)
@@ -143,7 +145,7 @@ parrafo('Hay una fila por cada servicio del pedido (el principal y los adicional
         'precio que tenía el servicio el día del pedido, para que si después cambia el precio el '
         'comprobante viejo no cambie.')
 tabla(['Campo nuevo', 'Tipo', 'Descripción'], [
-    ['precio_unitario', 'DECIMAL', 'Precio del servicio el día del pedido (0 en los adicionales)'],
+    ['precio_unitario', 'DECIMAL', 'Precio del servicio el día del pedido (el principal, con el recargo del camión)'],
     ['subtotal', 'DECIMAL', 'Igual al precio (no hay cantidades por servicio)'],
 ], [120, 80, 260])
 
@@ -156,7 +158,7 @@ tabla(['Campo', 'Tipo', 'Descripción'], [
     ['Hora_pedido', 'TIME', 'Hora de inicio de la mudanza (ya está)'],
     ['Duracion_horas (nuevo)', 'SMALLINT', 'Copia de la duración del servicio principal al pedir (si el '
                                            'servicio cambia, el pedido no). Fin = inicio + duración'],
-    ['Total_pedido (nuevo)', 'DECIMAL', 'Precio del servicio principal'],
+    ['Total_pedido (nuevo)', 'DECIMAL', 'Principal con el recargo del camión + adicionales (calculado)'],
     ['id_usuario_anulacion (nuevo)', 'INT (FK → USUARIOS)', 'Quién anuló el pedido'],
 ], [140, 110, 210])
 parrafo('Estados posibles de Estado_pedido: Pendiente, Confirmado, Finalizado, Anulado. «Vencido», '
@@ -166,8 +168,8 @@ parrafo('Estados posibles de Estado_pedido: Pendiente, Confirmado, Finalizado, A
 
 titulo('1.6 VEHICULOS: tipo y chofer', 2)
 tabla(['Campo', 'Tipo', 'Descripción'], [
-    ['tipo_vehiculo (nuevo)', 'VARCHAR(50)', 'Lista cerrada: Utilitario Mediano, Furgón Urbano, Camión Liviano, '
-                                             'Camión Pesado'],
+    ['tipo_vehiculo (nuevo)', 'VARCHAR(50)', 'Lista cerrada por tamaño: Camión Chico (+0 %), Camión Mediano '
+                                             '(+25 %) y Camión Grande (+50 % sobre el servicio principal)'],
     ['id_chofer (nuevo)', 'INT (FK → USUARIOS)', 'Chofer asignado al vehículo (puede estar vacío)'],
     ['observaciones_vehiculo (nuevo)', 'TEXT', 'Notas del vehículo'],
 ], [140, 110, 210])
@@ -208,7 +210,25 @@ tabla(['Campo', 'Tipo', 'Clave / descripción'], [
 parrafo('Relaciones: PEDIDOS 1 : N REPROGRAMACIONES, VEHICULOS 1 : N REPROGRAMACIONES (dos veces: '
         'anterior y nuevo) y USUARIOS 1 : N REPROGRAMACIONES.')
 
-titulo('1.9 Diferencias entre el DER del documento y el sistema', 2)
+titulo('1.9 Tabla nueva: LOG_AUDITORIA (pedido del Hito 4)', 2)
+parrafo('Cada modificación, anulación, baja, reactivación o borrado de un registro de cualquier tabla deja '
+        'una fila con los valores de antes y los de después, la fecha y hora y el usuario logueado. Se llena '
+        'sola (no depende de cada pantalla) y se consulta con filtros en la pantalla «Auditoría» (permiso '
+        'AUD_CONSULTAR). La clave de los usuarios nunca se guarda: figura como «(oculta)».')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_log', 'INT', 'PK'],
+    ['tabla_log', 'VARCHAR(60)', 'Tabla del registro (PEDIDOS, USUARIOS, VEHICULOS, …)'],
+    ['id_registro_log', 'VARCHAR(60)', 'Clave del registro modificado (texto: la de VEHICULOS es la patente)'],
+    ['accion_log', 'VARCHAR(20)', 'Modificación, Anulación, Baja, Reactivación o Eliminación'],
+    ['valores_anteriores_log', 'TEXT (JSON)', 'Los campos que cambiaron, con su valor anterior'],
+    ['valores_nuevos_log', 'TEXT (JSON)', 'Los mismos campos con su valor nuevo'],
+    ['fec_hora_log', 'DATETIME', 'Fecha y hora'],
+    ['id_usuario', 'INT', 'FK → USUARIOS (quién lo hizo; vacío si fue el sistema)'],
+], [150, 90, 220])
+parrafo('Relación: USUARIOS 1 : N LOG_AUDITORIA. No tiene FK a las demás tablas a propósito: guarda el nombre '
+        'de la tabla y la clave como texto para poder auditar cualquiera.')
+
+titulo('1.10 Diferencias entre el DER del documento y el sistema', 2)
 parrafo('El DER del documento tiene 16 tablas y el sistema trabaja con las del DER anterior. Estas tablas '
         'están en el DER pero el sistema todavía no las usa (hay que programarlas o explicarlo):')
 lista([('ESTADO_USUARIO: ', 'el sistema usa Estado_usuario (BOOLEAN) dentro de USUARIOS.'),
@@ -286,6 +306,7 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Confirmar Pedido', 'Administrador', 'Pedidos'],
     ['Finalizar Pedido', 'Administrador (solo desde la fecha y hora de la mudanza)', 'Pedidos'],
     ['Anular Pedido', 'Administrador (con motivo; queda quién y cuándo)', 'Pedidos'],
+    ['Consultar Auditoría', 'Administrador (filtros por fecha, tabla, acción, usuario y registro)', 'Log auditoría'],
     ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Aviso de cambio '
                            'de horario»', 'Pedidos, Reprogramaciones, Vehículos, Personal pedido'],
     ['Consultar Pedidos', 'Administrador (todos, con los avisos: atrasadas, vencidos, para finalizar, por '
