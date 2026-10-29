@@ -174,3 +174,20 @@ class ReprogramarConChoferTest(ReprogramarTest):
         self.reprogramar(patente='AE-123-CD', motivo='Problema técnico del vehículo')
         self.p.refresh_from_db()
         self.assertEqual(self.p.total, total)
+
+
+class ComprobanteConCambiosTest(ReprogramarPantallasTest):
+    def test_el_comprobante_muestra_el_cambio_de_horario(self):
+        reglas.reprogramar(self.p.pk, self.admin, self.dia(3), time(16, 0), 'AD-321-JK', 'Clima')
+        self.entrar(CLIENTE)
+        r = self.client.get(f'/pedidos/{self.p.pk}/comprobante/')
+        self.assertContains(r, 'Cambios de horario')
+        self.assertContains(r, f'Era el {self.dia():%d/%m/%Y} a las 09:00 y pasó al {self.dia(3):%d/%m/%Y} a las 16:00')
+        self.assertContains(r, 'Motivo: Clima.')
+        self.assertNotContains(r, 'Carlos Sarmiento')  # el cliente no ve quién de la empresa lo cambió
+        pdf = self.client.get(f'/pedidos/{self.p.pk}/comprobante/pdf/')
+        self.assertEqual(pdf.status_code, 200)
+
+    def test_sin_cambios_no_aparece(self):
+        self.entrar(CLIENTE)
+        self.assertNotContains(self.client.get(f'/pedidos/{self.p.pk}/comprobante/'), 'Cambios de horario')

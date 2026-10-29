@@ -12,6 +12,8 @@ from django.core.paginator import Paginator
 from django.shortcuts import render
 from django.urls import reverse
 
+from pedidos.pdf import respuesta_pdf
+
 from .models import LogAuditoria, Usuario
 from .permisos import requiere_permiso
 
@@ -191,8 +193,11 @@ def _cambios(log, antes, despues, nombres):
             for c in antes]
 
 
-@requiere_permiso('AUD_CONSULTAR')
-def lista(request):
+MAX_PDF = 500  # registros como máximo en el PDF (los más nuevos)
+
+
+def _consulta(request):
+    """El formulario y los registros con los filtros del GET: la usan la pantalla y el PDF."""
     form = FiltroAuditoriaForm(request.GET or None)
     logs = LogAuditoria.objects.select_related('usuario')
     if form.is_valid():
@@ -209,15 +214,51 @@ def lista(request):
             logs = logs.filter(usuario=d['usuario'])
         if d['registro']:
             logs = logs.filter(id_registro=d['registro'].strip())
-    pagina = Paginator(logs, 50).get_page(request.GET.get('pagina'))
+    return form, logs
+
+
+def _preparar(logs):
+    """Le agrega a cada registro la frase, el detalle, el link y los cambios para mostrar."""
     nombres = {}
-    for log in pagina:
+    for log in logs:
         antes, despues = _valores(log)
         log.frase, log.detalle, log.link = _resumen(log, antes, despues, nombres)
         log.cambios = _cambios(log, antes, despues, nombres)
         if log.accion == LogAuditoria.MODIFICACION and len(log.cambios) == 1 and log.detalle:
             log.cambios = []  # la frase ya dice el único cambio: no se repite abajo
         log.nombre_tabla = TABLAS.get(log.tabla, log.tabla)
+    return logs
+
+
+@requiere_permiso('AUD_CONSULTAR')
+def lista(request):
+    form, logs = _consulta(request)
+    pagina = Paginator(logs, 50).get_page(request.GET.get('pagina'))
+    _preparar(pagina)
     filtros = request.GET.copy()
     filtros.pop('pagina', None)
     return render(request, 'auditoria_lista.html', {'form': form, 'pagina': pagina, 'filtros': filtros.urlencode()})
+
+
+@requiere_permiso('AUD_CONSULTAR')
+def descargar(request):
+    """El log en PDF, con los mismos filtros que la pantalla."""
+    form, logs = _consulta(request)
+    total = logs.count()
+    usados = []
+    if form.is_valid():
+        for nombre, campo in form.fields.items():
+            valor = form.cleaned_data.get(nombre)
+            if valor:
+                if hasattr(valor, 'strftime'):
+                    texto = valor.strftime('%d/%m/%Y')
+                elif isinstance(campo, forms.ChoiceField):
+                    texto = dict(campo.choices).get(valor, valor)
+                elif isinstance(valor, Usuario):
+                    texto = f'{valor.Nombre} {valor.Apellido}'
+                else:
+                    texto = str(valor)
+                usados.append((campo.label, texto))
+    return respuesta_pdf(request, 'auditoria_pdf.html', {
+        'logs': _preparar(list(logs[:MAX_PDF])), 'total': total, 'max_pdf': MAX_PDF,
+        'filtros_usados': usados, 'emitido': timezone.localtime()}, 'Auditoria.pdf')

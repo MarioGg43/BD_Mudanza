@@ -20,6 +20,7 @@ urlpatterns = [
     path('usuarios/preview-username/', views.preview_username_view, name='preview_username'),
 
     path('auditoria/', views_auditoria.lista, name='auditoria_lista'),
+    path('auditoria/descargar/', views_auditoria.descargar, name='auditoria_descargar'),
     path('roles/', roles.lista, name='roles_lista'),
     path('roles/nuevo/', roles.crear, name='roles_crear'),
     path('roles/<int:id_rol>/editar/', roles.editar, name='roles_editar'),

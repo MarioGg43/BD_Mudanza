@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        .cambios-horario { background: var(--naranja-suave); border-radius: 8px; padding: 8px 12px; margin: -4px 0 14px;
+                           font-size: 13px; }
         :root {
             --naranja: #FF7A00; --rojo: #E10E0E; --naranja-osc: #C04F00; --naranja-suave: #FFF0E2;
             --grad: linear-gradient(128deg, #FF8A00 0%, #FF5E08 48%, #E10E0E 100%);
@@ -84,6 +86,11 @@
         <div><strong>Desde:</strong> {{ pedido.origen }}</div>
         <div><strong>Hasta:</strong> {{ pedido.destino }}</div>
     </div>
+    {% with cambios=pedido.reprogramaciones.all %}{% if cambios %}
+    <div class="cambios-horario"><strong>Cambios de horario</strong> (vale el de arriba):
+        {% for r in cambios reversed %}<div>Era el {{ r.fecha_anterior|date:"d/m/Y" }} a las {{ r.hora_anterior|time:"H:i" }} y pasó al {{ r.fecha_nueva|date:"d/m/Y" }} a las {{ r.hora_nueva|time:"H:i" }}{% if r.vehiculo_nuevo_id != r.vehiculo_anterior_id %} (vehículo {{ r.vehiculo_anterior_id }} → {{ r.vehiculo_nuevo_id }}){% endif %}. Motivo: {{ r.motivo_completo }}.</div>{% endfor %}
+    </div>
+    {% endif %}{% endwith %}
 
     <h2>Servicios</h2>
     <table>

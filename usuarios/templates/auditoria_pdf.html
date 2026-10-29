@@ -1,0 +1,20 @@
+<html><head><meta charset="utf-8">{% include 'pedidos/_pdf_estilos.html' with hoja="A4 landscape" %}</head><body>
+<table class="cab"><tr>
+    <td><img src="/static/img/logo.png" width="120"></td>
+    <td class="num"><h1>Log de auditoría</h1>Emitido el {{ emitido|date:"d/m/Y H:i" }}</td>
+</tr></table>
+<div class="linea"></div>
+<p><b>Filtros:</b> {% for etiqueta, valor in filtros_usados %}{{ etiqueta }}: {{ valor }}{% if not forloop.last %} · {% endif %}{% empty %}ninguno (todos los registros){% endfor %}
+· <b>{{ total }}</b> registro{{ total|pluralize }}{% if total > max_pdf %} (se muestran los {{ max_pdf }} más nuevos){% endif %}</p>
+<table>
+<tr><th width="12%">Fecha y hora</th><th width="11%">Acción</th><th width="41%">Qué pasó</th><th width="18%">Antes</th><th width="18%">Después</th></tr>
+{% for log in logs %}
+<tr><td width="12%">{{ log.fecha_hora|date:"d/m/Y" }}<br>{{ log.fecha_hora|date:"H:i:s" }}</td><td width="11%">{{ log.accion }}</td>
+<td width="41%"><b>{{ log.frase }}</b>{% if log.detalle %}<br>{{ log.detalle }}{% endif %}</td><td width="18%"></td><td width="18%"></td></tr>
+{% for campo, antes, despues in log.cambios %}
+<tr><td width="12%"></td><td width="11%"></td><td width="41%">&nbsp;&nbsp;&nbsp;{{ campo }}</td><td width="18%">{{ antes }}</td><td width="18%">{% if log.accion == 'Eliminación' %}(se quitó){% else %}{{ despues }}{% endif %}</td></tr>
+{% endfor %}
+{% empty %}<tr><td colspan="5">No hay registros con esos filtros.</td></tr>{% endfor %}
+</table>
+<p class="pie">Mudanzas y Fletes Salta · Log de auditoría generado desde el sistema.</p>
+</body></html>

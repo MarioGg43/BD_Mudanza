@@ -14,6 +14,9 @@
 <p><b>Fecha:</b> {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }}<br>
 <b>Desde:</b> {{ pedido.origen }}<br><b>Hasta:</b> {{ pedido.destino }}<br>
 <b>Vehículo:</b> {{ pedido.patente_vehiculo.patente }} — {{ pedido.patente_vehiculo.marca_modelo }}</p>
+{% with cambios=pedido.reprogramaciones.all %}{% if cambios %}
+<p><b>Cambios de horario</b> (vale el de arriba):<br>{% for r in cambios reversed %}Era el {{ r.fecha_anterior|date:"d/m/Y" }} a las {{ r.hora_anterior|time:"H:i" }} y pasó al {{ r.fecha_nueva|date:"d/m/Y" }} a las {{ r.hora_nueva|time:"H:i" }}{% if r.vehiculo_nuevo_id != r.vehiculo_anterior_id %} (vehículo {{ r.vehiculo_anterior_id }} → {{ r.vehiculo_nuevo_id }}){% endif %}. Motivo: {{ r.motivo_completo }}.<br>{% endfor %}</p>
+{% endif %}{% endwith %}
 <h2>Servicios</h2>
 <table><tr><th>Servicio</th><th width="20%" class="num">Precio</th><th width="20%" class="num">Subtotal</th></tr>
 {% for d in pedido.detalles.all %}<tr><td>{{ d.idServicio.Tipo_servicio }}{% if d.idServicio.Categoria == 'Adicional' %} <i>(adicional)</i>{% endif %}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>{% endfor %}

@@ -145,3 +145,17 @@ class AuditoriaLegibleTest(AuditoriaTest):
         self.assertEqual(r.status_code, 403)
         self.assertContains(r, 'No tenés permiso para esta operación', status_code=403)
         self.assertContains(r, 'Volver', status_code=403)
+
+
+class AuditoriaPdfTest(AuditoriaTest):
+    def test_descarga_el_pdf_con_los_filtros(self):
+        p = self.pedido()
+        with con_usuario(self.admin):
+            reglas.anular(p.pk, self.admin, 'Prueba del PDF')
+        self.entrar(ADMIN)
+        self.assertContains(self.client.get('/auditoria/?accion=Anulación'), '/auditoria/descargar/?accion=')
+        r = self.client.get('/auditoria/descargar/', {'accion': 'Anulación'})
+        self.assertEqual((r.status_code, r['Content-Type']), (200, 'application/pdf'))
+        self.assertTrue(r.content.startswith(b'%PDF'))
+        self.entrar(CLIENTE)
+        self.assertEqual(self.client.get('/auditoria/descargar/').status_code, 403)

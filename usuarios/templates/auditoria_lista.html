@@ -1,9 +1,12 @@
 {% extends 'vehiculos/base.html' %}
 {% block title %}Auditoría{% endblock %}
 {% block content %}
-<div class="mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+    <div>
     <h1 class="h3 fw-bold mb-1">Log de auditoría</h1>
     <p class="text-muted mb-0">Cada modificación, anulación, baja o borrado de un registro, con los valores de antes y de después, la fecha y hora y quién lo hizo.</p>
+    </div>
+    <a href="{% url 'auditoria_descargar' %}{% if filtros %}?{{ filtros }}{% endif %}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
 </div>
 
 <form method="get" class="card-panel bg-white p-3 mb-4">
