@@ -42,6 +42,9 @@
                 {% if 'OBJ_GESTIONAR' in permisos %}
                 <a href="{% url 'objetos_lista' %}"{% if '/objetos/' in ruta %} class="activo" aria-current="page"{% endif %}>Objetos</a>
                 {% endif %}
+                {% if 'AUD_CONSULTAR' in permisos %}
+                <a href="{% url 'auditoria_lista' %}"{% if '/auditoria/' in ruta %} class="activo" aria-current="page"{% endif %}>Auditoría</a>
+                {% endif %}
                 {% if 'MUDANZAS_OPERAR' in permisos %}
                 <a href="{% url 'usuario_portal' %}">Portal</a>
                 {% endif %}

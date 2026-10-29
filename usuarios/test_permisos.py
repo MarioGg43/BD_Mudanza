@@ -23,8 +23,8 @@ class CatalogoTest(TestCase):
     def setUpTestData(cls):
         call_command('init_data', stdout=io.StringIO())
 
-    def test_catalogo_de_16_permisos(self):
-        self.assertEqual(len(CODIGOS), 16)
+    def test_catalogo_de_17_permisos(self):
+        self.assertEqual(len(CODIGOS), 17)
         self.assertEqual(set(Permiso.objects.values_list('nom_permiso', flat=True)), set(CODIGOS))
         self.assertNotIn('MUDANZAS_ADMIN', CODIGOS)
 
@@ -32,7 +32,7 @@ class CatalogoTest(TestCase):
         for rol, codigos in PERMISOS_INICIALES.items():
             self.assertEqual(permisos_del_rol(rol), set(codigos), rol)
         self.assertNotIn('PED_REGISTRAR', PERMISOS_INICIALES['Administrador'])
-        self.assertEqual(len(PERMISOS_INICIALES['Administrador']), 15)
+        self.assertEqual(len(PERMISOS_INICIALES['Administrador']), 16)
 
     def test_init_data_no_repone_un_permiso_quitado(self):
         PermisoRol.objects.filter(idRol__nom_rol='Administrador', idPermiso__nom_permiso='USR_BAJA').delete()
@@ -58,7 +58,7 @@ class MigracionDatosTest(TestCase):
         self.assertFalse(Permiso.objects.filter(nom_permiso='MUDANZAS_ADMIN').exists())
         self.assertTrue({'USR_CONSULTAR', 'USR_CAMBIAR_ROL', 'ROL_GESTIONAR', 'VEH_GESTIONAR'}
                         <= permisos_del_rol('Administrador'))
-        self.assertEqual(Permiso.objects.count(), 16)
+        self.assertEqual(Permiso.objects.count(), 17)
 
     def test_mudanzas_admin_junto_a_veh_gestionar(self):
         call_command('init_data', stdout=io.StringIO())
@@ -73,4 +73,4 @@ class MigracionDatosTest(TestCase):
         self.assertIn('VEH_GESTIONAR', permisos_del_rol('Chofer'))
         self.assertEqual(PermisoRol.objects.filter(idRol__nom_rol='Administrador',
                                                    idPermiso__nom_permiso='VEH_GESTIONAR').count(), 1)
-        self.assertEqual(Permiso.objects.count(), 16)
+        self.assertEqual(Permiso.objects.count(), 17)

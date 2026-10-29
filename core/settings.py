@@ -33,6 +33,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'usuarios.auditoria.AuditoriaMiddleware',  # quién modifica, para LOG_AUDITORIA
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

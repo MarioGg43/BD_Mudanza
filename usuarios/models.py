@@ -432,3 +432,31 @@ class DetalleCobranza(models.Model):
 
     def __str__(self):
         return f'Pedido {self.idPedido_id} - Cobranza {self.idCobranza_id}'
+
+
+class LogAuditoria(models.Model):
+    """Cada modificación, anulación, baja o borrado de cualquier tabla: qué registro, qué valores
+    tenía antes y cuáles después, cuándo y quién. Lo llena solo usuarios/auditoria.py."""
+    MODIFICACION, ANULACION, BAJA, REACTIVACION, ELIMINACION = (
+        'Modificación', 'Anulación', 'Baja', 'Reactivación', 'Eliminación')
+    ACCIONES = [(a, a) for a in (MODIFICACION, ANULACION, BAJA, REACTIVACION, ELIMINACION)]
+
+    id_log = models.AutoField(primary_key=True)
+    tabla = models.CharField(max_length=60, db_column='tabla_log', verbose_name='Tabla')
+    id_registro = models.CharField(max_length=60, db_column='id_registro_log', verbose_name='Registro')
+    accion = models.CharField(max_length=20, choices=ACCIONES, db_column='accion_log', verbose_name='Acción')
+    valores_anteriores = models.TextField(db_column='valores_anteriores_log', verbose_name='Valores anteriores')
+    valores_nuevos = models.TextField(blank=True, default='', db_column='valores_nuevos_log',
+                                      verbose_name='Valores nuevos')
+    fecha_hora = models.DateTimeField(default=timezone.now, db_column='fec_hora_log', verbose_name='Fecha y hora')
+    usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, blank=True, null=True, db_column='id_usuario',
+                                related_name='auditoria', verbose_name='Usuario')
+
+    class Meta:
+        db_table = 'LOG_AUDITORIA'
+        verbose_name = 'Registro de auditoría'
+        verbose_name_plural = 'Log de auditoría'
+        ordering = ['-fecha_hora', '-id_log']
+
+    def __str__(self):
+        return f'{self.fecha_hora:%d/%m/%Y %H:%M} {self.accion} {self.tabla} {self.id_registro}'
