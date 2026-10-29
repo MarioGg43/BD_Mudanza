@@ -10,7 +10,7 @@ from datetime import time
 
 from django.core.management import call_command
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 
 from .models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Pedido,
@@ -396,3 +396,23 @@ class ClavesTest(TestCase):
         self.assertTrue(self.u.verificar_clave('Usuario123!'))
         from usuarios.models import LogAuditoria
         self.assertFalse(LogAuditoria.objects.filter(tabla='USUARIOS').exists())  # no cuenta como cambio
+
+
+class BaseDeOtraVersionTest(TransactionTestCase):
+    """Una base que antes corrió la versión de José tiene columnas sin valor por defecto que hacían
+    fallar el registro de pedidos; la migración 0015 las saca."""
+
+    def test_saca_las_columnas_viejas_y_se_puede_correr_de_nuevo(self):
+        import importlib
+        from django.apps import apps as django_apps
+        from django.db import connection
+        m = importlib.import_module('usuarios.migrations.0015_sacar_columnas_de_otra_version')
+        with connection.cursor() as c:
+            c.execute('ALTER TABLE PEDIDOS ADD COLUMN Notif_atraso_enviada tinyint(1) NOT NULL')
+            c.execute('ALTER TABLE OBJETOS ADD COLUMN volumen_m3_objeto decimal(6,2) NOT NULL')
+        with connection.schema_editor() as editor:
+            m.sacar_columnas(django_apps, editor)
+            m.sacar_columnas(django_apps, editor)  # la segunda vez no encuentra nada y no falla
+        with connection.cursor() as c:
+            self.assertNotIn('notif_atraso_enviada', m.columnas_existentes(c, 'PEDIDOS'))
+            self.assertNotIn('volumen_m3_objeto', m.columnas_existentes(c, 'OBJETOS'))
