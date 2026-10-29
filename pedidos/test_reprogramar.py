@@ -148,3 +148,29 @@ class ReprogramarPantallasTest(BaseReglas):
     def test_el_cliente_no_puede_reprogramar(self):
         self.entrar(CLIENTE)
         self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/reprogramar/').status_code, 403)
+
+
+class ReprogramarConChoferTest(ReprogramarTest):
+    """Al reprogramar se puede poner otro chofer (idea del proyecto de José)."""
+
+    def test_cambia_el_chofer_ocupado_por_uno_libre(self):
+        from usuarios.models import Rol
+        from usuarios.utils import hash_password
+        otro = Usuario.objects.create(
+            DNI=30111222, Nombre='Pablo', Apellido='Ruiz', Correo='pablo.ruiz@ejemplo.com', NombreUsuario='ruizp',
+            Clave=hash_password('Usuario123!'), idRol=Rol.objects.get(nom_rol='Chofer'))
+        reglas.asignar_personal(self.p.pk, self.chofer.pk, [self.ayudante.pk])
+        ocupa = self.registrar(patente='AE-123-CD', fecha_servicio=self.dia(2), hora_servicio=time(8, 0))
+        reglas.asignar_personal(ocupa.pk, self.chofer.pk)              # Luciana ocupada en el horario nuevo
+        with self.assertRaises(reglas.ErrorPedido) as ctx:
+            self.reprogramar(id_chofer=self.chofer.pk)                   # ella no sirve
+        self.assertIn('chofer', ctx.exception.errores)
+        self.reprogramar(id_chofer=otro.pk)                              # Pablo sí, sin marcar «sacarlo»
+        self.assertEqual(self.p.chofer, otro)
+        self.assertEqual([x.idUsuario for x in self.p.personal.filter(Funcion='Ayudante')], [self.ayudante])
+
+    def test_el_precio_no_cambia_aunque_vaya_un_camion_mas_grande(self):
+        total = self.p.total
+        self.reprogramar(patente='AE-123-CD', motivo='Problema técnico del vehículo')
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.total, total)

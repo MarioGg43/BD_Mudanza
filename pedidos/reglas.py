@@ -469,11 +469,14 @@ def asignar_personal(id_pedido, id_chofer, ids_ayudantes=()):
 
 
 # ---------------------------------------------------------------- reprogramar
-def reprogramar(id_pedido, usuario, fecha, hora, patente, motivo, observacion='', quitar_ocupados=False):
+def reprogramar(id_pedido, usuario, fecha, hora, patente, motivo, observacion='', quitar_ocupados=False,
+                id_chofer=None):
     """Cambia la fecha, la hora y, si hace falta, el vehículo de un pedido activo, y guarda el
     cambio en REPROGRAMACIONES (de cuándo a cuándo, por qué y quién). El vehículo tiene que estar
     libre en el horario nuevo. Si alguien del personal no lo está, se avisa quién; con
     quitar_ocupados se lo saca del pedido (si era el chofer, queda en el aviso «Sin chofer»).
+    Con id_chofer se pone otro chofer, que tiene que estar libre en el horario nuevo (idea del
+    proyecto de José). El precio no cambia aunque cambie el camión: es el acordado con el cliente.
     Si algo no es válido lanza ErrorPedido."""
     errores = {}
     observacion = (observacion or '').strip()
@@ -502,14 +505,25 @@ def reprogramar(id_pedido, usuario, fecha, hora, patente, motivo, observacion=''
 
         # el personal asignado tiene que estar libre en el horario nuevo
         cruzados = pedidos_que_se_cruzan(inicio, pedido.duracion_horas, excluir=pedido)
-        ocupados = list(pedido.personal.select_related('idUsuario')
-                        .filter(idUsuario__in=PersonalPedido.objects.filter(idPedido__in=[p.pk for p in cruzados])
-                                                                    .values('idUsuario')))
+        ocupado = PersonalPedido.objects.filter(idPedido__in=[p.pk for p in cruzados]).values('idUsuario')
+        chofer_nuevo = None
+        if id_chofer:
+            chofer_nuevo = (Usuario.objects.filter(pk=id_chofer, Activo=True, idRol__nom_rol=ROL_CHOFER)
+                            .exclude(pk__in=ocupado).first())
+            if chofer_nuevo is None:
+                raise ErrorPedido({'chofer': 'Ese chofer no está libre en el horario nuevo. Elegí otro.'})
+        actual = pedido.personal.select_related('idUsuario')
+        if chofer_nuevo:  # el chofer de antes se reemplaza: no importa si estaba ocupado
+            actual = actual.exclude(Funcion=PersonalPedido.CHOFER)
+        ocupados = list(actual.filter(idUsuario__in=ocupado))
         if ocupados and not quitar_ocupados:
             nombres = ', '.join(f'{x.idUsuario.Nombre} {x.idUsuario.Apellido}' for x in ocupados)
             raise ErrorPedido({'quitar_ocupados': f'No está libre en ese horario: {nombres}. Marcá «sacarlo del '
                                                   'pedido» y después asigná a otra persona, o elegí otro horario.'})
         PersonalPedido.objects.filter(pk__in=[x.pk for x in ocupados]).delete()
+        if chofer_nuevo:
+            pedido.personal.filter(Q(Funcion=PersonalPedido.CHOFER) | Q(idUsuario=chofer_nuevo)).delete()
+            PersonalPedido.objects.create(idPedido=pedido, idUsuario=chofer_nuevo, Funcion=PersonalPedido.CHOFER)
 
         Reprogramacion.objects.create(
             idPedido=pedido, fecha_anterior=pedido.fecha_servicio, hora_anterior=pedido.hora_servicio,

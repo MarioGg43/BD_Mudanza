@@ -261,7 +261,8 @@ def reprogramar(request, id_pedido):
         d = form.cleaned_data
         try:
             reglas.reprogramar(id_pedido, request.usuario, d['fecha_servicio'], d['hora_servicio'],
-                               d['vehiculo'].patente, d['motivo'], d['observacion'], d['quitar_ocupados'])
+                               d['vehiculo'].patente, d['motivo'], d['observacion'], d['quitar_ocupados'],
+                               id_chofer=d['chofer'].pk if d['chofer'] else None)
         except reglas.ErrorPedido as e:
             for campo, mensaje in e.errores.items():
                 form.add_error(campo if campo in form.fields else None, mensaje)

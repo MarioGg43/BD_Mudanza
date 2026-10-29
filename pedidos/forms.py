@@ -130,11 +130,17 @@ class ReprogramarForm(forms.Form):
     observacion = forms.CharField(max_length=reglas.MAX_OBSERVACION, required=False, label='Observación',
                                   widget=forms.TextInput(attrs={'autocomplete': 'off',
                                                                 'placeholder': 'Opcional; con «Otro», contá el motivo'}))
+    chofer = forms.ModelChoiceField(queryset=Usuario.objects.none(), required=False, label='Chofer',
+                                    empty_label='Dejar el que tiene')
     quitar_ocupados = forms.BooleanField(required=False, label='Si alguien del personal no está libre en el '
                                                                 'horario nuevo, sacarlo del pedido')
 
     def __init__(self, *args, pedido, **kwargs):
         super().__init__(*args, **kwargs)
+        # se controla en reglas.reprogramar que esté libre en el horario nuevo
+        self.fields['chofer'].queryset = Usuario.objects.filter(
+            Activo=True, idRol__nom_rol=reglas.ROL_CHOFER).order_by('Apellido', 'Nombre')
+        self.fields['chofer'].label_from_instance = lambda u: f'{u.Apellido}, {u.Nombre}'
         # los disponibles, más el que ya tiene (aunque ahora esté en mantenimiento)
         self.fields['vehiculo'].queryset = Vehiculo.objects.filter(
             Q(estado='Disponible') | Q(pk=pedido.patente_vehiculo_id)).order_by('patente')
