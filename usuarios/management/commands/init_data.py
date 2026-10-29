@@ -8,7 +8,7 @@ from usuarios.models import (
     Cobranza, DetalleCobranza,
 )
 from usuarios.permisos import CATALOGO, PERMISOS_INICIALES
-from usuarios.utils import hash_password, generate_username
+from usuarios.utils import hash_password, nombre_usuario_libre
 
 
 class Command(BaseCommand):
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             if not Usuario.objects.filter(DNI=dni).exists():
                 u = Usuario.objects.create(
                     DNI=dni, Apellido=ape, Nombre=nom, Correo=correo, Telefono=tel,
-                    NombreUsuario=generate_username(ape, nom),
+                    NombreUsuario=nombre_usuario_libre(ape, nom),
                     Clave=hash_password(clave),
                     Activo=True, DebeCambiarClave=debe_cambiar,
                     idRol=rol, idSueldo=sueldo,

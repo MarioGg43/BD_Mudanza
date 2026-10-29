@@ -355,3 +355,14 @@ class PortalTest(BaseHito2):
     def test_el_portal_muestra_el_nombre_de_los_permisos(self):
         self.entrar(CHOFER)
         self.assertContains(self.client.get('/portal/'), 'MUDANZAS_OPERAR')
+
+
+class PersonalMuestraTest(TestCase):
+    def test_suma_personal_sin_tocar_a_nadie_y_se_puede_correr_dos_veces(self):
+        call_command('init_data', stdout=io.StringIO())
+        antes = Usuario.objects.count()
+        call_command('personal_muestra', stdout=io.StringIO())
+        call_command('personal_muestra', stdout=io.StringIO())
+        self.assertEqual(Usuario.objects.count(), antes + 10)
+        self.assertEqual(Usuario.objects.filter(idRol__nom_rol='Ayudante de Carga').count(), 8)
+        self.assertEqual(Usuario.objects.get(DNI=39111222).NombreUsuario, 'gutierrezd')
