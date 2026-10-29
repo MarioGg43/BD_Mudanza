@@ -39,16 +39,17 @@
                 <p class="fw-semibold mb-1">¿Querés sumar algo más? <span class="text-muted fw-normal small">(opcional)</span></p>
                 {% for s in adicionales %}
                 <div class="form-check">
-                    <input class="form-check-input adicional" type="checkbox" name="adicionales" value="{{ s.id_servicio }}"
+                    <input class="form-check-input adicional" type="checkbox" name="adicionales" value="{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}"
                            id="adi{{ s.id_servicio }}"
                            {% if s.id_servicio|stringformat:'s' in adicionales_elegidos %}checked{% endif %}>
-                    <label class="form-check-label" for="adi{{ s.id_servicio }}">{{ s.Tipo_servicio }}</label>
+                    <label class="form-check-label" for="adi{{ s.id_servicio }}">{{ s.Tipo_servicio }}{% if s.Precio_base > 0 %} — ${{ s.Precio_base|floatformat:"0g" }}{% endif %}</label>
                 </div>
                 {% endfor %}
                 {% if form.adicionales.errors %}<div class="invalid-feedback d-block">{{ form.adicionales.errors.as_text }}</div>{% endif %}
             </div>
             {% endif %}
             <p class="fw-bold mt-3 mb-0">Total: $<span id="total">0</span></p>
+            <p class="text-muted small mb-0" id="detalleTotal">El servicio principal tiene un recargo según el camión: Mediano +25 %, Grande +50 %.</p>
             <p class="text-muted small mb-0" id="duracion"></p>
         </div>
 
@@ -145,13 +146,24 @@
   const form = document.getElementById('formPedido');
   const fmt = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
 
-  // Al elegir el servicio principal se despliegan los adicionales (no tienen precio:
-  // el total es el del principal)
+  // Al elegir el servicio principal se despliegan los adicionales. Total = principal con el
+  // recargo del camión elegido + adicionales a su precio (igual que reglas.registrar_pedido)
   const bloqueAdicionales = document.getElementById('bloqueAdicionales');
   function recalcular() {
     const elegido = form.querySelector('.servicio:checked');
     if (bloqueAdicionales && elegido) bloqueAdicionales.classList.remove('d-none');
-    document.getElementById('total').textContent = fmt(elegido ? parseFloat(elegido.dataset.precio) : 0);
+    const opcion = form.querySelector('[name="vehiculo"]').selectedOptions[0];
+    const recargo = opcion && opcion.dataset.recargo ? parseInt(opcion.dataset.recargo, 10) : 0;
+    const principal = elegido ? Math.round(parseFloat(elegido.dataset.precio) * (100 + recargo)) / 100 : 0;
+    const extras = [...form.querySelectorAll('.adicional:checked')].reduce((t, a) => t + parseFloat(a.dataset.precio || 0), 0);
+    document.getElementById('total').textContent = fmt(principal + extras);
+    const detalle = document.getElementById('detalleTotal');
+    if (elegido && opcion && opcion.value) {
+      detalle.textContent = 'Servicio $' + fmt(principal) + (recargo ? ' (con +' + recargo + ' % por el camión)' : '')
+        + (extras ? ' + adicionales $' + fmt(extras) : '') + '.';
+    } else {
+      detalle.textContent = 'El servicio principal tiene un recargo según el camión: Mediano +25 %, Grande +50 %.';
+    }
     mostrarDuracion();
   }
 
@@ -506,9 +518,11 @@
       const o = new Option(v.patente + ' · ' + v.descripcion + ' · hasta ' + fmt(v.capacidad_kg) + ' kg / '
                            + fmt(v.capacidad_m3) + ' m³', v.patente);
       o.selected = v.patente === elegido;
+      o.dataset.recargo = v.recargo;
       opciones.push(o);
     });
     select.replaceChildren(...opciones);
+    recalcular();
     // Si no hay ninguno libre, se explica por qué (regla: dos mudanzas de un vehículo no se superponen)
     const ayuda = document.getElementById('ayudaVehiculo');
     ayuda.textContent = motivo || 'Se muestran solo los vehículos libres en el horario elegido.';

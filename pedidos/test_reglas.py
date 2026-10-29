@@ -11,7 +11,9 @@ from django.test import TestCase
 from django.utils import timezone
 
 from pedidos import reglas
-from usuarios.models import DetallePedido, Objeto, Pedido, Servicio, Usuario
+from decimal import Decimal
+
+from usuarios.models import DetallePedido, Objeto, Pedido, Servicio, Usuario, Vehiculo
 
 CLIENTE, ADMIN = 29876543, 35123456
 
@@ -76,17 +78,27 @@ class RegistrarPedidoTest(BaseReglas):
                          (self.flete, 75000, 75000))
         self.assertEqual(p.total, self.flete.Precio_base)
 
-    def test_los_adicionales_se_anotan_sin_precio(self):
+    def test_los_adicionales_se_suman_a_su_precio(self):
         p = self.registrar(id_servicio=self.flete.id_servicio,
                            ids_adicionales=[self.armado.id_servicio, self.embalaje.id_servicio])
         self.assertEqual([(d.idServicio, d.precio_unitario, d.subtotal) for d in p.detalles.all()],
-                         [(self.flete, 75000, 75000), (self.armado, 0, 0), (self.embalaje, 0, 0)])
-        self.assertEqual(p.total, 75000)
+                         [(self.flete, 75000, 75000), (self.armado, 35000, 35000), (self.embalaje, 25000, 25000)])
+        self.assertEqual(p.total, 135000)
 
-    def test_un_adicional_con_precio_cargado_igual_va_sin_precio(self):
-        Servicio.objects.filter(pk=self.embalaje.pk).update(Precio_base=40000)
+    def test_el_principal_tiene_recargo_segun_el_camion(self):
+        # AD-321-JK es chico (0 %), AF-456-EF mediano (+25 %) y AE-123-CD grande (+50 %)
+        self.assertEqual(self.registrar().total, 185000)
+        grande = self.registrar(patente='AE-123-CD', ids_adicionales=[self.embalaje.id_servicio])
+        self.assertEqual(grande.detalles.first().precio_unitario, Decimal('277500'))
+        self.assertEqual(grande.total, Decimal('302500'))  # 185.000 + 50 % + 25.000 de embalaje
+        Vehiculo.objects.filter(pk='AF-456-EF').update(estado='Disponible')
+        self.assertEqual(self.registrar(patente='AF-456-EF', fecha_servicio=self.dia(2)).total, Decimal('231250'))
+
+    def test_el_precio_queda_fijo_aunque_cambie_el_servicio(self):
         p = self.registrar(ids_adicionales=[self.embalaje.id_servicio])
-        self.assertEqual(p.total, 185000)
+        Servicio.objects.filter(pk=self.embalaje.pk).update(Precio_base=40000)
+        p.refresh_from_db()
+        self.assertEqual(p.total, 210000)
 
     def test_un_adicional_repetido_cuenta_una_vez(self):
         p = self.registrar(ids_adicionales=[self.embalaje.id_servicio, self.embalaje.id_servicio])

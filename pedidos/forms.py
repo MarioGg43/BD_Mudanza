@@ -205,7 +205,8 @@ class ServicioForm(forms.ModelForm):
         fields = ['Tipo_servicio', 'Categoria', 'Precio_base', 'Duracion_horas', 'Activo']
         labels = {'Tipo_servicio': 'Tipo de servicio', 'Precio_base': 'Precio base ($)'}
         help_texts = {'Categoria': 'El cliente elige un principal por pedido y, si quiere, le suma adicionales. '
-                                   'Los adicionales no tienen precio.',
+                                   'El principal se cobra con un recargo según el camión (Mediano +25 %, '
+                                   'Grande +50 %); los adicionales, a su precio.',
                       'Duracion_horas': f'Cuánto ocupa el vehículo y el personal: de {reglas.MIN_HORAS} horas '
                                         f'a {reglas.MAX_HORAS} (5 días). Un día de trabajo son unas 10.'}
 
@@ -214,7 +215,7 @@ class ServicioForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['materiales'].initial = ', '.join(
                 self.instance.recursos.values_list('Materiales', flat=True))
-        self.fields['Precio_base'].required = False  # lo exige clean() solo para los principales
+        self.fields['Precio_base'].required = False  # en los adicionales puede quedar en 0
         self.fields['Duracion_horas'].widget.attrs.update(min=reglas.MIN_HORAS, max=reglas.MAX_HORAS)
         con_bootstrap(self)
         self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
@@ -222,10 +223,11 @@ class ServicioForm(forms.ModelForm):
     def clean(self):
         d = super().clean()
         if d.get('Categoria') == Servicio.ADICIONAL:
-            d['Precio_base'] = 0  # los adicionales no tienen precio ni duración propia
-            d['Duracion_horas'] = None
-            self.errors.pop('Precio_base', None)
+            d['Precio_base'] = d.get('Precio_base') or 0  # sin precio = gratis
+            d['Duracion_horas'] = None  # no suman tiempo: la duración es la del principal
             self.errors.pop('Duracion_horas', None)
+            if d['Precio_base'] < 0:
+                self.add_error('Precio_base', 'El precio no puede ser negativo.')
         elif d.get('Categoria') == Servicio.PRINCIPAL:
             if not (d.get('Precio_base') or 0) > 0:
                 self.add_error('Precio_base', 'El precio tiene que ser mayor a 0.')

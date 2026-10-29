@@ -77,11 +77,17 @@ class ServiciosTest(TestCase):
         r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'X', 'Precio_base': '1', 'materiales': ''})
         self.assertIn('Categoria', r.context['form'].errors)
 
-    def test_un_adicional_no_guarda_precio(self):
+    def test_un_adicional_guarda_su_precio_o_queda_gratis(self):
         self.entrar(ADMIN)
         self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Seguro', 'Categoria': 'Adicional',
                                                'Precio_base': '9999', 'Activo': 'on', 'materiales': ''})
-        self.assertEqual(Servicio.objects.get(Tipo_servicio='Seguro').Precio_base, 0)
+        self.assertEqual(Servicio.objects.get(Tipo_servicio='Seguro').Precio_base, 9999)
+        self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Regalo', 'Categoria': 'Adicional',
+                                               'Precio_base': '', 'Activo': 'on', 'materiales': ''})
+        self.assertEqual(Servicio.objects.get(Tipo_servicio='Regalo').Precio_base, 0)
+        r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Mal', 'Categoria': 'Adicional',
+                                                   'Precio_base': '-5', 'Activo': 'on', 'materiales': ''})
+        self.assertIn('Precio_base', r.context['form'].errors)
 
     def test_un_principal_necesita_duracion_de_5_a_120_horas(self):
         self.entrar(ADMIN)
@@ -106,7 +112,7 @@ class ServiciosTest(TestCase):
         self.assertContains(r, '<td>Adicional</td>', html=True)
         self.assertContains(r, '<td class="text-end">10 h</td>', html=True)  # la mudanza local
         self.assertContains(r, 'Embalaje')
-        self.assertContains(r, 'Sin precio')
+        self.assertContains(r, '$25.000,00')  # el embalaje ahora tiene precio
 
     def test_el_cliente_no_entra(self):
         self.entrar(CLIENTE)

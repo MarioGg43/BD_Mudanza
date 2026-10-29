@@ -20,7 +20,7 @@ class VehiculosTest(TestCase):
         s.save()
 
     def datos(self, **cambios):
-        base = {'patente': ' ab 999 zz ', 'marca_modelo': 'Fiat Ducato', 'tipo_vehiculo': 'Furgón Urbano',
+        base = {'patente': ' ab 999 zz ', 'marca_modelo': 'Fiat Ducato', 'tipo_vehiculo': 'Camión Chico',
                 'capacidad_kg': '1500', 'capacidad_m3': '10', 'estado': 'Disponible',
                 'kilometraje': '0', 'anio': '2024', 'chofer_asignado': '', 'observaciones': ''}
         base.update(cambios)

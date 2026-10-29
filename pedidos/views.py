@@ -178,7 +178,7 @@ def vehiculos_libres(request):
     if not servicio:
         return JsonResponse({'vehiculos': [], 'motivo': 'Elegí el servicio para ver los vehículos libres.'})
     horas = servicio.Duracion_horas or reglas.MIN_HORAS
-    libres = [{'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}',
+    libres = [{'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}', 'recargo': v.recargo,
                'capacidad_kg': float(v.capacidad_kg), 'capacidad_m3': float(v.capacidad_m3)}
               for v in reglas.vehiculos_libres(reglas.inicio_de(fecha, hora), horas)]
     return JsonResponse({'vehiculos': libres, 'motivo': '' if libres else reglas.motivo_sin_vehiculos()})

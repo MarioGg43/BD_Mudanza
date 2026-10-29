@@ -115,8 +115,10 @@ class Usuario(models.Model):
 
 
 class Vehiculo(models.Model):
-    # Lista cerrada: con texto libre aparecían variantes como «Camion» y «Camión Liviano»
-    TIPOS = ['Utilitario Mediano', 'Furgón Urbano', 'Camión Liviano', 'Camión Pesado']
+    # Lista cerrada por tamaño: el tamaño ajusta el precio del servicio principal
+    CHICO, MEDIANO, GRANDE = 'Camión Chico', 'Camión Mediano', 'Camión Grande'
+    TIPOS = [CHICO, MEDIANO, GRANDE]
+    RECARGOS = {CHICO: 0, MEDIANO: 25, GRANDE: 50}  # % sobre el precio del servicio principal
 
     patente = models.CharField(max_length=15, primary_key=True, db_column='Patente',
                                verbose_name='Patente')
@@ -155,9 +157,15 @@ class Vehiculo(models.Model):
     def __str__(self):
         return f'{self.patente} - {self.marca_modelo} ({self.estado})'
 
+    @property
+    def recargo(self):
+        """Porcentaje que se suma al servicio principal por el tamaño del camión (0, 25 o 50)."""
+        return self.RECARGOS.get(self.tipo_vehiculo, 0)
+
 
 class Servicio(models.Model):
-    # El pedido lleva un servicio principal (la mudanza o el flete) y, si quiere, adicionales
+    # El pedido lleva un servicio principal (la mudanza o el flete) y, si quiere, adicionales.
+    # El principal se cobra según el tamaño del camión; los adicionales, a su precio.
     PRINCIPAL, ADICIONAL = 'Principal', 'Adicional'
     CATEGORIAS = [(PRINCIPAL, 'Principal (mudanza o flete)'), (ADICIONAL, 'Adicional (embalaje, armado, etc.)')]
 

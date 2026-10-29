@@ -71,13 +71,13 @@ class Command(BaseCommand):
 
         # 5. Vehículos
         vehiculos_data = [
-            ('AE-123-CD', 'Mercedes-Benz Accelo 815', 'Camión Pesado', 5000.0, 32.0,
+            ('AE-123-CD', 'Mercedes-Benz Accelo 815', 'Camión Grande', 5000.0, 32.0,
              'Disponible', 45200.0, 2022, chofer, 'Equipado con rampa hidráulica y mantas de protección.'),
-            ('AF-456-EF', 'Ford Transit Chasis', 'Utilitario Mediano', 2200.0, 18.0,
+            ('AF-456-EF', 'Ford Transit Chasis', 'Camión Mediano', 2200.0, 18.0,
              'En Viaje', 28100.0, 2023, None, 'Asignado a servicio interurbano Salta - Cafayate.'),
-            ('AC-789-GH', 'Iveco Daily 70C17', 'Camión Liviano', 3500.0, 24.0,
+            ('AC-789-GH', 'Iveco Daily 70C17', 'Camión Mediano', 3500.0, 24.0,
              'En Mantenimiento', 89300.0, 2020, None, 'Service programado de frenos y amortiguadores.'),
-            ('AD-321-JK', 'Renault Master Furgón', 'Furgón Urbano', 1600.0, 12.0,
+            ('AD-321-JK', 'Renault Master Furgón', 'Camión Chico', 1600.0, 12.0,
              'Disponible', 34500.0, 2021, None, 'Ideal para fletes rápidos en microcentro.'),
         ]
         for pat, marca, tipo, kg, m3, est, km, anio, ch, obs in vehiculos_data:
@@ -94,9 +94,9 @@ class Command(BaseCommand):
             ('Mudanza local', P, 185000, 10, 'Mantas, film y cintas'),
             ('Mudanza nacional', P, 640000, 48, 'Mantas, film, cintas y zunchos'),
             ('Flete urbano', P, 75000, 5, 'Correas y mantas'),
-            ('Embalaje', A, 0, None, 'Cajas, papel burbuja y cinta'),
-            ('Desarmado y armado de muebles', A, 0, None, 'Herramientas'),
-            ('Ayudante extra', A, 0, None, None),
+            ('Embalaje', A, 25000, None, 'Cajas, papel burbuja y cinta'),
+            ('Desarmado y armado de muebles', A, 35000, None, 'Herramientas'),
+            ('Ayudante extra', A, 20000, None, None),
         ]
         for tipo, categoria, precio, horas, materiales in servicios_data:
             serv, creado = Servicio.objects.get_or_create(

@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1">Servicios</h1>
-        <p class="text-muted mb-0">Lo que el cliente puede elegir al pedir una mudanza: un principal por pedido y los adicionales que quiera.</p>
+        <p class="text-muted mb-0">Lo que el cliente puede elegir al pedir una mudanza: un principal por pedido (con recargo según el camión: Mediano +25 %, Grande +50 %) y los adicionales que quiera.</p>
     </div>
     <a href="{% url 'servicios_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo servicio</a>
 </div>
@@ -16,7 +16,7 @@
             <tr class="{% if not s.Activo %}text-muted{% endif %}">
                 <td class="fw-semibold">{{ s.Tipo_servicio }}</td>
                 <td>{{ s.Categoria }}</td>
-                <td class="text-end">{% if s.Categoria == 'Adicional' %}<span class="text-muted">Sin precio</span>{% else %}${{ s.Precio_base|floatformat:"2g" }}{% endif %}</td>
+                <td class="text-end">{% if s.Precio_base > 0 %}${{ s.Precio_base|floatformat:"2g" }}{% else %}<span class="text-muted">Sin precio</span>{% endif %}</td>
                 <td class="text-end">{% if s.Categoria == 'Adicional' %}<span class="text-muted">—</span>{% else %}{{ s.Duracion_horas }} h{% endif %}</td>
                 <td class="small">{% for r in s.recursos.all %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
                 <td class="text-end">{% if s.cant_pedidos and 'PED_GESTIONAR' in permisos %}<a href="{% url 'pedidos_lista' %}?servicio={{ s.id_servicio }}">{{ s.cant_pedidos }}</a>{% else %}{{ s.cant_pedidos }}{% endif %}</td>

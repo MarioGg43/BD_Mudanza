@@ -7,6 +7,7 @@ escribe corre en una transacción: o se guarda todo, o no se guarda nada.
 import re
 import unicodedata
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.db.models import Q
@@ -179,11 +180,16 @@ def _validar_items(items, errores):
     return limpios
 
 
+def precio_principal(principal, vehiculo):
+    """El servicio principal con el recargo por tamaño del camión (Chico 0 %, Mediano 25 %, Grande 50 %)."""
+    return (principal.Precio_base * (100 + vehiculo.recargo) / 100).quantize(Decimal('0.01'))
+
+
 def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente, items,
                      ids_adicionales=()):
     """Registra el pedido completo (cabecera, servicios e inventario) en una sola
-    transacción y lo deja Pendiente. Solo el servicio principal tiene precio: los
-    adicionales se anotan sin costo. Si algo no es válido lanza ErrorPedido."""
+    transacción y lo deja Pendiente. Total = principal según el camión + adicionales a su
+    precio. Si algo no es válido lanza ErrorPedido."""
     errores = {}
     origen, destino = (origen or '').strip(), (destino or '').strip()
     _validar_fecha(fecha_servicio, errores)
@@ -207,16 +213,17 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
         if not vehiculo or not libres.filter(patente=patente).exists():
             raise ErrorPedido({'vehiculo': 'Ese vehículo no está libre en ese horario. Elegí otro.'})
 
+        precio = precio_principal(principal, vehiculo)
+        total = precio + sum((s.Precio_base for s in adicionales), Decimal('0'))
         pedido = Pedido.objects.create(
             patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=timezone.localdate(),
             fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, duracion_horas=horas,
-            origen=origen, destino=destino, estado=Pedido.PENDIENTE, total=principal.Precio_base)
-        # Una fila por servicio. El principal guarda el precio del día (si después cambia, el
-        # pedido no cambia); los adicionales van en 0 porque no tienen precio.
+            origen=origen, destino=destino, estado=Pedido.PENDIENTE, total=total)
+        # Una fila por servicio, con el precio del día: si después cambia, el pedido no cambia
         DetallePedido.objects.bulk_create(
-            [DetallePedido(idPedido=pedido, idServicio=principal,
-                           precio_unitario=principal.Precio_base, subtotal=principal.Precio_base)]
-            + [DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=0, subtotal=0) for s in adicionales])
+            [DetallePedido(idPedido=pedido, idServicio=principal, precio_unitario=precio, subtotal=precio)]
+            + [DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=s.Precio_base, subtotal=s.Precio_base)
+               for s in adicionales])
         InventarioDetalle.objects.bulk_create([
             InventarioDetalle(idPedido=pedido, idObjeto=i['objeto'], Cantidad=i['cantidad'],
                               Fragil=i['fragil'], Observacion=i['observacion'])
