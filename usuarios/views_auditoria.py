@@ -57,6 +57,7 @@ ETIQUETAS = {
     'Telefono': 'Teléfono', 'fecha_anterior': 'Fecha anterior', 'hora_anterior': 'Hora anterior',
     'fecha_nueva': 'Fecha nueva', 'hora_nueva': 'Hora nueva', 'motivo': 'Motivo', 'observacion': 'Observación',
     'visto_cliente': 'Visto por el cliente', 'estado_objeto': 'Activo',
+    'inicio_real': 'Inicio real', 'fin_real': 'Fin real',
 }
 # Campos de plata: se muestran como «$20.000»
 DINERO = {'Precio_base', 'total', 'precio_unitario', 'subtotal', 'Monto', 'Monto_cob'}
@@ -170,6 +171,10 @@ def _resumen(log, antes, despues, nombres):
         detalle = despues.get('motivo_anulacion') or ''
     elif log.accion == LogAuditoria.ELIMINACION and log.tabla == 'PERSONAL_PEDIDO':
         verbo = f'sacó a {_nombre_usuario(antes.get("idUsuario"), nombres)} ({str(antes.get("Funcion", "")).lower()})'
+    elif log.tabla == 'PEDIDOS' and 'fin_real' in antes:
+        verbo = 'marcó «Terminamos» y finalizó'
+    elif log.tabla == 'PEDIDOS' and 'inicio_real' in antes:
+        verbo = 'marcó «Empezamos» en'
     elif log.tabla == 'PEDIDOS' and despues.get('estado') == 'Confirmado':
         verbo = 'confirmó'
     elif log.tabla == 'PEDIDOS' and despues.get('estado') == 'Finalizado':

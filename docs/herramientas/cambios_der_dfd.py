@@ -160,6 +160,8 @@ tabla(['Campo', 'Tipo', 'Descripción'], [
                                            'servicio cambia, el pedido no). Fin = inicio + duración'],
     ['Total_pedido (nuevo)', 'DECIMAL', 'Principal con el recargo del camión + adicionales (calculado)'],
     ['id_usuario_anulacion (nuevo)', 'INT (FK → USUARIOS)', 'Quién anuló el pedido'],
+    ['Inicio_real, Fin_real (nuevos)', 'DATETIME', 'Hora real en que el chofer marcó «Empezamos» y «Terminamos» '
+                                                 'desde el portal (al terminar, el pedido queda Finalizado)'],
 ], [140, 110, 210])
 parrafo('Estados posibles de Estado_pedido: Pendiente, Confirmado, Finalizado, Anulado. «Vencido», '
         '«Para finalizar» y «Atrasada» NO son estados guardados: el sistema los calcula con la fecha, la '
@@ -306,6 +308,7 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Confirmar Pedido', 'Administrador', 'Pedidos'],
     ['Finalizar Pedido', 'Administrador (solo desde la fecha y hora de la mudanza)', 'Pedidos'],
     ['Anular Pedido', 'Administrador (con motivo; queda quién y cuándo)', 'Pedidos'],
+    ['Registrar Inicio y Fin de la Mudanza', 'Chofer de esa mudanza (desde el portal; los ayudantes no)', 'Pedidos, Personal pedido'],
     ['Consultar Auditoría', 'Administrador (filtros por fecha, tabla, acción, usuario y registro)', 'Log auditoría'],
     ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Aviso de cambio '
                            'de horario»', 'Pedidos, Reprogramaciones, Vehículos, Personal pedido'],

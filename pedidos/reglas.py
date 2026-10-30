@@ -307,9 +307,9 @@ def mudanzas_atrasadas():
     ahora = timezone.now()
     desde = timezone.localtime(ahora - timedelta(hours=MAX_HORAS + HORAS_SIGUIENTE)).date()
     confirmados = Pedido.objects.filter(estado=Pedido.CONFIRMADO, fecha_servicio__range=(desde, timezone.localdate()))
-    pasadas = [p for p in confirmados.prefetch_related('personal') if p.fin <= ahora]
+    pasadas = [p for p in confirmados.prefetch_related('personal') if p.fin_esperado <= ahora]
     atrasadas = {}
-    for p in sorted(pasadas, key=lambda p: p.fin):
+    for p in sorted(pasadas, key=lambda p: p.fin_esperado):
         limite = p.fin + timedelta(hours=HORAS_SIGUIENTE)
         personal = [x.idUsuario_id for x in p.personal.all()]
         candidatas = Pedido.objects.filter(
@@ -338,8 +338,9 @@ def recordatorio_finalizar():
     del administrador (idea del proyecto de José)."""
     ahora = timezone.now()
     atrasadas = {p.pk for p in mudanzas_atrasadas()}
-    confirmadas = Pedido.objects.filter(estado=Pedido.CONFIRMADO, fecha_servicio__lte=timezone.localdate())                                 .select_related('idUsuario', 'patente_vehiculo')
-    vencidas = sorted((p for p in confirmadas if p.fin <= ahora), key=lambda p: p.fin)
+    confirmadas = Pedido.objects.filter(estado=Pedido.CONFIRMADO, fecha_servicio__lte=timezone.localdate()) \
+                                .select_related('idUsuario', 'patente_vehiculo')
+    vencidas = sorted((p for p in confirmadas if p.fin_esperado <= ahora), key=lambda p: p.fin_esperado)
     for p in vencidas:
         p.atrasada = p.pk in atrasadas
     return vencidas
@@ -380,6 +381,48 @@ def finalizar(id_pedido):
             raise ErrorPedido(f'La mudanza todavía no empezó: se puede finalizar desde el '
                               f'{inicio:%d/%m/%Y} a las {inicio:%H:%M}.')
         pedido.save(update_fields=['estado'])
+    return pedido
+
+
+# ---------------------------------------------------------------- el chofer marca la mudanza
+HORAS_ANTES_DE_EMPEZAR = 2  # «Empezamos» se puede tocar desde 2 horas antes del horario
+
+
+def _del_chofer(id_pedido, usuario):
+    """El pedido bloqueado, si `usuario` es su chofer (los ayudantes no marcan)."""
+    pedido = Pedido.objects.select_for_update().get(pk=id_pedido)
+    if not pedido.personal.filter(Funcion=PersonalPedido.CHOFER, idUsuario=usuario).exists():
+        raise ErrorPedido('Solo el chofer de esta mudanza puede marcar que empezó o terminó.')
+    if pedido.estado != Pedido.CONFIRMADO:
+        raise ErrorPedido(f'El pedido N° {pedido.pk} está {pedido.estado.lower()}: no se puede marcar.')
+    return pedido
+
+
+def marcar_inicio(id_pedido, usuario):
+    """«Empezamos»: el chofer guarda la hora real de inicio."""
+    with transaction.atomic():
+        pedido = _del_chofer(id_pedido, usuario)
+        if pedido.inicio_real:
+            raise ErrorPedido(f'Ya marcaste que empezó a las {timezone.localtime(pedido.inicio_real):%H:%M}.')
+        desde = pedido.inicio - timedelta(hours=HORAS_ANTES_DE_EMPEZAR)
+        if timezone.now() < desde:
+            desde = timezone.localtime(desde)
+            raise ErrorPedido(f'Todavía es temprano: se puede marcar desde el {desde:%d/%m} a las {desde:%H:%M}.')
+        pedido.inicio_real = timezone.now()
+        pedido.save(update_fields=['inicio_real'])
+    return pedido
+
+
+def marcar_fin(id_pedido, usuario):
+    """«Terminamos»: el chofer guarda la hora real de fin y el pedido queda Finalizado
+    (el chofer actúa como encargado de la mudanza)."""
+    with transaction.atomic():
+        pedido = _del_chofer(id_pedido, usuario)
+        if not pedido.inicio_real:
+            raise ErrorPedido('Primero marcá «Empezamos».')
+        pedido.fin_real = timezone.now()
+        pedido.estado = Pedido.FINALIZADO
+        pedido.save(update_fields=['fin_real', 'estado'])
     return pedido
 
 

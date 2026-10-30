@@ -245,6 +245,32 @@ def asignar(request, id_pedido):
         'sugerido': sugerido})
 
 
+@requiere_permiso('MUDANZAS_OPERAR')
+@require_POST
+def empezar(request, id_pedido):
+    """«Empezamos» desde el portal: solo el chofer de la mudanza."""
+    get_object_or_404(Pedido, pk=id_pedido)
+    try:
+        reglas.marcar_inicio(id_pedido, request.usuario)
+        messages.success(request, f'Mudanza N° {id_pedido} en curso. Cuando terminen, tocá «Terminamos».')
+    except reglas.ErrorPedido as e:
+        messages.error(request, str(e))
+    return redirect('usuario_portal')
+
+
+@requiere_permiso('MUDANZAS_OPERAR')
+@require_POST
+def terminar(request, id_pedido):
+    """«Terminamos» desde el portal: guarda la hora real y finaliza el pedido."""
+    get_object_or_404(Pedido, pk=id_pedido)
+    try:
+        reglas.marcar_fin(id_pedido, request.usuario)
+        messages.success(request, f'Mudanza N° {id_pedido} terminada y finalizada. ¡Buen trabajo!')
+    except reglas.ErrorPedido as e:
+        messages.error(request, str(e))
+    return redirect('usuario_portal')
+
+
 @requiere_permiso('PED_GESTIONAR')
 def reprogramar(request, id_pedido):
     """Cambiar la fecha, la hora o el vehículo de un pedido, con el motivo. Queda en el historial

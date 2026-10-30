@@ -192,14 +192,24 @@ def usuario_portal(request):
     if not tiene_permiso(usuario_actual, 'MUDANZAS_OPERAR'):
         return pantalla_inicio(usuario_actual)
 
-    from pedidos.reglas import filtro_por_venir  # pedidos depende de usuarios: se importa acá
+    from django.db.models import Q
+    from datetime import timedelta
+    from pedidos.reglas import HORAS_ANTES_DE_EMPEZAR, filtro_por_venir  # pedidos depende de usuarios
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
-    # sus mudanzas por venir (pendientes o confirmadas), sin precios
-    mudanzas = (Pedido.objects.filter(filtro_por_venir(), personal__idUsuario=usuario_actual)
-                .select_related('patente_vehiculo', 'idUsuario')
-                .prefetch_related('detalles__idServicio', 'inventario__idObjeto', 'personal__idUsuario')
-                .order_by('fecha_servicio', 'hora_servicio'))
+    # sus mudanzas por venir y las confirmadas de los últimos días que todavía no se finalizaron
+    # (las que están en curso), sin precios
+    recientes = Q(estado=Pedido.CONFIRMADO, fecha_servicio__gte=timezone.localdate() - timedelta(days=5))
+    mudanzas = list(Pedido.objects.filter(filtro_por_venir() | recientes, personal__idUsuario=usuario_actual)
+                    .distinct().select_related('patente_vehiculo', 'idUsuario')
+                    .prefetch_related('detalles__idServicio', 'inventario__idObjeto', 'personal__idUsuario')
+                    .order_by('fecha_servicio', 'hora_servicio'))
+    ahora = timezone.now()
+    for p in mudanzas:
+        # solo el chofer de esa mudanza marca «Empezamos» / «Terminamos»
+        p.soy_chofer = any(x.idUsuario_id == usuario_actual.pk and x.Funcion == 'Chofer' for x in p.personal.all())
+        p.puede_empezar = (p.soy_chofer and p.estado == Pedido.CONFIRMADO and not p.inicio_real
+                           and ahora >= p.inicio - timedelta(hours=HORAS_ANTES_DE_EMPEZAR))
     return render(request, 'usuario_portal.html', {
         'usuario_actual': usuario_actual,
         'permisos_rol': permisos,

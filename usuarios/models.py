@@ -238,6 +238,9 @@ class Pedido(models.Model):
     destino = models.CharField(max_length=200, default='', db_column='Direccion_destino', verbose_name='Hasta')
     estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE, db_column='Estado_pedido')
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Total_pedido')
+    # Lo marca el chofer desde el portal («Empezamos» / «Terminamos»): la hora real, no la estimada
+    inicio_real = models.DateTimeField(blank=True, null=True, db_column='Inicio_real', verbose_name='Inicio real')
+    fin_real = models.DateTimeField(blank=True, null=True, db_column='Fin_real', verbose_name='Fin real')
     fecha_anulacion = models.DateTimeField(blank=True, null=True, db_column='Fec_anulacion')
     motivo_anulacion = models.CharField(max_length=200, blank=True, null=True, db_column='Motivo_anulacion')
     usuario_anulacion = models.ForeignKey(Usuario, on_delete=models.PROTECT, blank=True, null=True,
@@ -261,6 +264,18 @@ class Pedido(models.Model):
     def fin(self):
         """Hasta cuándo ocupa el vehículo y el personal (estimado)."""
         return self.inicio + timedelta(hours=self.duracion_horas)
+
+    @property
+    def fin_esperado(self):
+        """El fin estimado, corrido si empezaron tarde: inicio real + duración."""
+        if self.inicio_real:
+            return max(self.fin, self.inicio_real + timedelta(hours=self.duracion_horas))
+        return self.fin
+
+    @property
+    def en_curso(self):
+        """El chofer marcó «Empezamos» y todavía no «Terminamos»."""
+        return self.estado == self.CONFIRMADO and self.inicio_real is not None and self.fin_real is None
 
     @property
     def hasta(self):

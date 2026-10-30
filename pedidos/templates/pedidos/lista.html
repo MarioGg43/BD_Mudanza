@@ -80,7 +80,7 @@
                 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="text-end">${{ p.total|floatformat:"2g" }}</td>
-                <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar atrasada=p.atrasada %}{% if p.horario_cambiado %} <span class="badge text-bg-info"><i class="bi bi-calendar2-week me-1"></i>Cambió el horario</span>{% endif %}</td>
+                <td>{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar atrasada=p.atrasada en_curso=p.en_curso %}{% if p.horario_cambiado %} <span class="badge text-bg-info"><i class="bi bi-calendar2-week me-1"></i>Cambió el horario</span>{% endif %}</td>
                 <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
             </tr>
             {% empty %}

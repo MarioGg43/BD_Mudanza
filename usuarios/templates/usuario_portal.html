@@ -102,18 +102,39 @@
 
   </div>
 
+  {% if messages %}{% for m in messages %}
+  <div class="{% if m.tags == 'danger' or m.tags == 'error' %}aviso-error{% else %}aviso-ok{% endif %} p-3 rounded-xl text-sm" role="status">{{ m }}</div>
+  {% endfor %}{% endif %}
+
   <!-- MÓDULO OPERATIVO: TAREAS ASIGNADAS -->
   <div class="tarjeta p-6">
     <h3 class="font-bold text-base flex items-center gap-2 mb-3">
       <i class="fa-solid fa-calendar-check text-marca"></i>
-      Mis próximas mudanzas
+      Mis mudanzas
     </h3>
     {% for p in mudanzas %}
     <div class="caja-suave p-4 rounded-xl mb-3 text-xs space-y-2">
       <div class="flex flex-wrap justify-between items-center gap-2">
         <p class="font-bold texto-tinta text-sm"><i class="fa-solid fa-calendar-day text-marca mr-1"></i>{{ p.fecha_servicio|date:"l"|capfirst }} {{ p.fecha_servicio|date:"d/m/Y" }} · {{ p.hora_servicio|time:"H:i" }} a {{ p.hasta }}</p>
-        <span class="chip-marca px-2 py-0.5 rounded font-semibold">{% if p.estado == 'Confirmado' %}Confirmada{% else %}A confirmar{% endif %}</span>
+        <span class="chip-marca px-2 py-0.5 rounded font-semibold">{% if p.en_curso %}En curso desde las {{ p.inicio_real|time:"H:i" }}{% elif p.estado == 'Confirmado' %}Confirmada{% else %}A confirmar{% endif %}</span>
       </div>
+      {% if p.soy_chofer and p.estado == 'Confirmado' %}
+      <div class="flex flex-wrap items-center gap-2 pt-1">
+        {% if p.en_curso %}
+        <form method="post" action="{% url 'pedidos_terminar' p.id_pedido %}" onsubmit="return confirm('¿Terminaron la mudanza? El pedido queda finalizado.')">{% csrf_token %}
+          <button class="btn-primary px-4 py-2 rounded-lg font-bold text-sm cursor-pointer"><i class="fa-solid fa-flag-checkered mr-1"></i>Terminamos</button>
+        </form>
+        <span class="texto-suave">Empezaron a las {{ p.inicio_real|time:"H:i" }}. Fin estimado: {{ p.fin_esperado|time:"H:i" }}.</span>
+        {% elif p.puede_empezar %}
+        <form method="post" action="{% url 'pedidos_empezar' p.id_pedido %}">{% csrf_token %}
+          <button class="btn-primary px-4 py-2 rounded-lg font-bold text-sm cursor-pointer"><i class="fa-solid fa-play mr-1"></i>Empezamos</button>
+        </form>
+        <span class="texto-suave">Tocalo cuando lleguen y empiecen a cargar.</span>
+        {% else %}
+        <span class="texto-suave"><i class="fa-solid fa-circle-info mr-1"></i>El día de la mudanza vas a poder marcar «Empezamos» y «Terminamos».</span>
+        {% endif %}
+      </div>
+      {% endif %}
       <p><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b> &nbsp;→&nbsp; <span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></p>
       <p><span class="texto-suave">Vehículo:</span> {{ p.patente_vehiculo.patente }} · {{ p.patente_vehiculo.marca_modelo }}
          &nbsp;·&nbsp; <span class="texto-suave">Servicios:</span> {% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>

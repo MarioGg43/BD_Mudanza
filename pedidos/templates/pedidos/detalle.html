@@ -4,7 +4,7 @@
 <div class="mx-auto" style="max-width: 900px;">
     <a href="{% url 'pedidos_lista' %}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Volver a pedidos</a>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
-        <h1 class="h3 fw-bold mb-0">Pedido N° {{ pedido.id_pedido }} {% include 'pedidos/_estado.html' with estado=pedido.estado vencido=pedido.vencido para_finalizar=pedido.para_finalizar atrasada=siguiente %}</h1>
+        <h1 class="h3 fw-bold mb-0">Pedido N° {{ pedido.id_pedido }} {% include 'pedidos/_estado.html' with estado=pedido.estado vencido=pedido.vencido para_finalizar=pedido.para_finalizar atrasada=siguiente en_curso=pedido.en_curso %}</h1>
         <div class="d-flex flex-wrap gap-2">
             {% if puede_comprobante %}
             <a href="{% url 'pedidos_comprobante' pedido.id_pedido %}" class="btn btn-outline-secondary" target="_blank"><i class="bi bi-printer me-1"></i>Comprobante</a>
@@ -123,6 +123,7 @@
         <div class="col-md-6"><div class="card-panel bg-white p-3 h-100">
             <h2 class="h6 fw-bold text-uppercase text-muted">Mudanza</h2>
             <p class="mb-1"><strong>Fecha:</strong> {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }}</p>
+            {% if pedido.inicio_real %}<p class="mb-1"><strong>Real (lo marcó el chofer):</strong> empezó {{ pedido.inicio_real|date:"d/m H:i" }}{% if pedido.fin_real %} · terminó {{ pedido.fin_real|date:"d/m H:i" }}{% else %} · <span class="text-success fw-semibold">en curso</span>, fin estimado {{ pedido.fin_esperado|time:"H:i" }}{% endif %}</p>{% endif %}
             <p class="mb-1"><strong>Desde:</strong> {{ pedido.origen }}</p>
             <p class="mb-1"><strong>Hasta:</strong> {{ pedido.destino }}</p>
             <p class="mb-0"><strong>Vehículo:</strong> {{ pedido.patente_vehiculo.patente }} · {{ pedido.patente_vehiculo.marca_modelo }}</p>
