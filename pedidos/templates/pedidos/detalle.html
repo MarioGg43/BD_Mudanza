@@ -28,6 +28,10 @@
                 <i class="bi bi-clock me-1"></i>Se puede finalizar desde el {{ pedido.inicio|date:"d/m/Y" }} a las {{ pedido.inicio|time:"H:i" }}</span>
             {% endif %}
             {% endif %}
+            {% if es_mio and cliente_puede_cambiar %}
+            <a href="{% url 'pedidos_modificar' pedido.id_pedido %}" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1"></i>Modificar</a>
+            <a href="{% url 'pedidos_cancelar' pedido.id_pedido %}" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Cancelar mudanza</a>
+            {% endif %}
             {% if puede_gestionar and pedido.estado == 'Pendiente' or puede_gestionar and pedido.estado == 'Confirmado' %}
             <a href="{% url 'pedidos_reprogramar' pedido.id_pedido %}" class="btn btn-outline-primary"><i class="bi bi-calendar2-week me-1"></i>Reprogramar</a>
             {% endif %}
@@ -63,6 +67,9 @@
         ahora es el <b>{{ ultima.fecha_nueva|date:"l"|lower }} {{ ultima.fecha_nueva|date:"d/m/Y" }} a las {{ ultima.hora_nueva|time:"H:i" }}</b>.
         Motivo: {{ ultima.motivo_completo }}.{% if ultima.vehiculo_nuevo_id != ultima.vehiculo_anterior_id %} Va el vehículo {{ ultima.vehiculo_nuevo_id }}.{% endif %}
     </div>
+    {% endif %}
+    {% if es_mio and not puede_gestionar and not cliente_puede_cambiar and pedido.estado != 'Anulado' and pedido.estado != 'Finalizado' %}
+    <p class="small text-muted"><i class="bi bi-info-circle me-1"></i>Faltan menos de {{ horas_limite }} horas para la mudanza: para cambiarla o cancelarla, comunicate con la empresa.</p>
     {% endif %}
     {% if pedido.vencido %}
     <div class="alert alert-warning">

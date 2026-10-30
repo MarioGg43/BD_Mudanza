@@ -118,6 +118,9 @@ def detalle(request, id_pedido):
         'ayudantes': [x.idUsuario for x in personal if x.Funcion == PersonalPedido.AYUDANTE],
         'se_puede_asignar': pedido.estado in Pedido.ACTIVOS and not pedido.ya_empezo,
         'puede_gestionar': tiene_permiso(request.usuario, 'PED_GESTIONAR'),
+        'es_mio': pedido.idUsuario_id == request.usuario.id_usuario,
+        'cliente_puede_cambiar': reglas.cliente_puede_cambiar(pedido),
+        'horas_limite': reglas.HORAS_LIMITE_CLIENTE,
         'puede_anular': tiene_permiso(request.usuario, 'PED_ANULAR'),
         'puede_comprobante': tiene_permiso(request.usuario, 'PED_COMPROBANTE'),
     })
@@ -125,25 +128,75 @@ def detalle(request, id_pedido):
 
 @requiere_permiso('PED_REGISTRAR')
 def nuevo(request):
+    return _formulario_pedido(request)
+
+
+@requiere_permiso('PED_REGISTRAR')
+def modificar(request, id_pedido):
+    """El cliente cambia su pedido hasta 24 h antes, con la misma pantalla que para pedir."""
+    pedido = get_object_or_404(Pedido.objects.prefetch_related('detalles__idServicio', 'inventario'),
+                               pk=id_pedido, idUsuario=request.usuario)
+    if not reglas.cliente_puede_cambiar(pedido):
+        messages.error(request, f'Ya no se puede modificar: faltan menos de {reglas.HORAS_LIMITE_CLIENTE} horas '
+                                'o el pedido no está activo. Comunicate con la empresa.')
+        return redirect('pedidos_detalle', id_pedido=id_pedido)
+    return _formulario_pedido(request, pedido)
+
+
+@requiere_permiso('PED_CONSULTAR')
+def cancelar(request, id_pedido):
+    """El cliente cancela su mudanza hasta 24 h antes (queda Anulada con su motivo)."""
+    pedido = get_object_or_404(Pedido, pk=id_pedido, idUsuario=request.usuario)
+    if not reglas.cliente_puede_cambiar(pedido):
+        messages.error(request, f'Ya no se puede cancelar: faltan menos de {reglas.HORAS_LIMITE_CLIENTE} horas '
+                                'o el pedido no está activo. Comunicate con la empresa.')
+        return redirect('pedidos_detalle', id_pedido=id_pedido)
+    form = AnularForm(request.POST or None)
+    form.fields['motivo'].label = '¿Por qué cancelás la mudanza?'
+    if request.method == 'POST' and form.is_valid():
+        try:
+            reglas.cancelar_por_cliente(id_pedido, request.usuario, form.cleaned_data['motivo'])
+        except reglas.ErrorPedido as e:
+            form.add_error('motivo', ' '.join(e.errores.values()))
+        else:
+            messages.success(request, f'Cancelaste la mudanza del pedido N° {id_pedido}.')
+            return redirect('pedidos_detalle', id_pedido=id_pedido)
+    return render(request, 'pedidos/cancelar.html', {'pedido': pedido, 'form': form})
+
+
+def _formulario_pedido(request, pedido=None):
+    """Pedir una mudanza o, con `pedido`, modificarla (las reglas: registrar_pedido / modificar_pedido)."""
     if request.method == 'POST':
         form = PedidoForm(request.POST)
         items = InventarioFormSet(request.POST, prefix='inv')
         if form.is_valid() and items.is_valid():
             d = form.cleaned_data
+            datos = (d['fecha_servicio'], d['hora_servicio'], d['origen'], d['destino'], d['servicio'].id_servicio,
+                     d['vehiculo'].patente, [f.cleaned_data for f in items.forms if f.cleaned_data])
+            hecho = 'modificado' if pedido else 'registrado'
             try:
-                pedido = reglas.registrar_pedido(
-                    request.usuario, d['fecha_servicio'], d['hora_servicio'], d['origen'], d['destino'],
-                    d['servicio'].id_servicio, d['vehiculo'].patente,
-                    [f.cleaned_data for f in items.forms if f.cleaned_data],
-                    ids_adicionales=[s.id_servicio for s in d['adicionales']])
+                if pedido:
+                    pedido = reglas.modificar_pedido(pedido.pk, request.usuario, *datos,
+                                                     ids_adicionales=[s.id_servicio for s in d['adicionales']])
+                else:
+                    pedido = reglas.registrar_pedido(request.usuario, *datos,
+                                                     ids_adicionales=[s.id_servicio for s in d['adicionales']])
             except reglas.ErrorPedido as e:
                 for campo, mensaje in e.errores.items():
                     form.add_error(campo if campo in form.fields else None, mensaje)
             else:
-                messages.success(request, f'Pedido N° {pedido.id_pedido} registrado. '
+                messages.success(request, f'Pedido N° {pedido.id_pedido} {hecho}. '
                                           'Queda pendiente hasta que la empresa lo confirme.')
                 return redirect('pedidos_detalle', id_pedido=pedido.id_pedido)
         messages.error(request, 'Revisá los datos marcados.')
+    elif pedido:
+        detalles = list(pedido.detalles.all())
+        form = PedidoForm(initial={
+            'fecha_servicio': pedido.fecha_servicio, 'hora_servicio': pedido.hora_servicio,
+            'origen': pedido.origen, 'destino': pedido.destino, 'vehiculo': pedido.patente_vehiculo_id,
+            'servicio': next((d.idServicio_id for d in detalles if d.idServicio.Categoria == Servicio.PRINCIPAL), None),
+            'adicionales': [d.idServicio_id for d in detalles if d.idServicio.Categoria == Servicio.ADICIONAL]})
+        items = InventarioFormSet(prefix='inv')
     else:
         form = PedidoForm()
         items = InventarioFormSet(prefix='inv')
@@ -154,8 +207,12 @@ def nuevo(request):
     items_iniciales = [{'objeto': f['objeto'].value(), 'cantidad': f['cantidad'].value(),
                         'fragil': bool(f['fragil'].value()), 'observacion': f['observacion'].value() or ''}
                        for f in items.forms if items.is_bound and f['objeto'].value()]
+    if pedido and not items.is_bound:
+        items_iniciales = [{'objeto': i.idObjeto_id, 'cantidad': i.Cantidad, 'fragil': i.Fragil,
+                            'observacion': i.Observacion or ''} for i in pedido.inventario.all()]
     return render(request, 'pedidos/nuevo.html', {
-        'form': form, 'items': items, 'catalogo': catalogo, 'items_iniciales': items_iniciales,
+        'form': form, 'items': items, 'catalogo': catalogo, 'items_iniciales': items_iniciales, 'pedido': pedido,
+        'horas_limite': reglas.HORAS_LIMITE_CLIENTE,
         'max_cantidad': reglas.MAX_CANTIDAD,
         'servicios': form.fields['servicio'].queryset,
         'adicionales': form.fields['adicionales'].queryset,
@@ -179,9 +236,10 @@ def vehiculos_libres(request):
     if not servicio:
         return JsonResponse({'vehiculos': [], 'motivo': 'Elegí el servicio para ver los vehículos libres.'})
     horas = servicio.Duracion_horas or reglas.MIN_HORAS
+    propio = Pedido.objects.filter(pk=request.GET.get('pedido') or None, idUsuario=request.usuario).first()
     libres = [{'patente': v.patente, 'descripcion': f'{v.tipo_vehiculo} · {v.marca_modelo}', 'recargo': v.recargo,
                'capacidad_kg': float(v.capacidad_kg), 'capacidad_m3': float(v.capacidad_m3)}
-              for v in reglas.vehiculos_libres(reglas.inicio_de(fecha, hora), horas)]
+              for v in reglas.vehiculos_libres(reglas.inicio_de(fecha, hora), horas, propio)]
     return JsonResponse({'vehiculos': libres, 'motivo': '' if libres else reglas.motivo_sin_vehiculos()})
 
 

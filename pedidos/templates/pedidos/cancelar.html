@@ -1,0 +1,19 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Cancelar pedido N° {{ pedido.id_pedido }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 600px;">
+    <h1 class="h3 fw-bold mb-1">Cancelar la mudanza del pedido N° {{ pedido.id_pedido }}</h1>
+    <p class="text-muted mb-4">{{ pedido.fecha_servicio|date:"l"|capfirst }} {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }}.
+        El pedido queda «Anulado» con tu motivo. Si después querés mudarte igual, podés pedir una mudanza nueva.</p>
+    <form method="post" class="card-panel bg-white p-4" novalidate>
+        {% csrf_token %}
+        <label for="{{ form.motivo.id_for_label }}" class="form-label fw-semibold">{{ form.motivo.label }}</label>
+        {{ form.motivo }}
+        {% if form.motivo.errors %}<div class="invalid-feedback d-block">{{ form.motivo.errors.as_text }}</div>{% endif %}
+        <div class="d-flex justify-content-end gap-3 mt-3">
+            <a href="{% url 'pedidos_detalle' pedido.id_pedido %}" class="btn btn-outline-secondary">Volver</a>
+            <button class="btn btn-danger fw-bold">Cancelar la mudanza</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

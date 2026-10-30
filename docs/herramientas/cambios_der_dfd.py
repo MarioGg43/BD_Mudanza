@@ -122,6 +122,7 @@ tabla(['Campo', 'Tipo', 'Clave', 'Descripción'], [
 
 titulo('1.2 INVENTARIO_DETALLES', 2)
 tabla(['Cambio', 'Antes', 'Después'], [
+    ['Campo nuevo', '—', 'Cantidad_declarada INT (lo que declaró el cliente, si el chofer lo corrigió; 0 = no lo declaró)'],
     ['Reemplazar campo', 'desc_inventario VARCHAR(100)', 'id_objeto INT (FK → OBJETOS)'],
     ['Se mantienen', 'Cantidad, obser_inventario, Fragil, id_pedido', 'Igual'],
     ['Relación nueva', '—', 'OBJETOS 1 : N INVENTARIO_DETALLES'],
@@ -160,6 +161,8 @@ tabla(['Campo', 'Tipo', 'Descripción'], [
                                            'servicio cambia, el pedido no). Fin = inicio + duración'],
     ['Total_pedido (nuevo)', 'DECIMAL', 'Principal con el recargo del camión + adicionales (calculado)'],
     ['id_usuario_anulacion (nuevo)', 'INT (FK → USUARIOS)', 'Quién anuló el pedido'],
+    ['Recargo_pedido, Motivo_recargo (nuevos)', 'DECIMAL, VARCHAR(200)', 'Recargo que carga el chofer en el relevamiento '
+                                                                       '(se suma al total) y su motivo'],
     ['Inicio_real, Fin_real (nuevos)', 'DATETIME', 'Hora real en que el chofer marcó «Empezamos» y «Terminamos» '
                                                  'desde el portal (al terminar, el pedido queda Finalizado)'],
 ], [140, 110, 210])
@@ -308,6 +311,12 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Confirmar Pedido', 'Administrador', 'Pedidos'],
     ['Finalizar Pedido', 'Administrador (solo desde la fecha y hora de la mudanza)', 'Pedidos'],
     ['Anular Pedido', 'Administrador (con motivo; queda quién y cuándo)', 'Pedidos'],
+    ['Relevamiento de la Mudanza', 'Chofer al llegar: cantidades reales, objetos no declarados, adicionales y recargo',
+     'Pedidos, Inventario detalles, Detalle pedidos, Objetos, Servicios'],
+    ['Editar Servicios del Pedido', 'Administrador (el total se recalcula)', 'Pedidos, Detalle pedidos, Servicios'],
+    ['Modificar Pedido', 'Cliente hasta 24 h antes (vuelve a Pendiente)',
+     'Pedidos, Detalle pedidos, Inventario detalles, Vehículos, Reprogramaciones'],
+    ['Cancelar Pedido', 'Cliente hasta 24 h antes (queda Anulado con su motivo)', 'Pedidos'],
     ['Registrar Inicio y Fin de la Mudanza', 'Chofer de esa mudanza (desde el portal; los ayudantes no)', 'Pedidos, Personal pedido'],
     ['Consultar Auditoría', 'Administrador (filtros por fecha, tabla, acción, usuario y registro)', 'Log auditoría'],
     ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Aviso de cambio '

@@ -729,3 +729,86 @@ def relevamiento(id_pedido, usuario, reales, nuevos=(), ids_adicionales=(), reca
         pedido.save(update_fields=['recargo', 'motivo_recargo'])
         recalcular_total(pedido)
     return pedido
+
+
+# ---------------------------------------------------------------- el cliente modifica o cancela
+HORAS_LIMITE_CLIENTE = 24  # hasta 24 horas antes de la mudanza
+
+
+def cliente_puede_cambiar(pedido, ahora=None):
+    """El cliente puede modificar o cancelar su pedido activo hasta 24 h antes de la mudanza."""
+    ahora = ahora or timezone.now()
+    return pedido.estado in Pedido.ACTIVOS and ahora <= pedido.inicio - timedelta(hours=HORAS_LIMITE_CLIENTE)
+
+
+def _del_cliente(id_pedido, cliente):
+    pedido = Pedido.objects.select_for_update().get(pk=id_pedido)
+    if pedido.idUsuario_id != cliente.pk:
+        raise ErrorPedido('Ese pedido no es tuyo.')
+    if pedido.estado not in Pedido.ACTIVOS:
+        raise ErrorPedido(f'El pedido está {pedido.estado.lower()}: ya no se puede cambiar.')
+    if not cliente_puede_cambiar(pedido):
+        raise ErrorPedido(f'Faltan menos de {HORAS_LIMITE_CLIENTE} horas para la mudanza: para cambiarla o '
+                          'cancelarla comunicate con la empresa.')
+    return pedido
+
+
+def cancelar_por_cliente(id_pedido, cliente, motivo):
+    """El cliente cancela su mudanza (queda Anulada, con su motivo y su usuario)."""
+    with transaction.atomic():
+        _del_cliente(id_pedido, cliente)
+    return anular(id_pedido, cliente, motivo)
+
+
+def modificar_pedido(id_pedido, cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente,
+                     items, ids_adicionales=()):
+    """El cliente cambia su pedido hasta 24 h antes: fecha y hora, direcciones, servicios, objetos y
+    vehículo, con las mismas reglas que al pedir y a los precios de hoy. Si estaba confirmado vuelve a
+    Pendiente para que la empresa lo revise; el personal que no esté libre en el horario nuevo se saca."""
+    errores = {}
+    origen, destino = (origen or '').strip(), (destino or '').strip()
+    _validar_fecha(fecha_servicio, errores)
+    _validar_hora(fecha_servicio, hora_servicio, errores)
+    if not errores and inicio_de(fecha_servicio, hora_servicio) < timezone.now() + timedelta(hours=HORAS_LIMITE_CLIENTE):
+        errores['fecha_servicio'] = f'La fecha nueva tiene que ser con {HORAS_LIMITE_CLIENTE} horas de anticipación.'
+    _validar_direcciones(origen, destino, errores)
+    principal, adicionales = _validar_servicios(id_servicio, ids_adicionales, errores)
+    limpios = _validar_items(items, errores)
+    if not patente:
+        errores['vehiculo'] = 'Elegí un vehículo.'
+    if errores:
+        raise ErrorPedido(errores)
+
+    with transaction.atomic():
+        pedido = _del_cliente(id_pedido, cliente)
+        horas = principal.Duracion_horas or MIN_HORAS
+        inicio = inicio_de(fecha_servicio, hora_servicio)
+        vehiculo = Vehiculo.objects.select_for_update().filter(patente=patente).first()
+        if not vehiculo or not vehiculos_libres(inicio, horas, pedido).filter(patente=patente).exists():
+            raise ErrorPedido({'vehiculo': 'Ese vehículo no está libre en ese horario. Elegí otro.'})
+        if (fecha_servicio, hora_servicio) != (pedido.fecha_servicio, pedido.hora_servicio) \
+                or patente != pedido.patente_vehiculo_id:
+            Reprogramacion.objects.create(
+                idPedido=pedido, fecha_anterior=pedido.fecha_servicio, hora_anterior=pedido.hora_servicio,
+                vehiculo_anterior_id=pedido.patente_vehiculo_id, fecha_nueva=fecha_servicio, hora_nueva=hora_servicio,
+                vehiculo_nuevo=vehiculo, motivo='Pedido del cliente', usuario=cliente, visto_cliente=True)
+        ocupado = PersonalPedido.objects.filter(
+            idPedido__in=[p.pk for p in pedidos_que_se_cruzan(inicio, horas, excluir=pedido)]).values('idUsuario')
+        pedido.personal.filter(idUsuario__in=ocupado).delete()
+        pedido.fecha_servicio, pedido.hora_servicio, pedido.duracion_horas = fecha_servicio, hora_servicio, horas
+        pedido.origen, pedido.destino, pedido.patente_vehiculo = origen, destino, vehiculo
+        pedido.estado = Pedido.PENDIENTE
+        pedido.save()
+        # servicios e inventario como un pedido nuevo, a los precios de hoy
+        pedido.detalles.all().delete()
+        precio = precio_principal(principal, vehiculo)
+        DetallePedido.objects.bulk_create(
+            [DetallePedido(idPedido=pedido, idServicio=principal, precio_unitario=precio, subtotal=precio)]
+            + [DetallePedido(idPedido=pedido, idServicio=s, precio_unitario=s.Precio_base, subtotal=s.Precio_base)
+               for s in adicionales])
+        pedido.inventario.all().delete()
+        InventarioDetalle.objects.bulk_create([
+            InventarioDetalle(idPedido=pedido, idObjeto=i['objeto'], Cantidad=i['cantidad'],
+                              Fragil=i['fragil'], Observacion=i['observacion']) for i in limpios])
+        recalcular_total(pedido)
+    return pedido

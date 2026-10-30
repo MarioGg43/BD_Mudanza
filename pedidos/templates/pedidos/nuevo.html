@@ -1,9 +1,14 @@
 {% extends 'vehiculos/base.html' %}
-{% block title %}Pedir una mudanza{% endblock %}
+{% block title %}{% if pedido %}Modificar pedido N° {{ pedido.id_pedido }}{% else %}Pedir una mudanza{% endif %}{% endblock %}
 {% block content %}
 <div class="mx-auto" style="max-width: 900px;">
+    {% if pedido %}
+    <h1 class="h3 fw-bold mb-1">Modificar pedido N° {{ pedido.id_pedido }}</h1>
+    <p class="text-muted mb-4">Podés cambiar todo hasta {{ horas_limite }} horas antes de la mudanza. Al guardar, el pedido vuelve a quedar pendiente hasta que la empresa lo confirme, y el total se recalcula con los precios de hoy.</p>
+    {% else %}
     <h1 class="h3 fw-bold mb-1">Pedir una mudanza</h1>
     <p class="text-muted mb-4">El pedido queda pendiente hasta que la empresa lo confirme.</p>
+    {% endif %}
 
     <form method="post" novalidate id="formPedido">
         {% csrf_token %}
@@ -76,8 +81,8 @@
         </div>
 
         <div class="d-flex justify-content-end gap-3">
-            <a href="{% url 'pedidos_lista' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
-            <button type="submit" class="btn btn-success px-4 fw-bold">Registrar pedido</button>
+            <a href="{% if pedido %}{% url 'pedidos_detalle' pedido.id_pedido %}{% else %}{% url 'pedidos_lista' %}{% endif %}" class="btn btn-outline-secondary px-4">{% if pedido %}Volver{% else %}Cancelar{% endif %}</a>
+            <button type="submit" class="btn btn-success px-4 fw-bold">{% if pedido %}Guardar cambios{% else %}Registrar pedido{% endif %}</button>
         </div>
     </form>
 </div>
@@ -506,7 +511,7 @@
     let vehiculos, motivo;
     try {
       const r = await fetch("{% url 'pedidos_vehiculos_libres' %}?" + new URLSearchParams(
-        { fecha: fecha.value, hora: horaInicio.value, servicio: servicio.value }));
+        { fecha: fecha.value, hora: horaInicio.value, servicio: servicio.value{% if pedido %}, pedido: '{{ pedido.id_pedido }}'{% endif %} }));
       if (!r.ok) return;
       ({ vehiculos, motivo } = await r.json());
     } catch (e) {
