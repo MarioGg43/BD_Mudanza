@@ -107,3 +107,41 @@ class EmpezamosTest(BaseReglas):
             self.assertContains(self.client.get('/pedidos/'), 'En curso')
             self.assertContains(self.client.get(f'/pedidos/{self.p.pk}/'), 'Real (lo marcó el chofer)')
         self.assertEqual(log.accion, 'Modificación')
+
+
+class EmpezamosMismoDiaTest(EmpezamosTest):
+    """«Empezamos» solo el día de la mudanza: una demora de ese día se puede, otro día no."""
+
+    def test_el_mismo_dia_aunque_sea_tarde_se_puede(self):
+        with self.a_las(22, 30):                     # pasó el horario (9 a 14), pero es el mismo día
+            self.entrar(40987654)
+            r = self.client.get('/portal/')
+            self.assertContains(r, 'Atrasada: tenía que empezar a las 09:00')
+            reglas.marcar_inicio(self.p.pk, self.chofer)
+
+    def test_al_dia_siguiente_ya_no(self):
+        with self.a_las(8, dias=2):
+            with self.assertRaises(reglas.ErrorPedido) as ctx:
+                reglas.marcar_inicio(self.p.pk, self.chofer)
+            self.assertIn('ya no se puede marcar', str(ctx.exception))
+            self.entrar(40987654)
+            r = self.client.get('/portal/')
+            self.assertContains(r, 'Esta mudanza ya pasó')
+            self.assertNotContains(r, 'Empezamos</button>')
+
+    def test_una_mudanza_de_varios_dias_se_termina_otro_dia(self):
+        nacional = reglas.Servicio.objects.get(Tipo_servicio='Mudanza nacional')
+        q = self.registrar(id_servicio=nacional.id_servicio, patente='AE-123-CD', fecha_servicio=self.dia(3))
+        from usuarios.models import Rol
+        from usuarios.utils import hash_password
+        otro = Usuario.objects.create(DNI=30111222, Nombre='Pablo', Apellido='Ruiz', Correo='pablo.ruiz@ejemplo.com',
+                                      NombreUsuario='ruizp', Clave=hash_password('Usuario123!'),
+                                      idRol=Rol.objects.get(nom_rol='Chofer'))
+        reglas.asignar_personal(q.pk, otro.pk)
+        reglas.confirmar(q.pk)
+        with self.a_las(9, dias=3):
+            reglas.marcar_inicio(q.pk, otro)
+        with self.a_las(9, dias=5):                  # dos días después
+            reglas.marcar_fin(q.pk, otro)
+        q.refresh_from_db()
+        self.assertEqual(q.estado, Pedido.FINALIZADO)

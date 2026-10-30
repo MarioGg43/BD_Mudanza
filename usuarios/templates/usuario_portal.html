@@ -129,7 +129,10 @@
         <form method="post" action="{% url 'pedidos_empezar' p.id_pedido %}">{% csrf_token %}
           <button class="btn-primary px-4 py-2 rounded-lg font-bold text-sm cursor-pointer"><i class="fa-solid fa-play mr-1"></i>Empezamos</button>
         </form>
-        <span class="texto-suave">Tocalo cuando lleguen y empiecen a cargar.</span>
+        {% if p.empieza_tarde %}<span class="aviso-error px-2 py-1 rounded font-semibold"><i class="fa-solid fa-clock mr-1"></i>Atrasada: tenía que empezar a las {{ p.hora_servicio|time:"H:i" }}</span>
+        {% else %}<span class="texto-suave">Tocalo cuando lleguen y empiecen a cargar.</span>{% endif %}
+        {% elif p.ya_paso %}
+        <span class="aviso-error px-2 py-1 rounded"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Esta mudanza ya pasó. Si la hicieron, avisale al administrador para que la finalice.</span>
         {% else %}
         <span class="texto-suave"><i class="fa-solid fa-circle-info mr-1"></i>El día de la mudanza vas a poder marcar «Empezamos» y «Terminamos».</span>
         {% endif %}

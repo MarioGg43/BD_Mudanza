@@ -385,7 +385,15 @@ def finalizar(id_pedido):
 
 
 # ---------------------------------------------------------------- el chofer marca la mudanza
-HORAS_ANTES_DE_EMPEZAR = 2  # «Empezamos» se puede tocar desde 2 horas antes del horario
+HORAS_ANTES_DE_EMPEZAR = 2  # «Empezamos» se puede tocar desde 2 horas antes del horario...
+
+
+def se_puede_empezar(pedido, ahora=None):
+    """...y hasta el final de ese día: una demora del mismo día se contempla, pero no se marcan
+    mudanzas de días anteriores (que las finalice el administrador)."""
+    ahora = ahora or timezone.now()
+    return (pedido.inicio - timedelta(hours=HORAS_ANTES_DE_EMPEZAR) <= ahora
+            and timezone.localtime(ahora).date() <= pedido.fecha_servicio)
 
 
 def _del_chofer(id_pedido, usuario):
@@ -408,6 +416,9 @@ def marcar_inicio(id_pedido, usuario):
         if timezone.now() < desde:
             desde = timezone.localtime(desde)
             raise ErrorPedido(f'Todavía es temprano: se puede marcar desde el {desde:%d/%m} a las {desde:%H:%M}.')
+        if not se_puede_empezar(pedido):
+            raise ErrorPedido(f'Esta mudanza era el {pedido.fecha_servicio:%d/%m}: ya no se puede marcar. '
+                              'Si la hicieron, avisale al administrador para que la finalice.')
         pedido.inicio_real = timezone.now()
         pedido.save(update_fields=['inicio_real'])
     return pedido

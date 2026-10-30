@@ -194,7 +194,7 @@ def usuario_portal(request):
 
     from django.db.models import Q
     from datetime import timedelta
-    from pedidos.reglas import HORAS_ANTES_DE_EMPEZAR, filtro_por_venir  # pedidos depende de usuarios
+    from pedidos.reglas import filtro_por_venir, se_puede_empezar  # pedidos depende de usuarios
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
     # sus mudanzas por venir y las confirmadas de los últimos días que todavía no se finalizaron
@@ -208,8 +208,10 @@ def usuario_portal(request):
     for p in mudanzas:
         # solo el chofer de esa mudanza marca «Empezamos» / «Terminamos»
         p.soy_chofer = any(x.idUsuario_id == usuario_actual.pk and x.Funcion == 'Chofer' for x in p.personal.all())
-        p.puede_empezar = (p.soy_chofer and p.estado == Pedido.CONFIRMADO and not p.inicio_real
-                           and ahora >= p.inicio - timedelta(hours=HORAS_ANTES_DE_EMPEZAR))
+        sin_empezar = p.soy_chofer and p.estado == Pedido.CONFIRMADO and not p.inicio_real
+        p.puede_empezar = sin_empezar and se_puede_empezar(p, ahora)
+        p.empieza_tarde = p.puede_empezar and ahora > p.inicio               # ya pasó la hora y no empezaron
+        p.ya_paso = sin_empezar and timezone.localtime(ahora).date() > p.fecha_servicio
     return render(request, 'usuario_portal.html', {
         'usuario_actual': usuario_actual,
         'permisos_rol': permisos,
