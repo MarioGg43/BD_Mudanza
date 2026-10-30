@@ -93,7 +93,8 @@ def despues_de_guardar(sender, instance, created, **kwargs):
         return
     instance._auditoria_antes = None
     ahora = _valores(instance)
-    cambios = [c for c in ahora if c in antes and str(antes[c]) != str(ahora[c])]
+    # por valor: 0 y 0.00 son lo mismo; el texto cubre tipos distintos (fecha y su texto)
+    cambios = [c for c in ahora if c in antes and antes[c] != ahora[c] and str(antes[c]) != str(ahora[c])]
     if not cambios:
         return
     from .models import LogAuditoria
