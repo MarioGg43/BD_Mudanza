@@ -238,6 +238,11 @@ class Pedido(models.Model):
     destino = models.CharField(max_length=200, default='', db_column='Direccion_destino', verbose_name='Hasta')
     estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE, db_column='Estado_pedido')
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Total_pedido')
+    # Lo carga el chofer en el relevamiento si encuentra más cosas de las declaradas; suma al total
+    recargo = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Recargo_pedido',
+                                  verbose_name='Recargo')
+    motivo_recargo = models.CharField(max_length=200, blank=True, null=True, db_column='Motivo_recargo',
+                                      verbose_name='Motivo del recargo')
     # Lo marca el chofer desde el portal («Empezamos» / «Terminamos»): la hora real, no la estimada
     inicio_real = models.DateTimeField(blank=True, null=True, db_column='Inicio_real', verbose_name='Inicio real')
     fin_real = models.DateTimeField(blank=True, null=True, db_column='Fin_real', verbose_name='Fin real')
@@ -425,6 +430,9 @@ class InventarioDetalle(models.Model):
     idObjeto = models.ForeignKey(Objeto, on_delete=models.PROTECT, db_column='id_objeto',
                                  related_name='inventarios', verbose_name='Objeto')
     Cantidad = models.IntegerField()
+    # Lo que había declarado el cliente, si el chofer lo corrigió en el relevamiento (0 = no lo declaró)
+    cantidad_declarada = models.PositiveIntegerField(blank=True, null=True, db_column='Cantidad_declarada',
+                                                     verbose_name='Cantidad declarada')
     Fragil = models.BooleanField(default=False, verbose_name='Frágil')
     Observacion = models.CharField(max_length=200, blank=True, null=True, verbose_name='Observación')
     idPedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, db_column='id_pedido',

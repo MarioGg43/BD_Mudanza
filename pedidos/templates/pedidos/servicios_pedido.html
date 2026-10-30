@@ -1,0 +1,28 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Servicios del pedido N° {{ pedido.id_pedido }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 640px;">
+    <a href="{% url 'pedidos_detalle' pedido.id_pedido %}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Volver al pedido</a>
+    <h1 class="h3 fw-bold mt-2 mb-1">Servicios del pedido N° {{ pedido.id_pedido }}</h1>
+    <p class="text-muted mb-4">{{ pedido.idUsuario.Apellido }}, {{ pedido.idUsuario.Nombre }} · Vehículo {{ pedido.patente_vehiculo_id }} ({{ pedido.patente_vehiculo.tipo_vehiculo }})</p>
+    <form method="post" class="card-panel bg-white p-4" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <p class="fw-semibold mb-2">{{ form.servicio.label }}</p>
+        {% for opcion in form.servicio %}<div class="form-check">{{ opcion.tag }} <label class="form-check-label" for="{{ opcion.id_for_label }}">{{ opcion.choice_label }}</label></div>{% endfor %}
+        {% if form.servicio.errors %}<div class="invalid-feedback d-block">{{ form.servicio.errors.as_text }}</div>{% endif %}
+        <p class="fw-semibold mt-3 mb-2">{{ form.adicionales.label }}</p>
+        {% for opcion in form.adicionales %}<div class="form-check">{{ opcion.tag }} <label class="form-check-label" for="{{ opcion.id_for_label }}">{{ opcion.choice_label }}</label></div>{% endfor %}
+        {% if form.adicionales.errors %}<div class="invalid-feedback d-block">{{ form.adicionales.errors.as_text }}</div>{% endif %}
+        <p class="small text-muted mt-3 mb-0">Los servicios que ya tenía mantienen el precio con el que se pidieron; los nuevos van al precio de hoy (el principal, con el recargo del camión). El total se recalcula solo.</p>
+        <div class="d-flex justify-content-end gap-3 mt-3">
+            <a href="{% url 'pedidos_detalle' pedido.id_pedido %}" class="btn btn-outline-secondary">Cancelar</a>
+            <button class="btn btn-success fw-bold">Guardar servicios</button>
+        </div>
+    </form>
+</div>
+<script>
+// en las opciones los widgets salen sin clase de Bootstrap
+document.querySelectorAll('.form-check input').forEach((i) => i.classList.add('form-check-input'));
+</script>
+{% endblock %}

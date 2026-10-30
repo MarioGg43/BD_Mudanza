@@ -15,7 +15,7 @@ from usuarios.views import get_usuario_actual
 from . import reglas
 from .pdf import respuesta_pdf
 from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
-                    RegistroClienteForm, ReprogramarForm, objetos_para_elegir)
+                    RegistroClienteForm, ReprogramarForm, ServiciosPedidoForm, objetos_para_elegir)
 from .permisos import requiere_permiso, tiene_permiso
 
 
@@ -243,6 +243,66 @@ def asignar(request, id_pedido):
     return render(request, 'pedidos/asignar.html', {
         'pedido': pedido, 'form': form, 'max_ayudantes': reglas.MAX_AYUDANTES,
         'sugerido': sugerido})
+
+
+@requiere_permiso('PED_GESTIONAR')
+def servicios_pedido(request, id_pedido):
+    """El administrador cambia el principal o los adicionales; el total se recalcula."""
+    pedido = get_object_or_404(Pedido.objects.select_related('idUsuario', 'patente_vehiculo'), pk=id_pedido)
+    if pedido.estado not in Pedido.ACTIVOS:
+        messages.error(request, f'El pedido N° {id_pedido} está {pedido.estado.lower()}: no se pueden cambiar los servicios.')
+        return redirect('pedidos_detalle', id_pedido=id_pedido)
+    detalles = list(pedido.detalles.select_related('idServicio'))
+    form = ServiciosPedidoForm(request.POST or None, initial={
+        'servicio': next((d.idServicio_id for d in detalles if d.idServicio.Categoria == Servicio.PRINCIPAL), None),
+        'adicionales': [d.idServicio_id for d in detalles if d.idServicio.Categoria == Servicio.ADICIONAL]})
+    if request.method == 'POST' and form.is_valid():
+        try:
+            reglas.editar_servicios(id_pedido, form.cleaned_data['servicio'].pk,
+                                    [s.pk for s in form.cleaned_data['adicionales']])
+        except reglas.ErrorPedido as e:
+            for campo, mensaje in e.errores.items():
+                form.add_error(campo if campo in form.fields else None, mensaje)
+        else:
+            messages.success(request, f'Servicios del pedido N° {id_pedido} actualizados.')
+            return redirect('pedidos_detalle', id_pedido=id_pedido)
+    return render(request, 'pedidos/servicios_pedido.html', {'pedido': pedido, 'form': form})
+
+
+@requiere_permiso('MUDANZAS_OPERAR')
+def relevamiento(request, id_pedido):
+    """El chofer, al llegar: cantidades reales, objetos que no se declararon, adicionales y recargo."""
+    pedido = get_object_or_404(Pedido.objects.select_related('idUsuario', 'patente_vehiculo')
+                                             .prefetch_related('inventario__idObjeto', 'detalles__idServicio'),
+                               pk=id_pedido)
+    es_chofer = pedido.personal.filter(Funcion=PersonalPedido.CHOFER, idUsuario=request.usuario).exists()
+    if not es_chofer or not pedido.en_curso:
+        messages.error(request, 'El relevamiento lo hace el chofer de la mudanza, después de marcar «Empezamos».')
+        return redirect('usuario_portal')
+    tiene = {d.idServicio_id for d in pedido.detalles.all()}
+    adicionales = Servicio.objects.filter(Activo=True, Categoria=Servicio.ADICIONAL).exclude(pk__in=tiene)
+    errores = {}
+    if request.method == 'POST':
+        reales = {i.pk: request.POST.get(f'real-{i.pk}', i.Cantidad) for i in pedido.inventario.all()}
+        nuevos = []
+        for n in range(5):
+            id_obj = request.POST.get(f'nuevo-{n}-objeto')
+            if id_obj and id_obj.isdigit():
+                nuevos.append({'objeto': int(id_obj), 'cantidad': request.POST.get(f'nuevo-{n}-cantidad'),
+                               'fragil': request.POST.get(f'nuevo-{n}-fragil') == 'on',
+                               'observacion': request.POST.get(f'nuevo-{n}-observacion', '')})
+        try:
+            reglas.relevamiento(id_pedido, request.usuario, reales, nuevos,
+                                [int(x) for x in request.POST.getlist('adicionales')],
+                                request.POST.get('recargo') or 0, request.POST.get('motivo', ''))
+        except reglas.ErrorPedido as e:
+            errores = e.errores
+        else:
+            messages.success(request, f'Relevamiento del pedido N° {id_pedido} guardado.')
+            return redirect('usuario_portal')
+    return render(request, 'pedidos/relevamiento.html', {
+        'pedido': pedido, 'adicionales': adicionales, 'objetos': objetos_para_elegir(), 'errores': errores,
+        'datos': request.POST, 'filas_nuevas': range(5)})
 
 
 @requiere_permiso('MUDANZAS_OPERAR')

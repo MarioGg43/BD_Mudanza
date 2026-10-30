@@ -614,3 +614,118 @@ def mensaje_reprogramacion(r):
     if r.vehiculo_nuevo_id != r.vehiculo_anterior_id:
         texto += f' Va el vehículo {r.vehiculo_nuevo_id}.'
     return texto + ' Disculpá las molestias.'
+
+
+# ---------------------------------------------------------------- servicios, relevamiento y recargo
+MAX_RECARGO = Decimal('10000000')
+
+
+def recalcular_total(pedido):
+    """Total = cada servicio a su precio guardado + el recargo del relevamiento."""
+    pedido.total = sum((d.subtotal for d in pedido.detalles.all()), Decimal('0')) + (pedido.recargo or 0)
+    pedido.save(update_fields=['total'])
+    return pedido.total
+
+
+def _poner_servicios(pedido, principal, adicionales):
+    """Deja en el pedido ese principal y esos adicionales. Los que ya estaban conservan el precio
+    con el que se pidieron; los nuevos van al precio de hoy (el principal, con el recargo del camión)."""
+    actuales = {d.idServicio_id: d for d in pedido.detalles.all()}
+    queda = {principal.pk} | {s.pk for s in adicionales}
+    pedido.detalles.exclude(idServicio__in=queda).delete()
+    for s in [principal, *adicionales]:
+        if s.pk not in actuales:
+            precio = precio_principal(s, pedido.patente_vehiculo) if s is principal else s.Precio_base
+            DetallePedido.objects.create(idPedido=pedido, idServicio=s, precio_unitario=precio, subtotal=precio)
+
+
+def editar_servicios(id_pedido, id_servicio, ids_adicionales=()):
+    """El administrador cambia el servicio principal o los adicionales de un pedido activo. Si el
+    principal dura distinto, el vehículo y el personal tienen que seguir libres con la duración nueva."""
+    errores = {}
+    principal, adicionales = _validar_servicios(id_servicio, ids_adicionales, errores)
+    if errores:
+        raise ErrorPedido(errores)
+    with transaction.atomic():
+        pedido = Pedido.objects.select_for_update().select_related('patente_vehiculo').get(pk=id_pedido)
+        if pedido.estado not in Pedido.ACTIVOS:
+            raise ErrorPedido(f'El pedido N° {pedido.pk} está {pedido.estado.lower()}: no se pueden cambiar los servicios.')
+        horas = principal.Duracion_horas or MIN_HORAS
+        if horas != pedido.duracion_horas:
+            if not vehiculos_libres(pedido.inicio, horas, pedido).filter(patente=pedido.patente_vehiculo_id).exists():
+                raise ErrorPedido({'servicio': f'Con «{principal}» la mudanza dura {horas} h y el vehículo '
+                                               f'{pedido.patente_vehiculo_id} no está libre todo ese tiempo.'})
+            ocupado = PersonalPedido.objects.filter(
+                idPedido__in=[p.pk for p in pedidos_que_se_cruzan(pedido.inicio, horas, excluir=pedido)]).values('idUsuario')
+            if pedido.personal.filter(idUsuario__in=ocupado).exists():
+                raise ErrorPedido({'servicio': f'Con «{principal}» la mudanza dura {horas} h y alguien del personal '
+                                               'no está libre todo ese tiempo. Cambiá el personal primero.'})
+            pedido.duracion_horas = horas
+            pedido.save(update_fields=['duracion_horas'])
+        _poner_servicios(pedido, principal, adicionales)
+        recalcular_total(pedido)
+    return pedido
+
+
+def relevamiento(id_pedido, usuario, reales, nuevos=(), ids_adicionales=(), recargo=0, motivo=''):
+    """Lo que encuentra el chofer al llegar (después de «Empezamos»): la cantidad real de cada
+    objeto (0 = no estaba), objetos que no se declararon, adicionales que hacen falta y un recargo
+    con su motivo. Se guarda lo que había declarado el cliente para poder mostrar la diferencia."""
+    errores = {}
+    motivo = (motivo or '').strip()
+    try:
+        recargo = Decimal(str(recargo or 0))
+    except Exception:
+        recargo = Decimal('-1')
+    if not Decimal('0') <= recargo <= MAX_RECARGO:
+        errores['recargo'] = 'El recargo tiene que ser un monto de 0 en adelante.'
+    elif recargo > 0 and not 5 <= len(motivo) <= MAX_OBSERVACION:
+        errores['motivo'] = 'Contá por qué se cobra el recargo (de 5 a 200 caracteres).'
+    limpios = _validar_items(list(nuevos), errores) if nuevos else []
+    if errores.get('inventario') == 'Agregá al menos un objeto.':
+        errores.pop('inventario')
+    if errores:
+        raise ErrorPedido(errores)
+
+    with transaction.atomic():
+        pedido = _del_chofer(id_pedido, usuario)
+        if not pedido.inicio_real:
+            raise ErrorPedido('Primero marcá «Empezamos»: el relevamiento se hace al llegar.')
+        items = {i.pk: i for i in pedido.inventario.select_related('idObjeto')}
+        for id_item, cantidad in (reales or {}).items():
+            item = items.get(int(id_item))
+            if item is None:
+                continue
+            try:
+                cantidad = int(cantidad)
+            except (TypeError, ValueError):
+                raise ErrorPedido({'inventario': f'La cantidad de «{item.idObjeto}» tiene que ser un número.'})
+            if not 0 <= cantidad <= MAX_CANTIDAD:
+                raise ErrorPedido({'inventario': f'La cantidad de «{item.idObjeto}» va de 0 a {MAX_CANTIDAD}.'})
+            if cantidad != item.Cantidad:
+                if item.cantidad_declarada is None:
+                    item.cantidad_declarada = item.Cantidad
+                item.Cantidad = cantidad
+                item.save(update_fields=['Cantidad', 'cantidad_declarada'])
+        ya_estan = {i.idObjeto_id for i in items.values() if not i.idObjeto.es_otro}
+        for nuevo in limpios:
+            if not nuevo['objeto'].es_otro and nuevo['objeto'].pk in ya_estan:
+                raise ErrorPedido({'inventario': f'«{nuevo["objeto"]}» ya está en la lista: cambiá su cantidad real.'})
+            InventarioDetalle.objects.create(idPedido=pedido, idObjeto=nuevo['objeto'], Cantidad=nuevo['cantidad'],
+                                             Fragil=nuevo['fragil'], Observacion=nuevo['observacion'],
+                                             cantidad_declarada=0)
+        if not pedido.inventario.filter(Cantidad__gt=0).exists():
+            raise ErrorPedido({'inventario': 'Tiene que quedar al menos un objeto para llevar.'})
+        if ids_adicionales:
+            errores = {}
+            principal = next((d.idServicio for d in pedido.detalles.select_related('idServicio')
+                              if d.idServicio.Categoria == Servicio.PRINCIPAL), None)
+            actuales = [d.idServicio_id for d in pedido.detalles.all() if d.idServicio_id != getattr(principal, 'pk', None)]
+            _, adicionales = _validar_servicios(principal.pk, [*actuales, *ids_adicionales], errores)
+            if errores:
+                raise ErrorPedido(errores)
+            _poner_servicios(pedido, principal, adicionales)
+        pedido.recargo, pedido.motivo_recargo = recargo, (motivo or None) if recargo > 0 else None
+        pedido.save(update_fields=['recargo', 'motivo_recargo'])
+        recalcular_total(pedido)
+    return pedido

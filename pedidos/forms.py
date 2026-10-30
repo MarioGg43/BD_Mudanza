@@ -148,6 +148,22 @@ class ReprogramarForm(forms.Form):
         self.fields['quitar_ocupados'].widget.attrs['class'] = 'form-check-input'
 
 
+class ServiciosPedidoForm(forms.Form):
+    """Editar el principal y los adicionales de un pedido (las reglas, en reglas.editar_servicios)."""
+    servicio = forms.ModelChoiceField(queryset=Servicio.objects.none(), label='Servicio principal',
+                                      widget=forms.RadioSelect, empty_label=None)
+    adicionales = forms.ModelMultipleChoiceField(queryset=Servicio.objects.none(), required=False,
+                                                 label='Adicionales', widget=forms.CheckboxSelectMultiple)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        activos = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio')
+        self.fields['servicio'].queryset = activos.filter(Categoria=Servicio.PRINCIPAL)
+        self.fields['adicionales'].queryset = activos.filter(Categoria=Servicio.ADICIONAL)
+        self.fields['servicio'].label_from_instance = lambda s: f'{s.Tipo_servicio} — ${s.Precio_base:,.0f} · {s.Duracion_horas} h'.replace(',', '.')
+        self.fields['adicionales'].label_from_instance = lambda s: f'{s.Tipo_servicio} — ${s.Precio_base:,.0f}'.replace(',', '.')
+
+
 class AnularForm(forms.Form):
     motivo = forms.CharField(min_length=5, max_length=200, label='Motivo de la anulación',
                              widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}))

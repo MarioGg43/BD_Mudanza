@@ -1,0 +1,85 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Relevamiento del pedido N° {{ pedido.id_pedido }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 720px;">
+    <a href="{% url 'usuario_portal' %}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Volver al portal</a>
+    <h1 class="h3 fw-bold mt-2 mb-1">Relevamiento · pedido N° {{ pedido.id_pedido }}</h1>
+    <p class="text-muted mb-4">{{ pedido.origen }} → {{ pedido.destino }}. Corregí lo que encontraste: las cantidades reales, lo que no estaba declarado y, si corresponde, un recargo.</p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if errores %}<div class="alert alert-danger">{% for e in errores.values %}{{ e }} {% endfor %}</div>{% endif %}
+
+        <div class="card-panel bg-white p-3 p-md-4 mb-3">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-box-seam me-1"></i>1. Lo que declaró el cliente</h2>
+            <p class="small text-muted">Poné la cantidad que hay de verdad. Si algo no estaba, poné 0.</p>
+            {% for i in pedido.inventario.all %}
+            <div class="d-flex align-items-center gap-3 py-2 border-bottom">
+                <div class="flex-grow-1">
+                    <span class="fw-semibold">{% if i.idObjeto.es_otro %}Otro: {{ i.Observacion }}{% else %}{{ i.idObjeto }}{% endif %}</span>
+                    <div class="small text-muted">Declaró {% if i.cantidad_declarada is not None %}{{ i.cantidad_declarada }}{% else %}{{ i.Cantidad }}{% endif %}{% if i.Fragil %} · frágil{% endif %}</div>
+                </div>
+                <label class="small text-muted" for="real-{{ i.pk }}">Real</label>
+                <input type="number" min="0" max="999" inputmode="numeric" class="form-control" style="width: 6rem;"
+                       id="real-{{ i.pk }}" name="real-{{ i.pk }}" value="{{ i.Cantidad }}">
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="card-panel bg-white p-3 p-md-4 mb-3">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-plus-circle me-1"></i>2. Lo que había y no estaba declarado</h2>
+            {% for n in filas_nuevas %}
+            <div class="row g-2 align-items-end mb-2 fila-nueva {% if not forloop.first %}d-none{% endif %}">
+                <div class="col-12 col-md-5">
+                    <select class="form-select" name="nuevo-{{ n }}-objeto" aria-label="Objeto">
+                        <option value="">Elegí un objeto</option>
+                        {% for o in objetos %}<option value="{{ o.pk }}">{{ o.nom_objeto }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-4 col-md-2"><input type="number" min="1" max="999" class="form-control" name="nuevo-{{ n }}-cantidad" placeholder="Cant." aria-label="Cantidad"></div>
+                <div class="col-8 col-md-5"><input type="text" maxlength="200" class="form-control" name="nuevo-{{ n }}-observacion" placeholder="Si es «Otro», qué es" aria-label="Observación" autocomplete="off"></div>
+                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="nuevo-{{ n }}-fragil" id="fragil-{{ n }}"><label class="form-check-label small" for="fragil-{{ n }}">Frágil</label></div></div>
+            </div>
+            {% endfor %}
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="otraFila"><i class="bi bi-plus"></i> Agregar otro objeto</button>
+        </div>
+
+        {% if adicionales %}
+        <div class="card-panel bg-white p-3 p-md-4 mb-3">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-tools me-1"></i>3. Servicios que hacen falta</h2>
+            {% for s in adicionales %}
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="adicionales" value="{{ s.pk }}" id="adi-{{ s.pk }}">
+                <label class="form-check-label" for="adi-{{ s.pk }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }}</label></div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="card-panel bg-white p-3 p-md-4 mb-4">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-cash-coin me-1"></i>4. Recargo</h2>
+            <div class="row g-2">
+                <div class="col-5 col-md-3">
+                    <label class="form-label small" for="recargo">Monto ($)</label>
+                    <input type="number" min="0" step="1" class="form-control" id="recargo" name="recargo" value="{{ datos.recargo|default:pedido.recargo|floatformat:'0' }}">
+                </div>
+                <div class="col-7 col-md-9">
+                    <label class="form-label small" for="motivo">Motivo (obligatorio si hay recargo)</label>
+                    <input type="text" maxlength="200" class="form-control" id="motivo" name="motivo" autocomplete="off"
+                           value="{{ datos.motivo|default:pedido.motivo_recargo|default:'' }}" placeholder="Ej.: eran 10 camas, no 4">
+                </div>
+            </div>
+            <p class="small text-muted mt-2 mb-0">Total actual: ${{ pedido.total|floatformat:"2g" }}. El recargo se suma al total y queda en el comprobante del cliente.</p>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% url 'usuario_portal' %}" class="btn btn-outline-secondary">Cancelar</a>
+            <button class="btn btn-success fw-bold px-4">Guardar relevamiento</button>
+        </div>
+    </form>
+</div>
+<script>
+document.getElementById('otraFila').addEventListener('click', () => {
+  const oculta = document.querySelector('.fila-nueva.d-none');
+  if (oculta) oculta.classList.remove('d-none');
+});
+</script>
+{% endblock %}

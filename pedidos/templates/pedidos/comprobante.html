@@ -98,6 +98,7 @@
         {% for d in pedido.detalles.all %}
         <tr><td>{{ d.idServicio.Tipo_servicio }}{% if d.idServicio.Categoria == 'Adicional' %} <i>(adicional)</i>{% endif %}</td><td class="num">${{ d.precio_unitario|floatformat:"2g" }}</td><td class="num">${{ d.subtotal|floatformat:"2g" }}</td></tr>
         {% endfor %}
+        {% if pedido.recargo %}<tr><td>Recargo <i>({{ pedido.motivo_recargo }})</i></td><td></td><td class="num">${{ pedido.recargo|floatformat:"2g" }}</td></tr>{% endif %}
         <tr class="total"><td colspan="2" class="num">TOTAL</td><td class="num">${{ pedido.total|floatformat:"2g" }}</td></tr>
     </table>
 
@@ -105,7 +106,7 @@
     <table>
         <tr><th>Objeto</th><th class="num">Cantidad</th><th>Frágil</th><th>Observación</th></tr>
         {% for i in pedido.inventario.all %}
-        <tr><td>{{ i.idObjeto }}</td><td class="num">{{ i.Cantidad }}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>
+        <tr><td>{{ i.idObjeto }}</td><td class="num">{{ i.Cantidad }}{% if i.cantidad_declarada is not None and i.cantidad_declarada != i.Cantidad %} <i>(declaró {{ i.cantidad_declarada }})</i>{% endif %}</td><td>{{ i.Fragil|yesno:"Sí,No" }}</td><td>{{ i.Observacion|default:"—" }}</td></tr>
         {% endfor %}
     </table>
 
