@@ -17,7 +17,7 @@ export function Navbar() {
           <span className="logo-pastilla me-2"><img src="/logo.png" alt="" /></span>
           Mudanzas y Fletes Salta
         </Link>
-        <nav className="menu-marca d-flex flex-wrap align-items-center gap-1 small text-uppercase fw-semibold">
+        <nav className="menu-marca d-flex flex-wrap align-items-center gap-1 fw-semibold">
           {usuario ? (
             <>
               {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>Mis pedidos</NavLink>}

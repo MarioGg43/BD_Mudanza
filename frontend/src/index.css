@@ -3,7 +3,9 @@
 .tarjeta-pedido:hover { border-color: var(--naranja); transform: translateY(-2px); }
 .tarjeta-pasada { opacity: .7; }
 .tarjeta-pasada:hover { opacity: 1; }
-.menu-marca .btn-light { text-transform: none; }
+/* todo el menú con la misma letra: enlaces y botones (Registrarme, Salir) */
+.menu-marca { font-size: .95rem; }
+.menu-marca .btn { font-size: inherit; font-weight: 600; line-height: 1.5; padding: 6px 14px; border-radius: 999px; }
 /* el menú pinta de blanco sus enlaces: el botón blanco necesita su propio color */
 .menu-marca a.btn-light, .menu-marca a.btn-light:hover { color: var(--rojo-osc); background: #fff; }
 .menu-marca a.btn-light:hover { background: var(--naranja-suave); }
