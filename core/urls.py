@@ -6,6 +6,7 @@ from vehiculos import views as vehiculos_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', vehiculos_views.inicio, name='inicio'),
+    path('api/', include('api.urls')),       # API REST para el frontend en React (frontend/)
     path('vehiculos/', include('vehiculos.urls')),
     path('', include('pedidos.urls')),       # Hito 3: pedidos, registro de clientes y servicios
     path('', include('usuarios.urls')),      # login, panel, portal y CRUD de usuarios

@@ -1,0 +1,4 @@
+/* Lo propio del frontend en React; los colores y componentes salen de styles/marca.css */
+.tarjeta-pedido { transition: border-color .15s, transform .15s; }
+.tarjeta-pedido:hover { border-color: var(--naranja); transform: translateY(-2px); }
+.menu-marca .btn-light { text-transform: none; }
