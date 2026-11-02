@@ -30,9 +30,6 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <footer className="pie-marca py-3 text-center small">
-        Mudanzas y Fletes Salta · Grupo 5 · Frontend en React &copy; {new Date().getFullYear()}
-      </footer>
     </div>
   );
 }
