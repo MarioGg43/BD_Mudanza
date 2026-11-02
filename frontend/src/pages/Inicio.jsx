@@ -37,7 +37,6 @@ export function Inicio() {
   const { info, error, refetch } = useInfoPublica();
   useIrAlAncla(Boolean(info || error));
 
-  const flota = info?.camiones.reduce((t, c) => t + c.cantidad, 0);
   const pedibles = info ? [...info.principales, ...info.adicionales] : [];
 
   return (
@@ -71,9 +70,8 @@ export function Inicio() {
       </section>
 
       {/* ---------- números ---------- */}
-      <div className="row row-cols-1 row-cols-sm-3 g-3 mb-5">
+      <div className="row row-cols-1 row-cols-sm-2 g-3 mb-5">
         <div className="col"><div className="card-panel p-3 text-center h-100"><p className="dato-grande">+{EMPRESA.anios}</p><p className="text-muted mb-0">años en el rubro</p></div></div>
-        <div className="col"><div className="card-panel p-3 text-center h-100"><p className="dato-grande">{flota ?? '—'}</p><p className="text-muted mb-0">camiones propios</p></div></div>
         <div className="col"><div className="card-panel p-3 text-center h-100"><p className="dato-grande">Todo el país</p><p className="text-muted mb-0">dentro y fuera de Salta</p></div></div>
       </div>
 
