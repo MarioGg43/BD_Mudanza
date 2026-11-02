@@ -7,6 +7,7 @@ urlpatterns = [
     path('auth/login', views.login, name='api_login'),
     path('auth/registro', views.registro, name='api_registro'),
     path('auth/yo', views.yo, name='api_yo'),
+    path('publico', views.publico_info, name='api_publico'),
     path('catalogo', views.catalogo, name='api_catalogo'),
     path('vehiculos-libres', views.vehiculos_libres, name='api_vehiculos_libres'),
     path('pedidos', views.pedidos, name='api_pedidos'),

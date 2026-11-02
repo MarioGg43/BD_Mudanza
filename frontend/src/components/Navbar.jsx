@@ -7,7 +7,7 @@ export function Navbar() {
 
   const cerrar = () => {
     salir();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -17,16 +17,26 @@ export function Navbar() {
           <span className="logo-pastilla me-2"><img src="/logo.png" alt="" /></span>
           Mudanzas y Fletes Salta
         </Link>
-        {usuario && (
-          <nav className="menu-marca d-flex flex-wrap align-items-center gap-1 small text-uppercase fw-semibold">
-            {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>Mis pedidos</NavLink>}
-            {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
-            <span className="ms-2 text-white-50 text-capitalize d-none d-md-inline">{usuario.nombre}</span>
-            <button type="button" className="btn btn-sm btn-light ms-2" onClick={cerrar}>
-              <i className="bi bi-box-arrow-right me-1" />Salir
-            </button>
-          </nav>
-        )}
+        <nav className="menu-marca d-flex flex-wrap align-items-center gap-1 small text-uppercase fw-semibold">
+          {usuario ? (
+            <>
+              {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>Mis pedidos</NavLink>}
+              {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
+              <span className="ms-2 text-white-50 text-capitalize d-none d-md-inline">{usuario.nombre}</span>
+              <button type="button" className="btn btn-sm btn-light ms-2" onClick={cerrar}>
+                <i className="bi bi-box-arrow-right me-1" />Salir
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/#servicios" className="d-none d-md-inline">Servicios</Link>
+              <Link to="/#como-funciona" className="d-none d-md-inline">Cómo funciona</Link>
+              <Link to="/#contacto" className="d-none d-md-inline">Contacto</Link>
+              <NavLink to="/login" className="ms-md-2">Ingresar</NavLink>
+              <Link to="/registro" className="btn btn-sm btn-light ms-1">Registrarme</Link>
+            </>
+          )}
+        </nav>
       </div>
     </header>
   );

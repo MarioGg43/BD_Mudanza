@@ -33,7 +33,8 @@ Componente / Página  →  Custom hook  →  Servicio  →  Axios (api.js)  → 
 | `src/hooks/` | `usePedidos`, `usePedido`, `useCatalogo`, `useVehiculosLibres`: estados **loading / éxito / error** y cancelación con `AbortController` en la limpieza de `useEffect`. |
 | `src/context/AuthContext.jsx` | Quién está conectado y sus permisos, para toda la app. Guarda el token en `localStorage`. |
 | `src/components/` | Navbar, RutaPrivada (protege rutas por permiso), ModalObjeto (popup «Agregar objeto» con la lógica de «Otro»), spinner, alerta de error, estado del pedido. |
-| `src/pages/` | Una por ruta de React Router: `/login`, `/registro`, `/pedidos`, `/pedidos/nuevo`, `/pedidos/:id`, `/pedidos/:id/modificar`, `/pedidos/:id/cancelar` y la 404. |
+| `src/data/empresa.js` | Teléfono, correo, horario y demás datos de la empresa que muestra la página de inicio. **Son de ejemplo: reemplazarlos por los reales.** |
+| `src/pages/` | Una por ruta de React Router: `/` (inicio pública de la empresa), `/login`, `/registro`, `/pedidos`, `/pedidos/nuevo`, `/pedidos/:id`, `/pedidos/:id/modificar`, `/pedidos/:id/cancelar` y la 404. |
 
 ## Contrato de la API
 
@@ -43,6 +44,7 @@ Los errores de validación vuelven con 400 y `{ "error": "...", "errores": { "ca
 
 | Método | Ruta | Qué hace | Permiso |
 |---|---|---|---|
+| GET | `/publico` | Servicios y camiones para la página de inicio | — |
 | POST | `/auth/login` | `{usuario, clave}` → `{token, usuario}` (DNI, usuario o correo) | — |
 | POST | `/auth/registro` | Alta de cliente → `{token, usuario}` | — |
 | GET | `/auth/yo` | El usuario del token | cualquiera |

@@ -21,7 +21,7 @@ export function Registro() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  if (usuario) return <Navigate to="/" replace />;
+  if (usuario) return <Navigate to="/pedidos" replace />;
 
   const cambiar = (e) => setDatos({ ...datos, [e.target.name]: e.target.value });
 

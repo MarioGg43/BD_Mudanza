@@ -4,6 +4,33 @@
 .tarjeta-pasada { opacity: .7; }
 .tarjeta-pasada:hover { opacity: 1; }
 .menu-marca .btn-light { text-transform: none; }
+/* el menú pinta de blanco sus enlaces: el botón blanco necesita su propio color */
+.menu-marca a.btn-light, .menu-marca a.btn-light:hover { color: var(--rojo-osc); background: #fff; }
+.menu-marca a.btn-light:hover { background: var(--naranja-suave); }
+
+/* ---------- página de inicio ---------- */
+.seccion-inicio { margin-bottom: 3.5rem; scroll-margin-top: 1.5rem; }
+.tarjeta-precios {
+  background: var(--card); color: var(--tinta); border-radius: var(--radio);
+  box-shadow: 0 24px 40px -24px rgba(90, 20, 0, .7);
+}
+.heroe-marca .tarjeta-precios p { color: var(--tinta-2); }
+.dato-grande { font-size: 2rem; font-weight: 700; color: var(--naranja-osc); margin-bottom: 0; line-height: 1.2; }
+.numero-paso {
+  display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--grad); color: #fff; font-weight: 700;
+}
+.chip-adicional {
+  display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--linea); font-size: .9rem;
+}
+.btn-whatsapp { background: #1FA855; color: #fff; font-weight: 600; border: none; }
+.btn-whatsapp:hover, .btn-whatsapp:focus { background: #178A45; color: #fff; }
+.pie-empresa { background: var(--tinta); color: rgba(255, 255, 255, .8); }
+.pie-empresa .fw-bold, .pie-empresa .fw-semibold { color: #fff; }
+.pie-empresa a { color: rgba(255, 255, 255, .8); text-decoration: none; }
+.pie-empresa a:hover { color: #fff; text-decoration: underline; }
+.pie-empresa .border-top { border-color: rgba(255, 255, 255, .15) !important; }
 
 /* ---------- tarjeta «Tu próxima mudanza» ---------- */
 .proxima-mudanza { transition: transform .15s, box-shadow .15s; }

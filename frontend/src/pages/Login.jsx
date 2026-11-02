@@ -11,7 +11,7 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  if (usuario) return <Navigate to="/" replace />;
+  if (usuario) return <Navigate to="/pedidos" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +19,7 @@ export function Login() {
     setError(null);
     try {
       await login(ident.trim(), clave);
-      navigate(location.state?.desde || '/', { replace: true });
+      navigate(location.state?.desde || '/pedidos', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

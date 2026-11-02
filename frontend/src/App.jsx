@@ -1,6 +1,8 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { PieEmpresa } from './components/PieEmpresa';
 import { RutaPrivada } from './components/RutaPrivada';
+import { Inicio } from './pages/Inicio';
 import { Login } from './pages/Login';
 import { Registro } from './pages/Registro';
 import { MisPedidos } from './pages/MisPedidos';
@@ -10,15 +12,16 @@ import { CancelarPedido } from './pages/CancelarPedido';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
+  const { pathname } = useLocation();
   return (
     <div className="d-flex flex-column min-vh-100">
       <Navbar />
       <main className="container flex-grow-1 pb-5">
         <Routes>
+          <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
           <Route element={<RutaPrivada permiso="PED_CONSULTAR" />}>
-            <Route path="/" element={<Navigate to="/pedidos" replace />} />
             <Route path="/pedidos" element={<MisPedidos />} />
             <Route path="/pedidos/:id" element={<PedidoDetalle />} />
             <Route path="/pedidos/:id/cancelar" element={<CancelarPedido />} />
@@ -30,6 +33,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      {pathname === '/' && <PieEmpresa />}
     </div>
   );
 }

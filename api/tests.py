@@ -56,6 +56,14 @@ class ApiTest(BaseReglas):
         h = self.entrar(str(ADMIN))  # el administrador no tiene PED_REGISTRAR
         self.assertEqual(self.client.get('/api/catalogo', **h).status_code, 403)
 
+    def test_info_publica_sin_token(self):
+        r = self.client.get('/api/publico')
+        self.assertEqual(r.status_code, 200)
+        datos = r.json()
+        self.assertTrue(datos['principales'])
+        self.assertTrue(all(c['recargo'] in (0, 25, 50) for c in datos['camiones']))
+        self.assertEqual(self.client.post('/api/publico').status_code, 405)
+
     def test_catalogo_trae_otro_al_final(self):
         r = self.client.get('/api/catalogo', **self.entrar(str(self.cliente.DNI))).json()
         self.assertTrue(r['objetos'][-1]['otro'])

@@ -9,17 +9,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { TarjetaOpcion } from '../components/TarjetaOpcion';
 import { dinero, fecha } from '../utils/formato';
-
-// Un ícono según el nombre del servicio (los servicios los carga el administrador)
-function iconoServicio(nombre) {
-  const n = nombre.toLowerCase();
-  if (n.includes('flete')) return 'bi-box-seam';
-  if (n.includes('nacional')) return 'bi-signpost-split';
-  if (n.includes('mudanza')) return 'bi-house-door';
-  if (n.includes('embalaje')) return 'bi-boxes';
-  if (n.includes('armado')) return 'bi-tools';
-  return 'bi-stars';
-}
+import { iconoServicio } from '../utils/servicios';
 
 const SEP = ' — '; // separa el nombre de un objeto «Otro» de su detalle en la observación
 
