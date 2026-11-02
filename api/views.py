@@ -111,6 +111,7 @@ def _resumen(p):
             'hora_servicio': p.hora_servicio.strftime('%H:%M'), 'horario': p.horario,
             'origen': p.origen, 'destino': p.destino, 'estado': p.estado, 'total': float(p.total),
             'vencido': p.vencido, 'en_curso': p.en_curso, 'vehiculo': p.patente_vehiculo_id,
+            'vehiculo_tipo': p.patente_vehiculo.tipo_vehiculo,
             'cliente': f'{p.idUsuario.Apellido}, {p.idUsuario.Nombre}'}
 
 
@@ -206,7 +207,7 @@ def pedidos(request):
     base = Pedido.objects.all() if ve_todos else Pedido.objects.filter(idUsuario=request.usuario)
     form = FiltroPedidosForm(request.GET or None, ve_todos=ve_todos)
     filtros = form.filtros() if form.is_valid() else {}
-    lista = reglas.filtrar_pedidos(base.select_related('idUsuario'), **filtros)
+    lista = reglas.filtrar_pedidos(base.select_related('idUsuario', 'patente_vehiculo'), **filtros)
     return JsonResponse({'pedidos': [_resumen(p) for p in lista]})
 
 

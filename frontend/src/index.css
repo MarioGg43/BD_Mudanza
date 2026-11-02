@@ -1,4 +1,79 @@
 /* Lo propio del frontend en React; los colores y componentes salen de styles/marca.css */
 .tarjeta-pedido { transition: border-color .15s, transform .15s; }
 .tarjeta-pedido:hover { border-color: var(--naranja); transform: translateY(-2px); }
+.tarjeta-pasada { opacity: .7; }
+.tarjeta-pasada:hover { opacity: 1; }
 .menu-marca .btn-light { text-transform: none; }
+
+/* ---------- tarjeta «Tu próxima mudanza» ---------- */
+.proxima-mudanza { transition: transform .15s, box-shadow .15s; }
+.proxima-mudanza:hover { transform: translateY(-2px); box-shadow: 0 28px 44px -24px rgba(170, 30, 0, .9); }
+.proxima-mudanza:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; }
+
+/* ---------- línea de estados del pedido ---------- */
+.linea-estados {
+  display: flex; list-style: none; margin: 0; counter-reset: paso;
+}
+.paso {
+  flex: 1; position: relative; display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 2px; padding: 0 4px;
+}
+/* la raya que une cada paso con el anterior */
+.paso + .paso::before {
+  content: ''; position: absolute; top: 19px; right: 50%; width: 100%; height: 3px;
+  background: var(--linea); z-index: 0;
+}
+.paso-hecho + .paso::before, .paso-hecho + .paso-hecho::before { background: var(--naranja); }
+.paso-icono {
+  position: relative; z-index: 1; display: grid; place-items: center;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem;
+  background: var(--card); border: 2px solid var(--linea); color: var(--tinta-3);
+}
+.paso-titulo { font-weight: 600; font-size: .9rem; margin-top: 4px; color: var(--tinta-3); }
+.paso-detalle { font-size: .75rem; color: var(--tinta-2); min-height: 1.1em; }
+
+.paso-hecho .paso-icono { background: var(--naranja); border-color: var(--naranja); color: #fff; }
+.paso-hecho .paso-titulo { color: var(--tinta); }
+.paso-actual .paso-icono {
+  background: var(--grad); border: none; color: #fff;
+  box-shadow: 0 0 0 5px var(--naranja-suave);
+}
+.paso-actual .paso-titulo { color: var(--naranja-osc); }
+.paso-cortado .paso-icono { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+.paso-cortado .paso-titulo { color: var(--rojo-osc); }
+.paso-vencido .paso-icono { background: var(--gris-bg); border-color: var(--tinta-3); color: var(--gris); }
+.paso-vencido .paso-titulo { color: var(--gris); }
+
+/* en el celular, los pasos van uno abajo del otro */
+@media (max-width: 575.98px) {
+  .linea-estados { flex-direction: column; gap: 14px; }
+  .paso { flex-direction: row; text-align: left; gap: 10px; flex-wrap: wrap; }
+  .paso-titulo { margin-top: 0; }
+  .paso-detalle { flex-basis: 100%; padding-left: 50px; margin-top: -6px; }
+  .paso + .paso::before { top: -14px; left: 19px; right: auto; width: 3px; height: 14px; }
+}
+
+/* ---------- tarjetas para elegir (servicio, adicionales, camión) ---------- */
+.opcion {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 14px 16px; cursor: pointer;
+  background: var(--card); border: 1.5px solid var(--linea); border-radius: var(--radio-sm);
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+.opcion:hover { border-color: var(--naranja); }
+.opcion-elegida {
+  border-color: var(--naranja); background: var(--naranja-suave);
+  box-shadow: 0 8px 18px -14px rgba(192, 79, 0, .9);
+}
+.opcion:focus-within { outline: 2.5px solid var(--naranja); outline-offset: 2px; }
+/* el radio o checkbox sigue ahí para el teclado y el lector de pantalla */
+.opcion-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.opcion-tilde { position: absolute; top: 10px; right: 12px; color: var(--naranja); font-size: 1.15rem; }
+.opcion-icono { font-size: 1.7rem; line-height: 1; color: var(--naranja-osc); margin-bottom: 4px; }
+.opcion-icono-chico { font-size: 1.2rem; }
+.opcion-titulo { font-weight: 600; padding-right: 22px; }
+
+/* el camión se dibuja más grande según el tamaño */
+.camion-chico { font-size: 1.5rem; }
+.camion-mediano { font-size: 2rem; }
+.camion-grande { font-size: 2.6rem; }

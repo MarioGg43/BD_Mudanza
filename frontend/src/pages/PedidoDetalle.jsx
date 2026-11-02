@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { usePedido } from '../hooks/usePedido';
 import { pedidoService } from '../services/pedidoService';
 import { EstadoBadge } from '../components/EstadoBadge';
+import { LineaEstados } from '../components/LineaEstados';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { dinero, diaSemana, fecha } from '../utils/formato';
@@ -53,6 +54,7 @@ export function PedidoDetalle() {
       </div>
 
       {location.state?.aviso && <div className="alert alert-success">{location.state.aviso}</div>}
+      <LineaEstados pedido={p} />
       {errorPdf && <div className="alert alert-danger">{errorPdf}</div>}
 
       {c && p.estado !== 'Anulado' && (

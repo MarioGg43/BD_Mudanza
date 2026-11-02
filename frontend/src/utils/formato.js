@@ -10,6 +10,14 @@ export const diaSemana = (iso) => {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 };
 
+// Días que faltan desde hoy hasta esa fecha (0 = hoy, negativo = ya pasó)
+export const diasHasta = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  return Math.round((new Date(a, m - 1, d) - hoy) / 86400000);
+};
+
 // Igual que reglas.clave_objeto de Django: sin mayúsculas, tildes ni signos, y en singular.
 // «Sillas», «silla» y «SILLA» dan lo mismo.
 export function clave(texto) {
