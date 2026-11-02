@@ -9,7 +9,7 @@ export function PieEmpresa() {
         <div className="row g-4">
           <div className="col-md-5">
             <p className="fw-bold fs-5 mb-1">{EMPRESA.nombre}</p>
-            <p className="small mb-0">{EMPRESA.eslogan}. {EMPRESA.zona}</p>
+            <p className="small mb-0">{EMPRESA.eslogan}. {EMPRESA.anios} años conectando destinos con seguridad y profesionalismo.</p>
           </div>
           <div className="col-6 col-md-3">
             <p className="fw-semibold mb-2">La empresa</p>
@@ -23,9 +23,10 @@ export function PieEmpresa() {
           <div className="col-6 col-md-4">
             <p className="fw-semibold mb-2">Contacto</p>
             <ul className="list-unstyled small mb-0">
-              <li>{EMPRESA.telefono}</li>
-              <li>{EMPRESA.correo}</li>
-              <li>{EMPRESA.direccion}</li>
+              <li><a href={`https://wa.me/${EMPRESA.whatsapp}`} target="_blank" rel="noopener noreferrer"><i className="bi bi-whatsapp me-1" />{EMPRESA.telefono}</a></li>
+              <li><a href={`mailto:${EMPRESA.correo}`}><i className="bi bi-envelope me-1" />{EMPRESA.correo}</a></li>
+              <li><a href={`https://www.instagram.com/${EMPRESA.instagram}`} target="_blank" rel="noopener noreferrer"><i className="bi bi-instagram me-1" />@{EMPRESA.instagram}</a></li>
+              <li><a href={`https://www.facebook.com/${EMPRESA.facebook}`} target="_blank" rel="noopener noreferrer"><i className="bi bi-facebook me-1" />{EMPRESA.facebook}</a></li>
             </ul>
           </div>
         </div>
