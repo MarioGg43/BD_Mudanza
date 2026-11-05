@@ -4,6 +4,10 @@
    Como Bootstrap mide en rem, crecen en proporción textos, títulos, botones y tablas.
    En %, así se respeta si la persona agrandó la letra en su navegador. */
 html { font-size: 112.5%; }
+
+/* Que ningún color de Bootstrap se escape de la paleta de la empresa (styles/marca.css) */
+.text-success { color: var(--ok) !important; }
+.text-bg-light { background-color: var(--fondo) !important; color: var(--tinta) !important; }
 .tarjeta-pedido { transition: border-color .15s, transform .15s; }
 .tarjeta-pedido:hover { border-color: var(--naranja); transform: translateY(-2px); }
 .tarjeta-pasada { opacity: .7; }
