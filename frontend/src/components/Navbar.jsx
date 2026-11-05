@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Dropdown } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
+import { MOSTRAR_ADMINISTRACION } from '../config';
 
 // Las secciones de administración, cada una con el permiso que hace falta para verla
 const SECCIONES = [
@@ -16,8 +17,11 @@ const SECCIONES = [
 export function Navbar() {
   const { usuario, puede, salir } = useAuth();
   const navigate = useNavigate();
-  // el chofer ve su portal en la barra; dentro de «Administración» solo lo ve quien gestiona
-  const secciones = SECCIONES.filter((s) => puede(s.permiso) && (s.to !== '/portal' || puede('PED_GESTIONAR')));
+  // el chofer ve su portal en la barra; dentro de «Administración» solo lo ve quien gestiona.
+  // Con el interruptor de config.js apagado no hay menú de administración.
+  const secciones = MOSTRAR_ADMINISTRACION
+    ? SECCIONES.filter((s) => puede(s.permiso) && (s.to !== '/portal' || puede('PED_GESTIONAR')))
+    : [];
 
   const cerrar = () => {
     salir();
@@ -37,7 +41,7 @@ export function Navbar() {
               {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>{puede('PED_GESTIONAR') ? 'Pedidos' : 'Mis pedidos'}</NavLink>}
               {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
               {/* el portal del personal; el administrador lo tiene en «Administración» */}
-              {puede('MUDANZAS_OPERAR') && !puede('PED_GESTIONAR') && <NavLink to="/portal">Mis mudanzas</NavLink>}
+              {MOSTRAR_ADMINISTRACION && puede('MUDANZAS_OPERAR') && !puede('PED_GESTIONAR') && <NavLink to="/portal">Mis mudanzas</NavLink>}
               {secciones.length > 0 && (
                 <Dropdown align="end">
                   <Dropdown.Toggle as="button" type="button" className="menu-desplegable">Administración</Dropdown.Toggle>

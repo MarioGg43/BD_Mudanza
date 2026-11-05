@@ -1,5 +1,6 @@
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { MOSTRAR_ADMINISTRACION } from './config';
 import { Navbar } from './components/Navbar';
 import { PieEmpresa } from './components/PieEmpresa';
 import { RutaPrivada } from './components/RutaPrivada';
@@ -33,7 +34,7 @@ import { Relevamiento } from './pages/portal/Relevamiento';
 // /pedidos: el administrador ve todos con avisos y filtros; el cliente, los suyos
 function Pedidos() {
   const { puede } = useAuth();
-  return puede('PED_GESTIONAR') ? <PanelPedidos /> : <MisPedidos />;
+  return MOSTRAR_ADMINISTRACION && puede('PED_GESTIONAR') ? <PanelPedidos /> : <MisPedidos />;
 }
 
 export default function App() {
@@ -55,6 +56,8 @@ export default function App() {
             <Route path="/pedidos/nuevo" element={<PedidoForm />} />
             <Route path="/pedidos/:id/modificar" element={<PedidoForm />} />
           </Route>
+          {/* Administrador, ABM, portal del personal y auditoría: solo con el interruptor de config.js */}
+          {MOSTRAR_ADMINISTRACION && (<>
           <Route element={<RutaPrivada permiso="PED_GESTIONAR" />}>
             <Route path="/pedidos/:id/personal" element={<AsignarPersonal />} />
             <Route path="/pedidos/:id/servicios" element={<EditarServicios />} />
@@ -95,6 +98,7 @@ export default function App() {
             <Route path="/portal" element={<Portal />} />
             <Route path="/portal/:id/relevamiento" element={<Relevamiento />} />
           </Route>
+          </>)}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

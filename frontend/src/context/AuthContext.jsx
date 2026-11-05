@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { CLAVE_SESION } from '../services/api';
 import { authService } from '../services/authService';
+import { MOSTRAR_ADMINISTRACION } from '../config';
 
 const AuthContext = createContext(null);
 
@@ -13,9 +14,14 @@ const PANTALLAS = [
   ['ROL_GESTIONAR', '/roles'],
 ];
 
+// Con la administración oculta (config.js) solo pueden entrar los clientes
+const habilitado = (datos) => MOSTRAR_ADMINISTRACION || !!datos?.usuario?.permisos.includes('PED_REGISTRAR');
+
 function leerSesion() {
   try {
-    return JSON.parse(localStorage.getItem(CLAVE_SESION));
+    const sesion = JSON.parse(localStorage.getItem(CLAVE_SESION));
+    if (sesion && !habilitado(sesion)) localStorage.removeItem(CLAVE_SESION);
+    return habilitado(sesion) ? sesion : null;
   } catch {
     return null;
   }
@@ -35,6 +41,9 @@ export function AuthProvider({ children }) {
   const [sesion, setSesion] = useState(leerSesion);
 
   const entrar = useCallback((datos) => {
+    if (!habilitado(datos)) {
+      throw new Error('Por ahora el sistema nuevo está habilitado solo para clientes.');
+    }
     guardarSesion(datos);
     setSesion(datos);
   }, []);
