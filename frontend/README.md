@@ -1,9 +1,10 @@
 # Frontend en React — Mudanzas y Fletes Salta
 
 SPA en **React + Vite** que consume la **API REST de Django** (app `api/` del proyecto).
-Primera etapa: todo lo del **cliente** (login, registro, mis pedidos, pedir mudanza,
-detalle, modificar, cancelar y comprobante PDF). Las demás pantallas siguen en Django
-mientras se migran.
+Todo el sistema está en React: la página de inicio, el cliente, la gestión de pedidos del
+administrador, los ABM (vehículos, servicios, objetos, usuarios y roles), el portal del personal
+con el relevamiento y el log de auditoría. Las pantallas de Django siguen funcionando en el
+puerto 8002 y usan las mismas reglas.
 
 ## Cómo se levanta
 
@@ -77,6 +78,9 @@ Los errores de validación vuelven con 400 y `{ "error": "...", "errores": { "ca
 **Portal del personal** (`api/views_portal.py`, permiso MUDANZAS_OPERAR, sin precios):
 `GET /portal` (sus mudanzas y vehículos) · `POST /portal/:id/empezar` · `POST /portal/:id/terminar` ·
 `GET/POST /portal/:id/relevamiento` (solo el chofer, con la mudanza en curso).
+
+**Auditoría** (`api/views_auditoria.py`, permiso AUD_CONSULTAR): `GET /auditoria?desde&hasta&tabla&accion&usuario&registro&pagina`
+(con la frase legible y cada campo en Antes / Después) · `GET /auditoria/opciones` · `GET /auditoria/pdf` (mismos filtros).
 
 Las bajas son lógicas: nada se borra (salvo un rol sin usuarios que no sea del sistema).
 

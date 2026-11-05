@@ -26,6 +26,7 @@ import { Usuarios } from './pages/abm/Usuarios';
 import { UsuarioNuevo } from './pages/abm/UsuarioNuevo';
 import { Roles } from './pages/abm/Roles';
 import { RolForm } from './pages/abm/RolForm';
+import { Auditoria } from './pages/abm/Auditoria';
 import { Portal } from './pages/portal/Portal';
 import { Relevamiento } from './pages/portal/Relevamiento';
 
@@ -86,6 +87,9 @@ export default function App() {
             <Route path="/roles" element={<Roles />} />
             <Route path="/roles/nuevo" element={<RolForm />} />
             <Route path="/roles/:id/editar" element={<RolForm />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="AUD_CONSULTAR" />}>
+            <Route path="/auditoria" element={<Auditoria />} />
           </Route>
           <Route element={<RutaPrivada permiso="MUDANZAS_OPERAR" />}>
             <Route path="/portal" element={<Portal />} />

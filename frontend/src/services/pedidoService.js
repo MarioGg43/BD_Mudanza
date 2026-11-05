@@ -1,4 +1,5 @@
 import { api } from './api';
+import { descargarPdf } from './descargas';
 
 // Contrato con Django (api/urls.py):
 // GET  /pedidos             POST /pedidos
@@ -27,14 +28,5 @@ export const pedidoService = {
     const { data } = await api.post(`/pedidos/${id}/cancelar`, { motivo });
     return data;
   },
-  // El PDF necesita el token, así que se baja con Axios y se abre como archivo
-  descargarComprobante: async (id) => {
-    const { data } = await api.get(`/pedidos/${id}/comprobante`, { responseType: 'blob' });
-    const url = URL.createObjectURL(data);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Comprobante-pedido-${id}.pdf`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  },
+  descargarComprobante: (id) => descargarPdf(`/pedidos/${id}/comprobante`, `Comprobante-pedido-${id}.pdf`),
 };

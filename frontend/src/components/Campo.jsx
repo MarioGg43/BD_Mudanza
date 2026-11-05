@@ -1,7 +1,8 @@
 /* Un campo de formulario con su etiqueta, su ayuda y su error (los de la API vienen por campo).
    Según las props dibuja un input, un select (con `opciones`) o un textarea (tipo="textarea"). */
-export function Campo({ label, name, error, ayuda, col = 'col-12', tipo = 'text', opciones, vacio, ...props }) {
-  const clase = `${opciones ? 'form-select' : 'form-control'} ${error ? 'is-invalid' : ''}`;
+export function Campo({ label, name, error, ayuda, col = 'col-12', tipo = 'text', opciones, vacio, chico, ...props }) {
+  const base = opciones ? 'form-select' : 'form-control';
+  const clase = `${base} ${chico ? `${base}-sm` : ''} ${error ? 'is-invalid' : ''}`;
   let control;
   if (opciones) {
     control = (
@@ -17,7 +18,7 @@ export function Campo({ label, name, error, ayuda, col = 'col-12', tipo = 'text'
   }
   return (
     <div className={col}>
-      <label htmlFor={name} className="form-label">{label}</label>
+      <label htmlFor={name} className={`form-label ${chico ? 'small mb-1' : ''}`}>{label}</label>
       {control}
       {ayuda && !error && <div className="form-text">{ayuda}</div>}
       {error && <div className="invalid-feedback">{error}</div>}

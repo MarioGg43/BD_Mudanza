@@ -1,4 +1,5 @@
 import { api } from './api';
+import { descargarPdf } from './descargas';
 
 const get = async (url, signal, params) => (await api.get(url, { signal, params })).data;
 const post = async (url, datos) => (await api.post(url, datos)).data;
@@ -36,4 +37,8 @@ export const abmService = {
   crearRol: (datos) => post('/roles', datos),
   editarRol: (id, datos) => put(`/roles/${id}`, datos),
   eliminarRol: async (id) => (await api.delete(`/roles/${id}`)).data,
+
+  auditoria: (filtros, signal) => get('/auditoria', signal, filtros),
+  opcionesAuditoria: (signal) => get('/auditoria/opciones', signal),
+  pdfAuditoria: (filtros) => descargarPdf('/auditoria/pdf', 'Auditoria.pdf', filtros),
 };

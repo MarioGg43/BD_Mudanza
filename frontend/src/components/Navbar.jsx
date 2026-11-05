@@ -9,6 +9,7 @@ const SECCIONES = [
   { permiso: 'OBJ_GESTIONAR', to: '/objetos', texto: 'Objetos', icono: 'bi-box-seam' },
   { permiso: 'USR_CONSULTAR', to: '/usuarios', texto: 'Usuarios', icono: 'bi-people' },
   { permiso: 'ROL_GESTIONAR', to: '/roles', texto: 'Roles y permisos', icono: 'bi-shield-lock' },
+  { permiso: 'AUD_CONSULTAR', to: '/auditoria', texto: 'Auditoría', icono: 'bi-journal-text' },
   { permiso: 'MUDANZAS_OPERAR', to: '/portal', texto: 'Mis mudanzas (portal)', icono: 'bi-person-workspace' },
 ];
 
@@ -37,22 +38,13 @@ export function Navbar() {
               {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
               {/* el portal del personal; el administrador lo tiene en «Administración» */}
               {puede('MUDANZAS_OPERAR') && !puede('PED_GESTIONAR') && <NavLink to="/portal">Mis mudanzas</NavLink>}
-              {(secciones.length > 0 || puede('AUD_CONSULTAR')) && (
+              {secciones.length > 0 && (
                 <Dropdown align="end">
                   <Dropdown.Toggle as="button" type="button" className="menu-desplegable">Administración</Dropdown.Toggle>
                   <Dropdown.Menu>
                     {secciones.map((s) => (
                       <Dropdown.Item key={s.to} as={NavLink} to={s.to}><i className={`bi ${s.icono} me-2`} />{s.texto}</Dropdown.Item>
                     ))}
-                    {/* la auditoría todavía está en el sistema de Django */}
-                    {puede('AUD_CONSULTAR') && (
-                      <>
-                        <Dropdown.Divider />
-                        <Dropdown.Item href={`${window.location.protocol}//${window.location.hostname}:8002/auditoria/`} target="_blank" rel="noopener noreferrer">
-                          <i className="bi bi-journal-text me-2" />Auditoría <i className="bi bi-box-arrow-up-right small" />
-                        </Dropdown.Item>
-                      </>
-                    )}
                   </Dropdown.Menu>
                 </Dropdown>
               )}

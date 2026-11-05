@@ -240,7 +240,12 @@ def lista(request):
 
 @requiere_permiso('AUD_CONSULTAR')
 def descargar(request):
-    """El log en PDF, con los mismos filtros que la pantalla."""
+    return pdf(request)
+
+
+def pdf(request):
+    """El log en PDF, con los mismos filtros que la pantalla (lo usan esta vista y la API de React,
+    cada una con su control de permiso)."""
     form, logs = _consulta(request)
     total = logs.count()
     usados = []
