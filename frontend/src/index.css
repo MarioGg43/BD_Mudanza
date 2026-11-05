@@ -24,6 +24,10 @@
   background: var(--naranja-suave); color: var(--naranja-osc); border: 1px solid #F8D9BC;
 }
 
+/* ---------- portal del personal ---------- */
+.caja-acciones { background: var(--fondo); border: 1px solid var(--linea); border-radius: var(--radio-sm); }
+.mudanza-en-curso { border: 2px solid var(--ok); box-shadow: 0 10px 24px -16px rgba(23, 120, 74, .6); }
+
 /* ---------- página de inicio ---------- */
 .seccion-inicio { margin-bottom: 3.5rem; scroll-margin-top: 1.5rem; }
 .tarjeta-precios {

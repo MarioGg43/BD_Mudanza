@@ -33,7 +33,9 @@ function Seccion({ id, titulo, bajada, children }) {
 }
 
 export function Inicio() {
-  const { usuario } = useAuth();
+  const { usuario, puede, inicio } = useAuth();
+  // el personal y el administrador no piden mudanzas: los botones los llevan a su pantalla
+  const esPersonal = usuario && !puede('PED_REGISTRAR');
   const { info, error, refetch } = useInfoPublica();
   useIrAlAncla(Boolean(info || error));
 
@@ -49,7 +51,9 @@ export function Inicio() {
             <h1 className="display-5 fw-bold mb-3">{EMPRESA.eslogan}</h1>
             <p className="fs-5 texto-suave mb-4">{EMPRESA.bajada}</p>
             <div className="d-flex flex-wrap gap-2">
-              <Link to="/pedidos/nuevo" className="btn btn-light btn-lg"><i className="bi bi-box-seam me-2" />Pedir mi mudanza</Link>
+              {esPersonal
+                ? <Link to={inicio} className="btn btn-light btn-lg"><i className="bi bi-grid me-2" />Ir a mi panel</Link>
+                : <Link to="/pedidos/nuevo" className="btn btn-light btn-lg"><i className="bi bi-box-seam me-2" />Pedir mi mudanza</Link>}
               <a href="#servicios" className="btn btn-outline-light btn-lg">Ver servicios</a>
             </div>
             {!usuario && (
@@ -161,8 +165,8 @@ export function Inicio() {
       <section className="heroe-marca p-4 p-md-5 text-center mb-5">
         <h2 className="h2 fw-bold mb-2">¿Te mudás? Empezá ahora</h2>
         <p className="texto-suave mb-4">Cargá tu pedido en pocos minutos y la empresa te lo confirma.</p>
-        <Link to={usuario ? '/pedidos/nuevo' : '/registro'} className="btn btn-light btn-lg">
-          {usuario ? 'Pedir mudanza' : 'Crear mi cuenta gratis'}
+        <Link to={esPersonal ? inicio : usuario ? '/pedidos/nuevo' : '/registro'} className="btn btn-light btn-lg">
+          {esPersonal ? 'Ir a mi panel' : usuario ? 'Pedir mudanza' : 'Crear mi cuenta gratis'}
         </Link>
       </section>
 

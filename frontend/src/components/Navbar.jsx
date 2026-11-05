@@ -9,12 +9,14 @@ const SECCIONES = [
   { permiso: 'OBJ_GESTIONAR', to: '/objetos', texto: 'Objetos', icono: 'bi-box-seam' },
   { permiso: 'USR_CONSULTAR', to: '/usuarios', texto: 'Usuarios', icono: 'bi-people' },
   { permiso: 'ROL_GESTIONAR', to: '/roles', texto: 'Roles y permisos', icono: 'bi-shield-lock' },
+  { permiso: 'MUDANZAS_OPERAR', to: '/portal', texto: 'Mis mudanzas (portal)', icono: 'bi-person-workspace' },
 ];
 
 export function Navbar() {
   const { usuario, puede, salir } = useAuth();
   const navigate = useNavigate();
-  const secciones = SECCIONES.filter((s) => puede(s.permiso));
+  // el chofer ve su portal en la barra; dentro de «Administración» solo lo ve quien gestiona
+  const secciones = SECCIONES.filter((s) => puede(s.permiso) && (s.to !== '/portal' || puede('PED_GESTIONAR')));
 
   const cerrar = () => {
     salir();
@@ -33,6 +35,8 @@ export function Navbar() {
             <>
               {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>{puede('PED_GESTIONAR') ? 'Pedidos' : 'Mis pedidos'}</NavLink>}
               {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
+              {/* el portal del personal; el administrador lo tiene en «Administración» */}
+              {puede('MUDANZAS_OPERAR') && !puede('PED_GESTIONAR') && <NavLink to="/portal">Mis mudanzas</NavLink>}
               {(secciones.length > 0 || puede('AUD_CONSULTAR')) && (
                 <Dropdown align="end">
                   <Dropdown.Toggle as="button" type="button" className="menu-desplegable">Administración</Dropdown.Toggle>

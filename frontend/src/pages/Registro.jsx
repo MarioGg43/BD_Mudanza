@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const CAMPOS = [
@@ -14,14 +14,14 @@ const CAMPOS = [
 ];
 
 export function Registro() {
-  const { usuario, registro } = useAuth();
-  const navigate = useNavigate();
+  const { usuario, registro, inicio } = useAuth();
   const [datos, setDatos] = useState(Object.fromEntries(CAMPOS.map((c) => [c.name, ''])));
   const [errores, setErrores] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [recien, setRecien] = useState(false); // se acaba de registrar: va directo a pedir la mudanza
 
-  if (usuario) return <Navigate to="/pedidos" replace />;
+  if (usuario) return <Navigate to={recien ? '/pedidos/nuevo' : inicio} replace />;
 
   const cambiar = (e) => setDatos({ ...datos, [e.target.name]: e.target.value });
 
@@ -29,13 +29,13 @@ export function Registro() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setRecien(true);
     try {
       await registro(datos);
-      navigate('/pedidos/nuevo', { replace: true });
     } catch (err) {
+      setRecien(false);
       setError(err.message);
       setErrores(err.errores);
-    } finally {
       setLoading(false);
     }
   };

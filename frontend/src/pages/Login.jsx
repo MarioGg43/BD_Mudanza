@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function Login() {
-  const { usuario, login } = useAuth();
-  const navigate = useNavigate();
+  const { usuario, login, inicio } = useAuth();
   const location = useLocation();
   const [ident, setIdent] = useState('');
   const [clave, setClave] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  if (usuario) return <Navigate to="/pedidos" replace />;
+  // Con sesión: vuelve a donde quería ir o a su primera pantalla (el chofer, a su portal)
+  if (usuario) return <Navigate to={location.state?.desde || inicio} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,10 +19,8 @@ export function Login() {
     setError(null);
     try {
       await login(ident.trim(), clave);
-      navigate(location.state?.desde || '/pedidos', { replace: true });
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };

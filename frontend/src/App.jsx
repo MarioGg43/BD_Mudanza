@@ -26,6 +26,8 @@ import { Usuarios } from './pages/abm/Usuarios';
 import { UsuarioNuevo } from './pages/abm/UsuarioNuevo';
 import { Roles } from './pages/abm/Roles';
 import { RolForm } from './pages/abm/RolForm';
+import { Portal } from './pages/portal/Portal';
+import { Relevamiento } from './pages/portal/Relevamiento';
 
 // /pedidos: el administrador ve todos con avisos y filtros; el cliente, los suyos
 function Pedidos() {
@@ -84,6 +86,10 @@ export default function App() {
             <Route path="/roles" element={<Roles />} />
             <Route path="/roles/nuevo" element={<RolForm />} />
             <Route path="/roles/:id/editar" element={<RolForm />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="MUDANZAS_OPERAR" />}>
+            <Route path="/portal" element={<Portal />} />
+            <Route path="/portal/:id/relevamiento" element={<Relevamiento />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -74,6 +74,10 @@ Los errores de validación vuelven con 400 y `{ "error": "...", "errores": { "ca
 | Usuarios | `GET/POST /usuarios` · `GET /usuarios/nombre` · `PUT /usuarios/:dni/correo` · `PUT /usuarios/:dni/rol` · `POST /usuarios/:dni/baja` · `POST /usuarios/:dni/reactivar` · `POST /usuarios/:dni/clave` | USR_* |
 | Roles | `GET/POST /roles` · `PUT/DELETE /roles/:id` | ROL_GESTIONAR |
 
+**Portal del personal** (`api/views_portal.py`, permiso MUDANZAS_OPERAR, sin precios):
+`GET /portal` (sus mudanzas y vehículos) · `POST /portal/:id/empezar` · `POST /portal/:id/terminar` ·
+`GET/POST /portal/:id/relevamiento` (solo el chofer, con la mudanza en curso).
+
 Las bajas son lógicas: nada se borra (salvo un rol sin usuarios que no sea del sistema).
 
 Para el administrador, `GET /pedidos` devuelve además `avisos` (cuántos pedidos atrasados, vencidos, para

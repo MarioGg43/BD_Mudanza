@@ -10,23 +10,8 @@ import { ErrorAlert } from '../components/ErrorAlert';
 import { TarjetaOpcion } from '../components/TarjetaOpcion';
 import { dinero, fecha } from '../utils/formato';
 import { iconoServicio } from '../utils/servicios';
+import { desdeServidor, haciaServidor } from '../utils/inventario';
 
-const SEP = ' — '; // separa el nombre de un objeto «Otro» de su detalle en la observación
-
-// Inventario del servidor → filas de la lista ({ id, nombre, nuevo, cantidad, fragil, detalle })
-function desdeServidor(i) {
-  if (i.otro) {
-    const [nombre, ...resto] = i.observacion.split(SEP);
-    return { id: i.objeto, nombre: nombre.trim(), nuevo: true, cantidad: i.cantidad, fragil: i.fragil, detalle: resto.join(SEP).trim() };
-  }
-  return { id: i.objeto, nombre: i.nombre, nuevo: false, cantidad: i.cantidad, fragil: i.fragil, detalle: i.observacion };
-}
-
-// Filas de la lista → lo que espera la API (para «Otro», el nombre va en la observación)
-const haciaServidor = (it) => ({
-  objeto: it.id, cantidad: it.cantidad, fragil: it.fragil,
-  observacion: it.nuevo ? it.nombre + (it.detalle ? SEP + it.detalle : '') : it.detalle,
-});
 
 const hoy = () => new Date().toLocaleDateString('sv-SE'); // AAAA-MM-DD en hora local
 

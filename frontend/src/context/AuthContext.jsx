@@ -4,6 +4,15 @@ import { authService } from '../services/authService';
 
 const AuthContext = createContext(null);
 
+const PANTALLAS = [
+  ['PED_CONSULTAR', '/pedidos'],
+  ['MUDANZAS_OPERAR', '/portal'],
+  ['VEH_GESTIONAR', '/vehiculos'],
+  ['USR_CONSULTAR', '/usuarios'],
+  ['SRV_GESTIONAR', '/servicios'],
+  ['ROL_GESTIONAR', '/roles'],
+];
+
 function leerSesion() {
   try {
     return JSON.parse(localStorage.getItem(CLAVE_SESION));
@@ -46,9 +55,11 @@ export function AuthProvider({ children }) {
 
   const usuario = sesion?.usuario ?? null;
   const puede = (permiso) => !!usuario?.permisos.includes(permiso);
+  // La primera pantalla según los permisos (igual que pantalla_inicio de Django)
+  const inicio = PANTALLAS.find(([permiso]) => puede(permiso))?.[1] ?? '/';
 
   return (
-    <AuthContext.Provider value={{ usuario, login, registro, salir, puede }}>
+    <AuthContext.Provider value={{ usuario, login, registro, salir, puede, inicio }}>
       {children}
     </AuthContext.Provider>
   );

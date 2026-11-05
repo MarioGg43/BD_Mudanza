@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_abm, views_admin, views_usuarios
+from . import views, views_abm, views_admin, views_portal, views_usuarios
 
 # Contrato de la API (lo que consume frontend/src/services)
 urlpatterns = [
@@ -41,4 +41,9 @@ urlpatterns = [
     path('usuarios/<int:dni>/clave', views_usuarios.clave, name='api_usuario_clave'),
     path('roles', views_usuarios.roles, name='api_roles'),
     path('roles/<int:id_rol>', views_usuarios.rol, name='api_rol'),
+    # portal del personal
+    path('portal', views_portal.portal, name='api_portal'),
+    path('portal/<int:id_pedido>/empezar', views_portal.empezar, name='api_empezar'),
+    path('portal/<int:id_pedido>/terminar', views_portal.terminar, name='api_terminar'),
+    path('portal/<int:id_pedido>/relevamiento', views_portal.relevamiento, name='api_relevamiento'),
 ]
