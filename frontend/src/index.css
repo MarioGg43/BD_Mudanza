@@ -1,4 +1,9 @@
 /* Lo propio del frontend en React; los colores y componentes salen de styles/marca.css */
+
+/* Letra más grande en todo el sistema (pedido del profesor): la base pasa de 16 px a 18 px.
+   Como Bootstrap mide en rem, crecen en proporción textos, títulos, botones y tablas.
+   En %, así se respeta si la persona agrandó la letra en su navegador. */
+html { font-size: 112.5%; }
 .tarjeta-pedido { transition: border-color .15s, transform .15s; }
 .tarjeta-pedido:hover { border-color: var(--naranja); transform: translateY(-2px); }
 .tarjeta-pasada { opacity: .7; }
