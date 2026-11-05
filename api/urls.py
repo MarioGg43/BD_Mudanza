@@ -6,6 +6,7 @@ from . import views, views_abm, views_admin, views_auditoria, views_portal, view
 urlpatterns = [
     path('auth/login', views.login, name='api_login'),
     path('auth/registro', views.registro, name='api_registro'),
+    path('auth/cambiar-clave', views.cambiar_clave, name='api_cambiar_clave'),
     path('auth/yo', views.yo, name='api_yo'),
     path('publico', views.publico_info, name='api_publico'),
     path('catalogo', views.catalogo, name='api_catalogo'),

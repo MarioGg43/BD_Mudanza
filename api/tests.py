@@ -45,6 +45,28 @@ class ApiTest(ApiBase):
                              content_type='application/json')
         self.assertEqual(r.status_code, 401)
 
+    def test_clave_provisoria(self):
+        u = Usuario.objects.get(DNI=self.cliente.DNI)
+        u.DebeCambiarClave = True
+        u.save()
+        r = self.client.post('/api/auth/login', {'usuario': str(u.DNI), 'clave': 'Clave.123'}, content_type='application/json')
+        self.assertEqual(r.status_code, 403)
+        self.assertIn('cambiar_clave', r.json()['errores'])
+        cambio = {'usuario': str(u.DNI), 'clave': 'Clave.123', 'nueva': 'Nueva.456', 'confirmar': 'Otra.789'}
+        r = self.client.post('/api/auth/cambiar-clave', cambio, content_type='application/json')
+        self.assertEqual(r.json()['error'], 'Las contraseñas no coinciden.')
+        r = self.client.post('/api/auth/cambiar-clave', {**cambio, 'nueva': 'Clave.123', 'confirmar': 'Clave.123'},
+                             content_type='application/json')
+        self.assertIn('distinta', r.json()['error'])
+        r = self.client.post('/api/auth/cambiar-clave', {**cambio, 'clave': 'mala'}, content_type='application/json')
+        self.assertEqual(r.status_code, 401)
+        r = self.client.post('/api/auth/cambiar-clave', {**cambio, 'confirmar': 'Nueva.456'}, content_type='application/json')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(r.json()['token'])
+        u.refresh_from_db()
+        self.assertFalse(u.DebeCambiarClave)
+        self.assertTrue(u.verificar_clave('Nueva.456'))
+
     def test_sin_token_o_con_token_falso_da_401(self):
         self.assertEqual(self.client.get('/api/pedidos').status_code, 401)
         r = self.client.get('/api/pedidos', HTTP_AUTHORIZATION='Bearer 29876543:falso:token')

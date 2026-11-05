@@ -63,38 +63,19 @@ def cambiar_clave_obligatoria(request):
 
     usuario = get_object_or_404(Usuario, DNI=dni)
 
-    # el formulario se puede enviar directo, sin pasar por el login
-    if not usuario.Activo:
-        return render(request, 'login.html', {'error': 'El usuario se encuentra dado de baja (Inactivo).'})
-
-    if not usuario.verificar_clave(clave_actual):
+    # el formulario se puede enviar directo, sin pasar por el login: se revisa todo de nuevo
+    # (las reglas están en operaciones.py y las usa también la API de React)
+    try:
+        operaciones.cambiar_clave_provisoria(usuario, clave_actual, nueva_clave, confirmar_clave)
+    except operaciones.ErrorUsuario as e:
+        if e.status == 403:
+            return render(request, 'login.html', {'error': str(e)})
         return render(request, 'login.html', {
             'cambio_obligatorio': True,
             'dni_cambio': dni,
             'clave_actual': clave_actual,
-            'error_cambio': 'La clave actual no coincide.'
+            'error_cambio': str(e),
         })
-
-    if nueva_clave != confirmar_clave:
-        return render(request, 'login.html', {
-            'cambio_obligatorio': True,
-            'dni_cambio': dni,
-            'clave_actual': clave_actual,
-            'error_cambio': 'Las contraseñas no coinciden.'
-        })
-
-    valida, msg = validate_strong_password(nueva_clave)
-    if not valida:
-        return render(request, 'login.html', {
-            'cambio_obligatorio': True,
-            'dni_cambio': dni,
-            'clave_actual': clave_actual,
-            'error_cambio': msg
-        })
-
-    usuario.set_clave(nueva_clave)
-    usuario.DebeCambiarClave = False
-    usuario.save()
 
     # Iniciar sesión directamente
     usuario.registrar_acceso()

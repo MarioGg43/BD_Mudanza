@@ -106,6 +106,26 @@ def restablecer_clave(actor, usuario, nueva=''):
     return clave
 
 
+def cambiar_clave_provisoria(usuario, actual, nueva, confirmar):
+    """La persona reemplaza la clave provisoria que le dio la empresa por una suya. Valida
+    la clave actual, que las dos nuevas coincidan, que sea fuerte y que no repita la provisoria."""
+    if not usuario.Activo:
+        raise ErrorUsuario('El usuario se encuentra dado de baja (Inactivo).', 403)
+    if not usuario.verificar_clave(actual):
+        raise ErrorUsuario('La clave actual no coincide.')
+    if nueva != confirmar:
+        raise ErrorUsuario('Las contraseñas no coinciden.')
+    valida, msg = validate_strong_password(nueva)
+    if not valida:
+        raise ErrorUsuario(msg)
+    if (nueva or '').strip() == (actual or '').strip():
+        raise ErrorUsuario('La clave nueva tiene que ser distinta de la provisoria.')
+    usuario.set_clave(nueva)
+    usuario.DebeCambiarClave = False
+    usuario.save()
+    return usuario
+
+
 def cambiar_rol(actor, usuario, id_rol):
     """Devuelve el rol anterior."""
     if usuario.pk == actor.pk:

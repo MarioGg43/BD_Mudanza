@@ -14,6 +14,7 @@ from pedidos import reglas
 from pedidos.forms import FiltroPedidosForm, RegistroClienteForm, objetos_para_elegir
 from pedidos.pdf import respuesta_pdf
 from usuarios.models import Pedido, PersonalPedido, Servicio, Usuario, Vehiculo
+from usuarios import operaciones
 from usuarios.permisos import tiene_permiso
 from .autenticacion import crear_token, datos_usuario, endpoint, error, leer_json, publico
 
@@ -27,17 +28,40 @@ def login(request):
     ident, clave = str(datos.get('usuario', '')).strip(), str(datos.get('clave', ''))
     if not ident or not clave:
         return error('Completá el usuario y la clave.')
-    usuario = None
-    if ident.isdigit():
-        usuario = Usuario.objects.filter(DNI=int(ident)).first()
-    usuario = (usuario or Usuario.objects.filter(NombreUsuario=ident.lower()).first()
-               or Usuario.objects.filter(Correo=ident.lower()).first())
+    usuario = _buscar(ident)
     if not usuario or not usuario.verificar_clave(clave):
         return error('Usuario o contraseña incorrectos.', 401)
     if not usuario.Activo:
         return error('El usuario está dado de baja.', 403)
     if usuario.DebeCambiarClave:
-        return error('Tenés que cambiar tu clave provisoria: entrá una vez desde el sistema web (puerto 8002).', 403)
+        # React muestra el formulario para elegir la clave nueva (POST /auth/cambiar-clave)
+        return error('Tu clave es provisoria: elegí una nueva para entrar.', 403,
+                     errores={'cambiar_clave': 'Tenés que elegir una clave nueva.'})
+    usuario.registrar_acceso()
+    return JsonResponse({'token': crear_token(usuario), 'usuario': datos_usuario(usuario)})
+
+
+def _buscar(ident):
+    """El usuario por DNI, nombre de usuario o correo (igual que el login de Django)."""
+    usuario = Usuario.objects.filter(DNI=int(ident)).first() if ident.isdigit() else None
+    return (usuario or Usuario.objects.filter(NombreUsuario=ident.lower()).first()
+            or Usuario.objects.filter(Correo=ident.lower()).first())
+
+
+@publico()
+def cambiar_clave(request):
+    """POST /api/auth/cambiar-clave {usuario, clave, nueva, confirmar}: reemplaza la clave provisoria
+    y entra. Las reglas son las de usuarios/operaciones.py, las mismas que el login de Django."""
+    d = leer_json(request)
+    usuario = _buscar(str(d.get('usuario', '')).strip())
+    # sin revelar si el usuario existe: el mismo mensaje que una clave incorrecta
+    if not usuario or not usuario.verificar_clave(str(d.get('clave', ''))):
+        return error('Usuario o contraseña incorrectos.', 401)
+    try:
+        operaciones.cambiar_clave_provisoria(usuario, str(d.get('clave', '')), str(d.get('nueva', '')),
+                                             str(d.get('confirmar', '')))
+    except operaciones.ErrorUsuario as e:
+        return error(str(e), e.status, errores={'nueva': str(e)} if e.status == 400 else None)
     usuario.registrar_acceso()
     return JsonResponse({'token': crear_token(usuario), 'usuario': datos_usuario(usuario)})
 
