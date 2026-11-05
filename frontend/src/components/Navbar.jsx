@@ -1,9 +1,20 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Dropdown } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
+
+// Las secciones de administración, cada una con el permiso que hace falta para verla
+const SECCIONES = [
+  { permiso: 'VEH_GESTIONAR', to: '/vehiculos', texto: 'Vehículos', icono: 'bi-truck' },
+  { permiso: 'SRV_GESTIONAR', to: '/servicios', texto: 'Servicios', icono: 'bi-list-check' },
+  { permiso: 'OBJ_GESTIONAR', to: '/objetos', texto: 'Objetos', icono: 'bi-box-seam' },
+  { permiso: 'USR_CONSULTAR', to: '/usuarios', texto: 'Usuarios', icono: 'bi-people' },
+  { permiso: 'ROL_GESTIONAR', to: '/roles', texto: 'Roles y permisos', icono: 'bi-shield-lock' },
+];
 
 export function Navbar() {
   const { usuario, puede, salir } = useAuth();
   const navigate = useNavigate();
+  const secciones = SECCIONES.filter((s) => puede(s.permiso));
 
   const cerrar = () => {
     salir();
@@ -22,12 +33,24 @@ export function Navbar() {
             <>
               {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>{puede('PED_GESTIONAR') ? 'Pedidos' : 'Mis pedidos'}</NavLink>}
               {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
-              {/* lo que todavía no está en React (usuarios, vehículos, servicios...) sigue en Django */}
-              {puede('PED_GESTIONAR') && (
-                <a href={`${window.location.protocol}//${window.location.hostname}:8002/`} target="_blank" rel="noopener noreferrer"
-                   title="Usuarios, roles, vehículos, servicios y auditoría (abre el sistema en Django)">
-                  Más secciones <i className="bi bi-box-arrow-up-right small" />
-                </a>
+              {(secciones.length > 0 || puede('AUD_CONSULTAR')) && (
+                <Dropdown align="end">
+                  <Dropdown.Toggle as="button" type="button" className="menu-desplegable">Administración</Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    {secciones.map((s) => (
+                      <Dropdown.Item key={s.to} as={NavLink} to={s.to}><i className={`bi ${s.icono} me-2`} />{s.texto}</Dropdown.Item>
+                    ))}
+                    {/* la auditoría todavía está en el sistema de Django */}
+                    {puede('AUD_CONSULTAR') && (
+                      <>
+                        <Dropdown.Divider />
+                        <Dropdown.Item href={`${window.location.protocol}//${window.location.hostname}:8002/auditoria/`} target="_blank" rel="noopener noreferrer">
+                          <i className="bi bi-journal-text me-2" />Auditoría <i className="bi bi-box-arrow-up-right small" />
+                        </Dropdown.Item>
+                      </>
+                    )}
+                  </Dropdown.Menu>
+                </Dropdown>
               )}
               <span className="ms-2 text-white-50 text-capitalize d-none d-md-inline">{usuario.nombre}</span>
               <button type="button" className="btn btn-sm btn-light ms-2" onClick={cerrar}>

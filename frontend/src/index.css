@@ -10,6 +10,20 @@
 .menu-marca a.btn-light, .menu-marca a.btn-light:hover { color: var(--rojo-osc); background: #fff; }
 .menu-marca a.btn-light:hover { background: var(--naranja-suave); }
 
+/* menú desplegable «Administración»: el botón sobre el degradé y el menú blanco */
+.menu-desplegable {
+  color: #fff; background: transparent; border: none; font-weight: 600; padding: 6px 10px; border-radius: 999px;
+}
+.menu-desplegable:hover, .menu-desplegable[aria-expanded="true"] { background: rgba(255, 255, 255, .2); }
+.menu-marca .dropdown-menu { border-radius: var(--radio-sm); box-shadow: var(--sombra); border-color: var(--linea); }
+.menu-marca .dropdown-menu a.dropdown-item { color: var(--tinta); border-radius: 0; padding: 8px 16px; text-decoration: none; }
+.menu-marca .dropdown-menu a.dropdown-item:hover { background: var(--naranja-suave); color: var(--naranja-osc); }
+.menu-marca .dropdown-menu a.dropdown-item.active { background: var(--naranja-suave); color: var(--naranja-osc); font-weight: 700; }
+.chip-permiso {
+  font-size: .75rem; padding: 3px 10px; border-radius: 999px;
+  background: var(--naranja-suave); color: var(--naranja-osc); border: 1px solid #F8D9BC;
+}
+
 /* ---------- página de inicio ---------- */
 .seccion-inicio { margin-bottom: 3.5rem; scroll-margin-top: 1.5rem; }
 .tarjeta-precios {

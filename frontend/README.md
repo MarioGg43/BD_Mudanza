@@ -64,6 +64,18 @@ Los errores de validación vuelven con 400 y `{ "error": "...", "errores": { "ca
 | GET / PUT | `/pedidos/:id/servicios` | Servicios activos y los del pedido / cambiarlos | PED_GESTIONAR |
 | GET / POST | `/pedidos/:id/reprogramar` | Motivos, choferes y vehículos libres (`?fecha&hora`) / reprogramar | PED_GESTIONAR |
 
+**ABM** (en `api/views_abm.py` y `api/views_usuarios.py`; validan con los mismos formularios y reglas de Django):
+
+| Recurso | Rutas | Permiso |
+|---|---|---|
+| Vehículos | `GET/POST /vehiculos` · `GET/PUT /vehiculos/:patente` · `POST /vehiculos/:patente/baja` | VEH_GESTIONAR |
+| Servicios | `GET/POST /servicios` · `GET/PUT /servicios/:id` · `POST /servicios/:id/baja` | SRV_GESTIONAR |
+| Objetos | `GET/POST /objetos` · `PUT /objetos/:id` · `POST /objetos/:id/baja` | OBJ_GESTIONAR |
+| Usuarios | `GET/POST /usuarios` · `GET /usuarios/nombre` · `PUT /usuarios/:dni/correo` · `PUT /usuarios/:dni/rol` · `POST /usuarios/:dni/baja` · `POST /usuarios/:dni/reactivar` · `POST /usuarios/:dni/clave` | USR_* |
+| Roles | `GET/POST /roles` · `PUT/DELETE /roles/:id` | ROL_GESTIONAR |
+
+Las bajas son lógicas: nada se borra (salvo un rol sin usuarios que no sea del sistema).
+
 Para el administrador, `GET /pedidos` devuelve además `avisos` (cuántos pedidos atrasados, vencidos, para
 finalizar, por confirmar y sin chofer) y `GET /pedidos/:id` trae `gestion` (cliente, personal, acciones
 posibles, historial de cambios de horario con el enlace de WhatsApp y avisos de mudanza atrasada).

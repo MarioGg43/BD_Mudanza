@@ -26,5 +26,6 @@ export function useCarga(pedir, deps) {
 
   useEffect(() => cargar(), [cargar]);
 
-  return { datos, loading, error, refetch: cargar };
+  // al refrescar después de una acción se siguen viendo los datos de antes, sin el «Cargando...»
+  return { datos, loading: loading && datos === null, error, refetch: cargar };
 }

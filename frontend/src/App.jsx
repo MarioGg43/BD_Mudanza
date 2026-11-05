@@ -16,6 +16,16 @@ import { EditarServicios } from './pages/EditarServicios';
 import { Reprogramar } from './pages/Reprogramar';
 import { AnularPedido } from './pages/AnularPedido';
 import { NotFound } from './pages/NotFound';
+import { Vehiculos } from './pages/abm/Vehiculos';
+import { VehiculoDetalle } from './pages/abm/VehiculoDetalle';
+import { VehiculoForm } from './pages/abm/VehiculoForm';
+import { Servicios } from './pages/abm/Servicios';
+import { ServicioForm } from './pages/abm/ServicioForm';
+import { Objetos } from './pages/abm/Objetos';
+import { Usuarios } from './pages/abm/Usuarios';
+import { UsuarioNuevo } from './pages/abm/UsuarioNuevo';
+import { Roles } from './pages/abm/Roles';
+import { RolForm } from './pages/abm/RolForm';
 
 // /pedidos: el administrador ve todos con avisos y filtros; el cliente, los suyos
 function Pedidos() {
@@ -49,6 +59,31 @@ export default function App() {
           </Route>
           <Route element={<RutaPrivada permiso="PED_ANULAR" />}>
             <Route path="/pedidos/:id/anular" element={<AnularPedido />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="VEH_GESTIONAR" />}>
+            <Route path="/vehiculos" element={<Vehiculos />} />
+            <Route path="/vehiculos/nuevo" element={<VehiculoForm />} />
+            <Route path="/vehiculos/:patente" element={<VehiculoDetalle />} />
+            <Route path="/vehiculos/:patente/editar" element={<VehiculoForm />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="SRV_GESTIONAR" />}>
+            <Route path="/servicios" element={<Servicios />} />
+            <Route path="/servicios/nuevo" element={<ServicioForm />} />
+            <Route path="/servicios/:id/editar" element={<ServicioForm />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="OBJ_GESTIONAR" />}>
+            <Route path="/objetos" element={<Objetos />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="USR_CONSULTAR" />}>
+            <Route path="/usuarios" element={<Usuarios />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="USR_CREAR" />}>
+            <Route path="/usuarios/nuevo" element={<UsuarioNuevo />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="ROL_GESTIONAR" />}>
+            <Route path="/roles" element={<Roles />} />
+            <Route path="/roles/nuevo" element={<RolForm />} />
+            <Route path="/roles/:id/editar" element={<RolForm />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

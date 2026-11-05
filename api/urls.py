@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_admin
+from . import views, views_abm, views_admin, views_usuarios
 
 # Contrato de la API (lo que consume frontend/src/services)
 urlpatterns = [
@@ -22,4 +22,23 @@ urlpatterns = [
     path('pedidos/<int:id_pedido>/personal', views_admin.personal, name='api_personal'),
     path('pedidos/<int:id_pedido>/servicios', views_admin.servicios, name='api_servicios'),
     path('pedidos/<int:id_pedido>/reprogramar', views_admin.reprogramar, name='api_reprogramar'),
+    # ABM
+    path('vehiculos', views_abm.vehiculos, name='api_vehiculos'),
+    path('vehiculos/<str:patente>', views_abm.vehiculo, name='api_vehiculo'),
+    path('vehiculos/<str:patente>/baja', views_abm.baja_vehiculo, name='api_baja_vehiculo'),
+    path('servicios', views_abm.servicios, name='api_servicios_abm'),
+    path('servicios/<int:id_servicio>', views_abm.servicio, name='api_servicio'),
+    path('servicios/<int:id_servicio>/baja', views_abm.baja_servicio, name='api_baja_servicio'),
+    path('objetos', views_abm.objetos, name='api_objetos'),
+    path('objetos/<int:id_objeto>', views_abm.objeto, name='api_objeto'),
+    path('objetos/<int:id_objeto>/baja', views_abm.baja_objeto, name='api_baja_objeto'),
+    path('usuarios', views_usuarios.usuarios, name='api_usuarios'),
+    path('usuarios/nombre', views_usuarios.nombre_usuario, name='api_nombre_usuario'),
+    path('usuarios/<int:dni>/correo', views_usuarios.correo, name='api_usuario_correo'),
+    path('usuarios/<int:dni>/rol', views_usuarios.rol_de_usuario, name='api_usuario_rol'),
+    path('usuarios/<int:dni>/baja', views_usuarios.baja_usuario, name='api_usuario_baja'),
+    path('usuarios/<int:dni>/reactivar', views_usuarios.reactivar_usuario, name='api_usuario_reactivar'),
+    path('usuarios/<int:dni>/clave', views_usuarios.clave, name='api_usuario_clave'),
+    path('roles', views_usuarios.roles, name='api_roles'),
+    path('roles/<int:id_rol>', views_usuarios.rol, name='api_rol'),
 ]

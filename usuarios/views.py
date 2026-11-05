@@ -10,20 +10,8 @@ from .permisos import (  # noqa: F401
     get_usuario_actual, pantalla_inicio, puede_actuar_sobre_rol, requiere_permiso, requiere_permiso_api,
     tiene_permiso,
 )
-from .reglas_roles import (
-    error_baja_gestor, error_cambio_rol_gestor, error_cruce_cliente, error_restablecer_clave,
-)
-from .utils import (
-    hash_password, generate_username, validate_strong_password, generate_temp_password,
-    nombre_usuario_libre,
-)
-
-MENSAJE_ROL_SUPERIOR = 'No podés operar sobre un rol con más permisos administrativos que el tuyo.'
-
-
-def _rol_superior():
-    return JsonResponse({'ok': False, 'error': MENSAJE_ROL_SUPERIOR}, status=403)
-
+from . import operaciones
+from .utils import generate_username, validate_strong_password, generate_temp_password
 
 # ---- LOGIN Y AUTENTICACIÓN ----
 def login_view(request):
@@ -224,168 +212,84 @@ def sin_permisos(request):
         return redirect('login')
     return render(request, 'sin_permisos.html')
 
-# ---- OPERACIONES CRUD ----
+# ---- OPERACIONES CRUD (las reglas están en operaciones.py; las usa también la API de React) ----
+def _fallo(e):
+    return JsonResponse({'ok': False, 'error': str(e)}, status=e.status)
+
+
 @require_POST
 @requiere_permiso_api('USR_CREAR')
 def alta_usuario(request):
     try:
         dni = int(request.POST.get('dni'))
-        apellido = request.POST.get('apellido', '').strip()
-        nombre = request.POST.get('nombre', '').strip()
-        correo = request.POST.get('correo', '').strip().lower()
-        clave = request.POST.get('clave', '')
         id_rol = int(request.POST.get('idRol'))
-
-        if Usuario.objects.filter(DNI=dni).exists():
-            return JsonResponse({'ok': False, 'error': f'El DNI {dni} ya se encuentra registrado.'}, status=400)
-
-        if Usuario.objects.filter(Correo=correo).exists():
-            return JsonResponse({'ok': False, 'error': f'El correo {correo} ya se encuentra en uso.'}, status=400)
-
-        valida, msg = validate_strong_password(clave)
-        if not valida:
-            return JsonResponse({'ok': False, 'error': f'Clave no válida: {msg}'}, status=400)
-
-        rol = get_object_or_404(Rol, id_rol=id_rol)
-        if not puede_actuar_sobre_rol(request.usuario, rol):
-            return _rol_superior()
-
-        # Regla: Apellido + primera letra del primer nombre
-        final_user = nombre_usuario_libre(apellido, nombre)
-
-        nuevo = Usuario.objects.create(
-            DNI=dni,
-            Apellido=apellido,
-            Nombre=nombre,
-            Correo=correo,
-            NombreUsuario=final_user,
-            Clave=hash_password(clave),
-            Activo=True,
-            DebeCambiarClave=True, # Por regla estricta: exige cambio en próximo login
-            idRol=rol
-        )
-
-        return JsonResponse({'ok': True, 'usuario': nuevo.NombreUsuario})
-    except Exception as e:
+    except (TypeError, ValueError) as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+    get_object_or_404(Rol, id_rol=id_rol)
+    try:
+        nuevo = operaciones.crear_usuario(request.usuario, dni, request.POST.get('apellido'), request.POST.get('nombre'),
+                                          request.POST.get('correo'), request.POST.get('clave', ''), id_rol)
+    except operaciones.ErrorUsuario as e:
+        return _fallo(e)
+    return JsonResponse({'ok': True, 'usuario': nuevo.NombreUsuario})
+
 
 @require_POST
 @requiere_permiso_api('USR_EDITAR_CORREO')
 def modificar_correo(request, dni):
     # Regla estricta Hito 2: La Modificación solo permite editar el Correo
     usuario = get_object_or_404(Usuario, DNI=dni)
-    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
-        return _rol_superior()
-    nuevo_correo = request.POST.get('correo', '').strip().lower()
-
-    if Usuario.objects.filter(Correo=nuevo_correo).exclude(DNI=dni).exists():
-        return JsonResponse({'ok': False, 'error': 'El correo ya pertenece a otro usuario.'}, status=400)
-
-    usuario.Correo = nuevo_correo
-    usuario.save() # auto_now actualiza automáticamente FechaUltimaModificacion
+    try:
+        operaciones.modificar_correo(request.usuario, usuario, request.POST.get('correo', ''))
+    except operaciones.ErrorUsuario as e:
+        return _fallo(e)
     return JsonResponse({'ok': True, 'nuevo_correo': usuario.Correo})
+
 
 @require_POST
 @requiere_permiso_api('USR_BAJA')
 def baja_usuario(request, dni):
     # Regla estricta Hito 2: Cambiar Activo a (no) y asentar FechaBaja
-
-    usuario = get_object_or_404(Usuario, DNI=dni)
-
-    if usuario.DNI == request.usuario.DNI:
-        return JsonResponse({'ok': False, 'error': 'No podes darte de baja a vos mismo.'}, status=400)
-
-    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
-        return _rol_superior()
-
-    error = error_baja_gestor(usuario)
-    if error:
-        return JsonResponse({'ok': False, 'error': error}, status=400)
-
-    from pedidos.reglas import tiene_pedidos_activos
-    if tiene_pedidos_activos(idUsuario=usuario):
-        return JsonResponse({
-            'ok': False,
-            'error': 'El usuario tiene pedidos pendientes o confirmados. Anulalos antes de darlo de baja.'
-        }, status=400)
-
-    usuario.Activo = False
-    usuario.FechaBaja = timezone.now()
-    usuario.save()
+    try:
+        operaciones.dar_de_baja(request.usuario, get_object_or_404(Usuario, DNI=dni))
+    except operaciones.ErrorUsuario as e:
+        return _fallo(e)
     return JsonResponse({'ok': True})
+
 
 @require_POST
 @requiere_permiso_api('USR_BAJA')
 def reactivar_usuario(request, dni):
-    usuario = get_object_or_404(Usuario, DNI=dni)
-    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
-        return _rol_superior()
-    usuario.Activo = True
-    usuario.FechaBaja = None
-    usuario.save()
+    try:
+        operaciones.reactivar(request.usuario, get_object_or_404(Usuario, DNI=dni))
+    except operaciones.ErrorUsuario as e:
+        return _fallo(e)
     return JsonResponse({'ok': True})
+
 
 @require_POST
 @requiere_permiso_api('USR_RESET_CLAVE')
 def restablecer_clave(request, dni):
     usuario = get_object_or_404(Usuario, DNI=dni)
-    if not puede_actuar_sobre_rol(request.usuario, usuario.idRol):
-        return _rol_superior()
-    error = error_restablecer_clave(usuario)
-    if error:
-        return JsonResponse({'ok': False, 'error': error}, status=400)
-    nueva = request.POST.get('nueva_clave', '').strip()
-    if nueva:
-        valida, msg = validate_strong_password(nueva)
-        if not valida:
-            return JsonResponse({'ok': False, 'error': msg}, status=400)
-        temp_clave = nueva
-    else:
-        temp_clave = generate_temp_password(10)
+    try:
+        clave = operaciones.restablecer_clave(request.usuario, usuario, request.POST.get('nueva_clave', ''))
+    except operaciones.ErrorUsuario as e:
+        return _fallo(e)
+    return JsonResponse({'ok': True, 'clave_temporal': clave, 'usuario': usuario.NombreUsuario})
 
-    usuario.set_clave(temp_clave)
-    usuario.DebeCambiarClave = True # Exige cambio en próximo login
-    usuario.save()
-
-    return JsonResponse({
-        'ok': True,
-        'clave_temporal': temp_clave,
-        'usuario': usuario.NombreUsuario
-    })
 
 @require_POST
 @requiere_permiso_api('USR_CAMBIAR_ROL')
 def cambiar_rol(request, dni):
     """Asigna otro rol al usuario. Va aparte de la modificacion de correo,
     que por consigna solo puede editar el correo."""
-
     usuario = get_object_or_404(Usuario, DNI=dni)
-
-    if usuario.DNI == request.usuario.DNI:
-        return JsonResponse({'ok': False, 'error': 'No podes cambiar tu propio rol.'}, status=400)
-
     try:
-        rol = Rol.objects.get(id_rol=int(request.POST.get('idRol')))
-    except (Rol.DoesNotExist, TypeError, ValueError):
-        return JsonResponse({'ok': False, 'error': 'El rol indicado no existe.'}, status=400)
-
-    if not (puede_actuar_sobre_rol(request.usuario, usuario.idRol)
-            and puede_actuar_sobre_rol(request.usuario, rol)):
-        return _rol_superior()
-
-    anterior = usuario.idRol
-    if anterior.id_rol == rol.id_rol:
-        return JsonResponse({'ok': False, 'error': f'{usuario.NombreUsuario} ya tiene el rol {rol.nom_rol}.'}, status=400)
-
-    error = error_cruce_cliente(usuario, rol) or error_cambio_rol_gestor(usuario, rol)
-    if error:
-        return JsonResponse({'ok': False, 'error': error}, status=400)
-
-    usuario.idRol = rol
-    usuario.save()
-
+        anterior = operaciones.cambiar_rol(request.usuario, usuario, request.POST.get('idRol'))
+    except operaciones.ErrorUsuario as e:
+        return _fallo(e)
     return JsonResponse({'ok': True, 'usuario': usuario.NombreUsuario,
-                         'anterior': anterior.nom_rol, 'nuevo': rol.nom_rol})
+                         'anterior': anterior.nom_rol, 'nuevo': usuario.idRol.nom_rol})
 
 @require_GET
 @requiere_permiso_api('USR_CREAR')
