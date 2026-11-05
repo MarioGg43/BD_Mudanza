@@ -3,6 +3,7 @@
 Responden JSON y usan las mismas reglas que las pantallas de Django (pedidos/reglas.py): la API
 solo traduce entre JSON y esas funciones, no repite ninguna regla."""
 from datetime import date, time
+from urllib.parse import quote
 
 from django.http import Http404
 from django.http import JsonResponse
@@ -168,6 +169,57 @@ def _detalle(p, usuario):
         'es_mio': es_mio,
         'puede_cambiar': es_mio and reglas.cliente_puede_cambiar(p),
         'puede_comprobante': tiene_permiso(usuario, 'PED_COMPROBANTE'),
+        'gestion': _gestion(p, usuario, personal) if tiene_permiso(usuario, 'PED_GESTIONAR') else None,
+    }
+
+
+def _persona(u):
+    return {'id': u.id_usuario, 'nombre': f'{u.Nombre} {u.Apellido}'}
+
+
+def _gestion(p, usuario, personal):
+    """Lo que solo ve el administrador en el detalle: cliente, personal, acciones posibles,
+    historial de cambios de horario y los avisos de mudanza atrasada."""
+    activo = p.estado in Pedido.ACTIVOS
+    chofer = next((x.idUsuario for x in personal if x.Funcion == PersonalPedido.CHOFER), None)
+    reprogramaciones = list(p.reprogramaciones.select_related('usuario'))
+    whatsapp = ''
+    if reprogramaciones and activo:
+        telefono = reglas.telefono_whatsapp(p.idUsuario.Telefono)
+        if telefono:
+            whatsapp = f'https://wa.me/{telefono}?text={quote(reglas.mensaje_reprogramacion(reprogramaciones[0]))}'
+    atrasadas = reglas.mudanzas_atrasadas()
+    siguiente = atrasadas.get(p)
+    anterior = next((a for a, q in atrasadas.items() if q.pk == p.pk), None)
+    inicio = timezone.localtime(p.inicio)
+    return {
+        'cliente': {'nombre': f'{p.idUsuario.Nombre} {p.idUsuario.Apellido}', 'dni': p.idUsuario.DNI,
+                    'correo': p.idUsuario.Correo, 'telefono': p.idUsuario.Telefono or ''},
+        'chofer': _persona(chofer) if chofer else None,
+        'ayudantes': [_persona(x.idUsuario) for x in personal if x.Funcion == PersonalPedido.AYUDANTE],
+        'inicio': inicio.strftime('%d/%m/%Y a las %H:%M'),
+        'puede_asignar': activo and not p.ya_empezo,
+        'puede_confirmar': p.estado == Pedido.PENDIENTE and not p.vencido,
+        'puede_finalizar': p.estado == Pedido.CONFIRMADO and p.ya_empezo,
+        'espera_para_finalizar': p.estado == Pedido.CONFIRMADO and not p.ya_empezo,
+        'puede_reprogramar': activo,
+        'puede_editar_servicios': activo,
+        'puede_anular': activo and tiene_permiso(usuario, 'PED_ANULAR'),
+        'reprogramaciones': [{
+            'antes': f'{r.fecha_anterior:%d/%m/%Y} {r.hora_anterior:%H:%M}',
+            'despues': f'{r.fecha_nueva:%d/%m/%Y} {r.hora_nueva:%H:%M}',
+            'vehiculo': f'{r.vehiculo_anterior_id} → {r.vehiculo_nuevo_id}'
+            if r.vehiculo_nuevo_id != r.vehiculo_anterior_id else None,
+            'motivo': r.motivo_completo, 'por': f'{r.usuario.Nombre} {r.usuario.Apellido}',
+            'cuando': timezone.localtime(r.fecha_registro).strftime('%d/%m/%Y %H:%M'),
+            'visto': r.visto_cliente} for r in reprogramaciones],
+        'whatsapp': whatsapp,
+        # esta mudanza ya debía terminar y otra la espera / la anterior a esta está atrasada
+        'atrasada': {'id': siguiente.pk, 'hora': timezone.localtime(siguiente.inicio).strftime('%d/%m %H:%M'),
+                     'ya_empezo': siguiente.ya_empezo, 'comparte': reglas.que_comparten(p, siguiente),
+                     'fin': timezone.localtime(p.fin).strftime('%H:%M')} if siguiente else None,
+        'anterior': {'id': anterior.pk, 'comparte': reglas.que_comparten(anterior, p),
+                     'fin': timezone.localtime(anterior.fin).strftime('%H:%M')} if anterior else None,
     }
 
 
@@ -230,7 +282,18 @@ def pedidos(request):
     form = FiltroPedidosForm(request.GET or None, ve_todos=ve_todos)
     filtros = form.filtros() if form.is_valid() else {}
     lista = reglas.filtrar_pedidos(base.select_related('idUsuario', 'patente_vehiculo'), **filtros)
-    return JsonResponse({'pedidos': [_resumen(p) for p in lista]})
+    if not ve_todos:
+        return JsonResponse({'pedidos': [_resumen(p) for p in lista]})
+    # el administrador ve además los avisos y si cada pedido tiene chofer o está atrasado
+    atrasadas = {p.pk for p in reglas.mudanzas_atrasadas()}
+    filas = []
+    for p in lista.prefetch_related('personal'):
+        fila = _resumen(p)
+        fila['atrasada'] = p.pk in atrasadas
+        fila['tiene_chofer'] = any(x.Funcion == PersonalPedido.CHOFER for x in p.personal.all())
+        filas.append(fila)
+    return JsonResponse({'pedidos': filas, 'avisos': reglas.contar_avisos(),
+                         'errores_filtro': {k: ' '.join(v) for k, v in form.errors.items()}})
 
 
 @endpoint('PED_CONSULTAR', metodos=('GET', 'PUT'))

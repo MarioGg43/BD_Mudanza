@@ -56,6 +56,17 @@ Los errores de validación vuelven con 400 y `{ "error": "...", "errores": { "ca
 | PUT | `/pedidos/:id` | Modificarlo hasta 24 h antes | PED_REGISTRAR |
 | POST | `/pedidos/:id/cancelar` | `{motivo}`: cancelarlo hasta 24 h antes | PED_CONSULTAR |
 | GET | `/pedidos/:id/comprobante` | Comprobante en PDF | PED_COMPROBANTE |
+| GET | `/admin/opciones` | Listas para los filtros (estados, avisos, clientes, vehículos) | PED_GESTIONAR |
+| POST | `/pedidos/:id/confirmar` | Confirmar (hace falta el chofer) | PED_GESTIONAR |
+| POST | `/pedidos/:id/finalizar` | Finalizar (desde que empezó la mudanza) | PED_GESTIONAR |
+| POST | `/pedidos/:id/anular` | `{motivo}`: anular | PED_ANULAR |
+| GET / PUT | `/pedidos/:id/personal` | Choferes y ayudantes libres / asignar `{chofer, ayudantes}` | PED_GESTIONAR |
+| GET / PUT | `/pedidos/:id/servicios` | Servicios activos y los del pedido / cambiarlos | PED_GESTIONAR |
+| GET / POST | `/pedidos/:id/reprogramar` | Motivos, choferes y vehículos libres (`?fecha&hora`) / reprogramar | PED_GESTIONAR |
+
+Para el administrador, `GET /pedidos` devuelve además `avisos` (cuántos pedidos atrasados, vencidos, para
+finalizar, por confirmar y sin chofer) y `GET /pedidos/:id` trae `gestion` (cliente, personal, acciones
+posibles, historial de cambios de horario con el enlace de WhatsApp y avisos de mudanza atrasada).
 
 El token es el DNI firmado con la `SECRET_KEY` de Django y con fecha (vence a las 12 horas);
 no se puede falsificar. Las reglas de negocio no se repiten en la API: llama a las mismas

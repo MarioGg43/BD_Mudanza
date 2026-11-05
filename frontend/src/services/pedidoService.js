@@ -6,9 +6,10 @@ import { api } from './api';
 // POST /pedidos/:id/cancelar
 // GET  /pedidos/:id/comprobante (PDF)
 export const pedidoService = {
+  // { pedidos } para el cliente; el administrador recibe además { avisos }
   getAll: async (filtros = {}, signal) => {
     const { data } = await api.get('/pedidos', { params: filtros, signal });
-    return data.pedidos;
+    return data;
   },
   getById: async (id, signal) => {
     const { data } = await api.get(`/pedidos/${id}`, { signal });

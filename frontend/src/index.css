@@ -34,6 +34,24 @@
 .pie-empresa a:hover { color: #fff; text-decoration: underline; }
 .pie-empresa .border-top { border-color: rgba(255, 255, 255, .15) !important; }
 
+/* ---------- panel de pedidos del administrador ---------- */
+.tarjeta-aviso {
+  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 12px 14px; border-radius: var(--radio-sm); border: 1.5px solid transparent;
+  transition: transform .15s, box-shadow .15s;
+}
+.tarjeta-aviso:hover { transform: translateY(-2px); }
+.aviso-rojo { background: var(--rojo-suave); color: var(--rojo-osc); border-color: #F2C4C4; }
+.aviso-naranja { background: var(--naranja-suave); color: var(--naranja-osc); border-color: #F8D9BC; }
+.aviso-amarillo { background: var(--warn-bg); color: var(--warn); border-color: #F6DE95; }
+.aviso-gris { background: var(--gris-bg); color: var(--gris); border-color: #E2D8D0; }
+.aviso-cero { background: var(--card); color: var(--tinta-3); border-color: var(--linea); }
+.aviso-activo { border-color: currentColor; box-shadow: 0 0 0 3px rgba(255, 122, 0, .2); }
+.fila-click { cursor: pointer; }
+.tabla-pedidos .recorrido { min-width: 220px; }
+.estado-atrasada { background: var(--rojo-suave); color: var(--rojo-osc); }
+.estado-sin-chofer { background: var(--rojo-suave); color: var(--rojo-osc); }
+
 /* ---------- tarjeta «Tu próxima mudanza» ---------- */
 .proxima-mudanza { transition: transform .15s, box-shadow .15s; }
 .proxima-mudanza:hover { transform: translateY(-2px); box-shadow: 0 28px 44px -24px rgba(170, 30, 0, .9); }

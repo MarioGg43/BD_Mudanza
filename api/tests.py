@@ -8,7 +8,8 @@ from pedidos.test_reglas import ADMIN, BaseReglas, obj
 from usuarios.models import LogAuditoria, Pedido, Usuario
 
 
-class ApiTest(BaseReglas):
+class ApiBase(BaseReglas):
+    """Claves conocidas para el cliente y el administrador, y el login por la API."""
     def setUp(self):
         for dni in (self.cliente.DNI, ADMIN):
             u = Usuario.objects.get(DNI=dni)
@@ -31,6 +32,8 @@ class ApiTest(BaseReglas):
         d.update(cambios)
         return d
 
+
+class ApiTest(ApiBase):
     def test_login_devuelve_token_y_permisos(self):
         r = self.client.post('/api/auth/login', {'usuario': str(self.cliente.DNI), 'clave': 'Clave.123'},
                              content_type='application/json')

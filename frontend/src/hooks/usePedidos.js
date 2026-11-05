@@ -4,8 +4,10 @@ import { pedidoService } from '../services/pedidoService';
 
 // Lista de pedidos con sus estados de interfaz (cargando / éxito / error).
 // Si el filtro cambia antes de que llegue la respuesta, la petición vieja se cancela.
+// Para el administrador trae también cuántos pedidos hay en cada aviso.
 export function usePedidos(filtros) {
   const [pedidos, setPedidos] = useState([]);
+  const [avisos, setAvisos] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const clave = JSON.stringify(filtros);
@@ -16,7 +18,10 @@ export function usePedidos(filtros) {
     setError(null);
     pedidoService
       .getAll(JSON.parse(clave), controller.signal)
-      .then(setPedidos)
+      .then((data) => {
+        setPedidos(data.pedidos);
+        setAvisos(data.avisos || {});
+      })
       .catch((err) => {
         if (!axios.isCancel(err)) setError(err.message);
       })
@@ -28,5 +33,5 @@ export function usePedidos(filtros) {
 
   useEffect(() => cargar(), [cargar]);
 
-  return { pedidos, loading, error, refetch: cargar };
+  return { pedidos, avisos, loading, error, refetch: cargar };
 }

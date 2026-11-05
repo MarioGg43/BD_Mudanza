@@ -20,8 +20,15 @@ export function Navbar() {
         <nav className="menu-marca d-flex flex-wrap align-items-center gap-1 fw-semibold">
           {usuario ? (
             <>
-              {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>Mis pedidos</NavLink>}
+              {puede('PED_CONSULTAR') && <NavLink to="/pedidos" end>{puede('PED_GESTIONAR') ? 'Pedidos' : 'Mis pedidos'}</NavLink>}
               {puede('PED_REGISTRAR') && <NavLink to="/pedidos/nuevo">Pedir mudanza</NavLink>}
+              {/* lo que todavía no está en React (usuarios, vehículos, servicios...) sigue en Django */}
+              {puede('PED_GESTIONAR') && (
+                <a href={`${window.location.protocol}//${window.location.hostname}:8002/`} target="_blank" rel="noopener noreferrer"
+                   title="Usuarios, roles, vehículos, servicios y auditoría (abre el sistema en Django)">
+                  Más secciones <i className="bi bi-box-arrow-up-right small" />
+                </a>
+              )}
               <span className="ms-2 text-white-50 text-capitalize d-none d-md-inline">{usuario.nombre}</span>
               <button type="button" className="btn btn-sm btn-light ms-2" onClick={cerrar}>
                 <i className="bi bi-box-arrow-right me-1" />Salir
