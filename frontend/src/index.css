@@ -5,6 +5,10 @@
    En %, así se respeta si la persona agrandó la letra en su navegador. */
 html { font-size: 112.5%; }
 
+/* el «ojito» de las contraseñas: pegado al campo, con el mismo borde */
+.boton-ojo { border-color: var(--linea); border-left: 0; }
+.input-group .form-control:focus + .boton-ojo { border-color: var(--naranja); }
+
 /* Que ningún color de Bootstrap se escape de la paleta de la empresa (styles/marca.css) */
 .text-success { color: var(--ok) !important; }
 .text-bg-light { background-color: var(--fondo) !important; color: var(--tinta) !important; }

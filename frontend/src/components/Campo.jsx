@@ -1,5 +1,8 @@
+import { CampoClave } from './CampoClave';
+
 /* Un campo de formulario con su etiqueta, su ayuda y su error (los de la API vienen por campo).
-   Según las props dibuja un input, un select (con `opciones`) o un textarea (tipo="textarea"). */
+   Según las props dibuja un input, un select (con `opciones`), un textarea (tipo="textarea") o una
+   contraseña con el «ojito» (tipo="password"). */
 export function Campo({ label, name, error, ayuda, col = 'col-12', tipo = 'text', opciones, vacio, chico, ...props }) {
   const base = opciones ? 'form-select' : 'form-control';
   const clase = `${base} ${chico ? `${base}-sm` : ''} ${error ? 'is-invalid' : ''}`;
@@ -13,6 +16,8 @@ export function Campo({ label, name, error, ayuda, col = 'col-12', tipo = 'text'
     );
   } else if (tipo === 'textarea') {
     control = <textarea id={name} name={name} className={clase} rows={3} {...props} />;
+  } else if (tipo === 'password') {
+    control = <CampoClave id={name} name={name} invalido={Boolean(error)} className={chico ? 'form-control-sm' : ''} {...props} />;
   } else {
     control = <input id={name} name={name} type={tipo} className={clase} {...props} />;
   }
@@ -21,7 +26,7 @@ export function Campo({ label, name, error, ayuda, col = 'col-12', tipo = 'text'
       <label htmlFor={name} className={`form-label ${chico ? 'small mb-1' : ''}`}>{label}</label>
       {control}
       {ayuda && !error && <div className="form-text">{ayuda}</div>}
-      {error && <div className="invalid-feedback">{error}</div>}
+      {error && <div className="invalid-feedback d-block">{error}</div>}
     </div>
   );
 }

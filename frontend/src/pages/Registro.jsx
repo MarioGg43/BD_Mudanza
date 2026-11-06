@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CampoClave } from '../components/CampoClave';
 
 const CAMPOS = [
   { name: 'dni', label: 'DNI', type: 'text', col: 'col-sm-6', inputMode: 'numeric' },
@@ -50,11 +51,16 @@ export function Registro() {
           {CAMPOS.map((c) => (
             <div key={c.name} className={c.col}>
               <label htmlFor={c.name} className="form-label">{c.label}</label>
-              <input id={c.name} name={c.name} type={c.type} inputMode={c.inputMode}
-                     className={`form-control ${errores[c.name] ? 'is-invalid' : ''}`}
-                     value={datos[c.name]} onChange={cambiar} disabled={loading} />
+              {c.type === 'password' ? (
+                <CampoClave id={c.name} name={c.name} autoComplete="new-password" invalido={Boolean(errores[c.name])}
+                            value={datos[c.name]} onChange={cambiar} disabled={loading} />
+              ) : (
+                <input id={c.name} name={c.name} type={c.type} inputMode={c.inputMode}
+                       className={`form-control ${errores[c.name] ? 'is-invalid' : ''}`}
+                       value={datos[c.name]} onChange={cambiar} disabled={loading} />
+              )}
               {c.ayuda && !errores[c.name] && <div className="form-text">{c.ayuda}</div>}
-              {errores[c.name] && <div className="invalid-feedback">{errores[c.name]}</div>}
+              {errores[c.name] && <div className="invalid-feedback d-block">{errores[c.name]}</div>}
             </div>
           ))}
         </div>

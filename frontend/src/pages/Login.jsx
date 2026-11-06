@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CampoClave } from '../components/CampoClave';
 
 // Segundo paso del login cuando la clave es provisoria (la dio la empresa al crear el usuario
 // o al restablecerla): la persona elige una suya y entra.
@@ -33,15 +34,15 @@ function CambiarClave({ ident, clave, onVolver }) {
       <form onSubmit={handleSubmit} noValidate>
         <div className="mb-3">
           <label htmlFor="nueva" className="form-label">Clave nueva</label>
-          <input id="nueva" type="password" className="form-control" autoComplete="new-password" autoFocus
-                 value={nueva} onChange={(e) => setNueva(e.target.value)} disabled={loading} />
+          <CampoClave id="nueva" autoComplete="new-password" autoFocus
+                      value={nueva} onChange={(e) => setNueva(e.target.value)} disabled={loading} />
           <div className="form-text">8 o más caracteres, con mayúscula, minúscula, número y un caracter especial.</div>
         </div>
         <div className="mb-3">
           <label htmlFor="confirmar" className="form-label">Repetí la clave nueva</label>
-          <input id="confirmar" type="password" className={`form-control ${distintas ? 'is-invalid' : ''}`} autoComplete="new-password"
-                 value={confirmar} onChange={(e) => setConfirmar(e.target.value)} disabled={loading} />
-          {distintas && <div className="invalid-feedback">Las dos claves no coinciden.</div>}
+          <CampoClave id="confirmar" invalido={Boolean(distintas)} autoComplete="new-password"
+                      value={confirmar} onChange={(e) => setConfirmar(e.target.value)} disabled={loading} />
+          {distintas && <div className="invalid-feedback d-block">Las dos claves no coinciden.</div>}
         </div>
         <button type="submit" className="btn btn-primary w-100 py-2" disabled={loading || !nueva || !confirmar || distintas}>
           {loading ? 'Guardando...' : 'Guardar clave y entrar'}
@@ -99,8 +100,8 @@ export function Login() {
             </div>
             <div className="mb-3">
               <label htmlFor="clave" className="form-label">Contraseña</label>
-              <input id="clave" type="password" className="form-control" autoComplete="current-password" required
-                     value={clave} onChange={(e) => setClave(e.target.value)} disabled={loading} />
+              <CampoClave id="clave" autoComplete="current-password" required
+                          value={clave} onChange={(e) => setClave(e.target.value)} disabled={loading} />
             </div>
             <button type="submit" className="btn btn-primary w-100 py-2" disabled={loading || !ident || !clave}>
               {loading ? (
