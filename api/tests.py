@@ -67,6 +67,23 @@ class ApiTest(ApiBase):
         self.assertFalse(u.DebeCambiarClave)
         self.assertTrue(u.verificar_clave('Nueva.456'))
 
+    def test_olvide_mi_clave(self):
+        datos = {'dni': str(self.cliente.DNI), 'correo': self.cliente.Correo.upper(), 'nueva': 'Nueva.456', 'confirmar': 'Nueva.456'}
+        r = self.client.post('/api/auth/recuperar-clave', {**datos, 'correo': 'otro@ejemplo.com'}, content_type='application/json')
+        self.assertEqual((r.status_code, r.json()['error']), (400, 'El DNI y el correo no coinciden con ninguna cuenta de cliente.'))
+        r = self.client.post('/api/auth/recuperar-clave', {**datos, 'confirmar': 'Otra.789'}, content_type='application/json')
+        self.assertEqual(r.json()['error'], 'Las contraseñas no coinciden.')
+        r = self.client.post('/api/auth/recuperar-clave', datos, content_type='application/json')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(r.json()['token'])
+        self.assertTrue(Usuario.objects.get(DNI=self.cliente.DNI).verificar_clave('Nueva.456'))
+        # el personal no recupera la clave por acá (se la restablece el administrador)
+        admin = Usuario.objects.get(DNI=ADMIN)
+        r = self.client.post('/api/auth/recuperar-clave', {**datos, 'dni': str(ADMIN), 'correo': admin.Correo},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(Usuario.objects.get(DNI=ADMIN).verificar_clave('Clave.123'))
+
     def test_sin_token_o_con_token_falso_da_401(self):
         self.assertEqual(self.client.get('/api/pedidos').status_code, 401)
         r = self.client.get('/api/pedidos', HTTP_AUTHORIZATION='Bearer 29876543:falso:token')

@@ -48,6 +48,8 @@ Los errores de validación vuelven con 400 y `{ "error": "...", "errores": { "ca
 | GET | `/publico` | Servicios y camiones para la página de inicio | — |
 | POST | `/auth/login` | `{usuario, clave}` → `{token, usuario}` (DNI, usuario o correo) | — |
 | POST | `/auth/registro` | Alta de cliente → `{token, usuario}` | — |
+| POST | `/auth/cambiar-clave` | Reemplaza la clave provisoria y entra | — |
+| POST | `/auth/recuperar-clave` | «Olvidé mi contraseña» (clientes): con DNI y correo elige una clave nueva y entra | — |
 | GET | `/auth/yo` | El usuario del token | cualquiera |
 | GET | `/catalogo` | Servicios principales y adicionales, objetos, límites | PED_REGISTRAR |
 | GET | `/vehiculos-libres?fecha&hora&servicio[&pedido]` | Vehículos libres en ese horario | PED_REGISTRAR |

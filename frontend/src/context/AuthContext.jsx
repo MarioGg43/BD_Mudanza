@@ -56,6 +56,7 @@ export function AuthProvider({ children }) {
   const login = async (usuario, clave) => entrar(await authService.login(usuario, clave));
   const registro = async (datos) => entrar(await authService.registro(datos));
   const cambiarClave = async (datos) => entrar(await authService.cambiarClave(datos));
+  const recuperarClave = async (datos) => entrar(await authService.recuperarClave(datos));
 
   // El interceptor de Axios avisa cuando el servidor rechaza el token (401)
   useEffect(() => {
@@ -69,7 +70,7 @@ export function AuthProvider({ children }) {
   const inicio = PANTALLAS.find(([permiso]) => puede(permiso))?.[1] ?? '/';
 
   return (
-    <AuthContext.Provider value={{ usuario, login, registro, cambiarClave, salir, puede, inicio }}>
+    <AuthContext.Provider value={{ usuario, login, registro, cambiarClave, recuperarClave, salir, puede, inicio }}>
       {children}
     </AuthContext.Provider>
   );

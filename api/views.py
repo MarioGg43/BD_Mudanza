@@ -77,6 +77,20 @@ def registro(request):
     return JsonResponse({'token': crear_token(cliente), 'usuario': datos_usuario(cliente)}, status=201)
 
 
+@publico()
+def recuperar_clave(request):
+    """POST /api/auth/recuperar-clave {dni, correo, nueva, confirmar}: «Olvidé mi contraseña» para
+    clientes. Si el DNI y el correo coinciden, guarda la clave nueva y entra."""
+    d = leer_json(request)
+    try:
+        usuario = operaciones.recuperar_clave_cliente(str(d.get('dni', '')).strip(), str(d.get('correo', '')),
+                                                      str(d.get('nueva', '')), str(d.get('confirmar', '')))
+    except operaciones.ErrorUsuario as e:
+        return error(str(e), e.status)
+    usuario.registrar_acceso()
+    return JsonResponse({'token': crear_token(usuario), 'usuario': datos_usuario(usuario)})
+
+
 @endpoint()
 def yo(request):
     """GET /api/auth/yo: comprueba que el token sigue valiendo y devuelve el usuario."""

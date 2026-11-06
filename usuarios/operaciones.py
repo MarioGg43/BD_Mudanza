@@ -126,6 +126,31 @@ def cambiar_clave_provisoria(usuario, actual, nueva, confirmar):
     return usuario
 
 
+MENSAJE_DATOS_NO_COINCIDEN = 'El DNI y el correo no coinciden con ninguna cuenta de cliente.'
+
+
+def recuperar_clave_cliente(dni, correo, nueva, confirmar):
+    """«Olvidé mi contraseña» para clientes: con el DNI y el correo de la cuenta (tienen que
+    coincidir los dos) elige una clave nueva. No se muestra ni se genera ninguna clave. Al
+    personal le restablece la clave el administrador. Si los datos no coinciden, el mensaje es
+    el mismo exista o no la cuenta, para no revelar quién está registrado."""
+    usuario = Usuario.objects.select_related('idRol').filter(
+        DNI=dni, Correo=(correo or '').strip().lower()).first() if str(dni or '').isdigit() else None
+    if usuario is None or usuario.idRol.nom_rol != 'Cliente':
+        raise ErrorUsuario(MENSAJE_DATOS_NO_COINCIDEN)
+    if not usuario.Activo:
+        raise ErrorUsuario('El usuario se encuentra dado de baja (Inactivo).', 403)
+    if nueva != confirmar:
+        raise ErrorUsuario('Las contraseñas no coinciden.')
+    valida, msg = validate_strong_password(nueva)
+    if not valida:
+        raise ErrorUsuario(msg)
+    usuario.set_clave(nueva)
+    usuario.DebeCambiarClave = False
+    usuario.save()
+    return usuario
+
+
 def cambiar_rol(actor, usuario, id_rol):
     """Devuelve el rol anterior."""
     if usuario.pk == actor.pk:
