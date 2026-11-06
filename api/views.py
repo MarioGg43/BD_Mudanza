@@ -16,6 +16,7 @@ from pedidos.pdf import respuesta_pdf
 from usuarios.models import Pedido, PersonalPedido, Servicio, Usuario, Vehiculo
 from usuarios import operaciones
 from usuarios.permisos import tiene_permiso
+from vehiculos.empresa import camiones_para_mostrar
 from .autenticacion import crear_token, datos_usuario, endpoint, error, leer_json, publico
 
 
@@ -104,13 +105,7 @@ def publico_info(request):
     """GET /api/publico: lo que muestra la página de inicio sin iniciar sesión: los servicios
     activos con su precio y los tamaños de camión con su capacidad y recargo."""
     activos = Servicio.objects.filter(Activo=True).order_by('Precio_base')
-    camiones = []
-    for tipo in Vehiculo.TIPOS:
-        flota = Vehiculo.objects.filter(tipo_vehiculo=tipo).exclude(estado='Fuera de Servicio')
-        if flota.exists():
-            camiones.append({'tipo': tipo, 'recargo': Vehiculo.RECARGOS[tipo], 'cantidad': flota.count(),
-                             'capacidad_kg': float(max(v.capacidad_kg for v in flota)),
-                             'capacidad_m3': float(max(v.capacidad_m3 for v in flota))})
+    camiones = [{k: v for k, v in c.items() if k != 'tamanio'} for c in camiones_para_mostrar()]
     return JsonResponse({
         'principales': [_servicio(s) for s in activos.filter(Categoria=Servicio.PRINCIPAL)],
         'adicionales': [_servicio(s) for s in activos.filter(Categoria=Servicio.ADICIONAL)],

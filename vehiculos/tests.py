@@ -37,14 +37,22 @@ class VehiculosTest(TestCase):
         self.assertNotContains(r, 'href="/vehiculos/"')  # la flota es interna
         self.assertNotContains(r, 'Ver Vehículos')
 
-    def test_la_portada_muestra_los_servicios_activos_con_precio(self):
+    def test_la_portada_muestra_los_servicios_activos_sin_precio(self):
         from usuarios.models import Servicio
         Servicio.objects.filter(Tipo_servicio='Mudanza nacional').update(Activo=False)
         r = self.client.get('/')
         self.assertContains(r, 'Mudanza local')
-        self.assertContains(r, '185.000')
-        self.assertContains(r, 'Mantas, film y cintas')
+        self.assertNotContains(r, '185.000')  # los precios se ven al cargar el pedido
         self.assertNotContains(r, 'Mudanza nacional')
+
+    def test_la_portada_es_la_pagina_de_la_empresa(self):
+        r = self.client.get('/')
+        for parte in ('id="portada"', 'id="servicios"', 'id="trabajos"', 'id="contacto"',
+                      'https://wa.me/5493874732192', 'google.com/maps/embed', '/static/empresa/slider-bg-1.jpg'):
+            self.assertContains(r, parte)
+        # los camiones salen de la base de datos
+        self.assertContains(r, 'Nuestros camiones')
+        self.assertContains(r, 'Camión Grande')
 
     def test_con_sesion_la_portada_lleva_a_la_pantalla_de_cada_rol(self):
         # la portada (Ver vehículos / Ingresar) es solo para visitantes

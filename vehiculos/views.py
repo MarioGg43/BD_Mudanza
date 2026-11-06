@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.templatetags.static import static
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -8,6 +9,7 @@ from pedidos import reglas
 from pedidos.reglas import tiene_pedidos_activos
 from usuarios.models import Pedido, Servicio, Vehiculo
 from usuarios.permisos import get_usuario_actual, pantalla_inicio, requiere_permiso, tiene_permiso
+from . import empresa
 from .forms import VehiculoForm
 
 
@@ -17,10 +19,13 @@ def inicio(request):
     actual = get_usuario_actual(request)
     if actual:
         return pantalla_inicio(actual)
-    activos = Servicio.objects.filter(Activo=True).prefetch_related('recursos').order_by('Precio_base')
+    # la página de la empresa (datos e imágenes de su sitio, en empresa.py) más lo que sale de la
+    # base: los servicios que se pueden pedir online (sin precios) y los camiones en servicio
+    activos = Servicio.objects.filter(Activo=True).order_by('-Categoria', 'Precio_base')  # primero los principales
     return render(request, 'vehiculos/inicio.html', {
-        'servicios': activos.filter(Categoria=Servicio.PRINCIPAL),
-        'adicionales': activos.filter(Categoria=Servicio.ADICIONAL)})
+        'empresa': empresa.EMPRESA, 'diapositivas': empresa.DIAPOSITIVAS,
+        'especialidades': empresa.ESPECIALIDADES, 'razones': empresa.RAZONES, 'pasos': empresa.PASOS,
+        'trabajos': empresa.TRABAJOS, 'fotos_trabajos': [static(t) for t in empresa.TRABAJOS], 'pedibles': activos, 'camiones': empresa.camiones_para_mostrar()})
 
 
 @requiere_permiso('VEH_GESTIONAR')

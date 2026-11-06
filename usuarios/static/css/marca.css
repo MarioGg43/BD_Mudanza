@@ -422,3 +422,60 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 }
 .grad-brand h1, .grad-brand h2, .grad-brand h3,
 .encabezado-marca h1, .encabezado-marca h2, .encabezado-marca h3 { color: #fff; }
+
+/* =====================================================================
+ * Página de inicio de la empresa (vehiculos/inicio.html): portada con
+ * carrusel, servicios con fotos, reseñas, galería, mapa y pie con contacto.
+ * ===================================================================== */
+.seccion-inicio { margin-bottom: 3.5rem; scroll-margin-top: 1.5rem; }
+.portada { border-radius: 22px; overflow: hidden; box-shadow: 0 24px 40px -26px rgba(70, 30, 5, .8); }
+.portada .carousel-item { height: clamp(460px, 70vh, 600px); position: relative; }
+.portada-foto { position: absolute; inset: 0; background-size: cover; background-position: center; }
+/* un velo oscuro a la izquierda para que el texto se lea sobre cualquier foto */
+.portada-foto::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(20, 10, 5, .85) 0%, rgba(20, 10, 5, .55) 55%, rgba(20, 10, 5, .15) 100%);
+}
+.portada-texto {
+  position: relative; z-index: 1; height: 100%; max-width: 640px; color: #fff;
+  display: flex; flex-direction: column; justify-content: center; padding: 2rem clamp(1.5rem, 5vw, 4rem);
+}
+.portada-texto h1, .portada-texto p { color: #fff; }
+.portada-texto .etiqueta-blanca { align-self: flex-start; }
+.portada .carousel-indicators { margin-bottom: 1.25rem; }
+.portada .carousel-control-prev, .portada .carousel-control-next { width: 6%; }
+.foto-servicio { width: 100%; height: 220px; object-fit: cover; display: block; }
+.foto-redondeada { border-radius: var(--radio); box-shadow: var(--sombra); }
+.chip-adicional {
+  display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--linea); font-size: .9rem;
+}
+.numero-paso {
+  display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--grad); color: #fff; font-weight: 700;
+}
+.camion-chico { font-size: 1.5rem; }
+.camion-mediano { font-size: 2rem; }
+.camion-grande { font-size: 2.6rem; }
+.banda-resenas { border-radius: 22px; overflow: hidden; background-size: cover; background-position: center; }
+.banda-resenas-texto { background: rgba(20, 10, 5, .72); color: #fff; }
+.banda-resenas-texto h2, .banda-resenas-texto p { color: #fff; }
+.foto-trabajo {
+  display: block; width: 100%; padding: 0; border: none; border-radius: var(--radio-sm);
+  overflow: hidden; background: none; cursor: zoom-in;
+}
+.foto-trabajo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; transition: transform .25s; }
+.foto-trabajo:hover img { transform: scale(1.05); }
+.mapa-empresa { width: 100%; height: 100%; min-height: 340px; border: 0; border-radius: var(--radio); box-shadow: var(--sombra); }
+.visor-boton { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 999px; }
+.visor-anterior { left: 10px; }
+.visor-siguiente { right: 10px; }
+.visor-cerrar { position: absolute; top: 10px; right: 10px; }
+/* el verde de WhatsApp se deja a propósito: es el que la gente reconoce */
+.btn-whatsapp { background: #1FA855; color: #fff; font-weight: 600; border: none; }
+.btn-whatsapp:hover, .btn-whatsapp:focus { background: #178A45; color: #fff; }
+.pie-empresa { background: var(--tinta); color: rgba(255, 255, 255, .8); }
+.pie-empresa .fw-bold, .pie-empresa .fw-semibold { color: #fff; }
+.pie-empresa a { color: rgba(255, 255, 255, .85); text-decoration: none; }
+.pie-empresa a:hover { color: #fff; text-decoration: underline; }
+.pie-empresa .border-top { border-color: rgba(255, 255, 255, .15) !important; }

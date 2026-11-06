@@ -1,106 +1,282 @@
 {% extends 'vehiculos/base.html' %}
 {% load static %}
 {% block title %}Mudanzas y Fletes Salta{% endblock %}
+{% comment %}
+  Página de inicio de la empresa, para visitantes (con sesión, cada uno va a su pantalla).
+  Textos e imágenes del sitio oficial de la empresa (vehiculos/empresa.py); los servicios que se
+  piden online y los camiones salen de la base de datos. El carrusel y la galería son los
+  componentes de Bootstrap: no hace falta JavaScript propio salvo para elegir la foto.
+{% endcomment %}
 {% block content %}
 
-<section class="heroe-marca p-4 p-md-5 mb-5">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <span class="etiqueta-blanca mb-3"><i class="bi bi-geo-alt"></i>Mudanzas y fletes en Salta</span>
-            <h1 class="display-6 fw-bold mb-3">Pedí tu mudanza sin llamar ni esperar</h1>
-            <p class="fs-5 mb-4 texto-suave">
-                Elegí el día y la hora, contanos qué hay que llevar y la empresa te confirma el pedido.
-                Después seguís el estado desde tu cuenta.
-            </p>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{% url 'registro_cliente' %}" class="btn btn-blanco fw-bold px-4">
-                    Pedí tu mudanza <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-                <a href="{% url 'login' %}" class="btn btn-outline-light fw-bold px-4">
-                    <i class="bi bi-person me-1"></i> Ya tengo cuenta
-                </a>
-            </div>
-            <p class="small mt-3 mb-0 texto-suave">Para pedir una mudanza necesitás una cuenta: se crea en un minuto.</p>
-        </div>
-        <div class="col-lg-4 text-center d-none d-lg-block">
-            <div class="bg-white rounded-4 d-inline-flex align-items-center justify-content-center shadow p-4">
-                <img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta" style="width: 100%; max-width: 260px; height: auto;">
-            </div>
-        </div>
+{# ---------- portada: las tres fotos de la empresa, una tras otra ---------- #}
+<div id="portada" class="carousel slide carousel-fade portada mb-5" data-bs-ride="carousel" data-bs-interval="6000" aria-label="Portada">
+    <div class="carousel-indicators">
+        {% for d in diapositivas %}
+        <button type="button" data-bs-target="#portada" data-bs-slide-to="{{ forloop.counter0 }}"{% if forloop.first %} class="active" aria-current="true"{% endif %} aria-label="{{ d.titulo }}"></button>
+        {% endfor %}
     </div>
-</section>
-
-<section class="mb-5" aria-labelledby="como-funciona">
-    <h2 id="como-funciona" class="h4 fw-bold mb-3">Cómo funciona</h2>
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card-panel p-4 h-100">
-                <span class="icono-marca mb-3 fw-bold">1</span>
-                <h3 class="h6 fw-bold">Creá tu cuenta</h3>
-                <p class="text-muted small mb-0">Con tu DNI, nombre, correo y una clave. Tu usuario se genera solo.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card-panel p-4 h-100">
-                <span class="icono-marca mb-3 fw-bold">2</span>
-                <h3 class="h6 fw-bold">Cargá el pedido</h3>
-                <p class="text-muted small mb-0">Fecha, hora, desde dónde y hasta dónde, el servicio y lo que hay que llevar.
-                    Podés avisar si algo es frágil o se desarma.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card-panel p-4 h-100">
-                <span class="icono-marca mb-3 fw-bold">3</span>
-                <h3 class="h6 fw-bold">Seguí el estado</h3>
-                <p class="text-muted small mb-0">Tu pedido pasa de Pendiente a Confirmado cuando la empresa lo acepta,
-                    y a Finalizado cuando se hace la mudanza. Tenés el comprobante en todo momento.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-{% if servicios %}
-<section class="mb-5" aria-labelledby="servicios">
-    <h2 id="servicios" class="h4 fw-bold mb-1">Servicios</h2>
-    <p class="text-muted mb-3">Elegís uno por pedido y le podés sumar adicionales. El precio es con camión chico: con uno mediano se suma un 25 % y con uno grande, un 50 %.</p>
-    <div class="row g-4">
-        {% for s in servicios %}
-        <div class="col-md-4">
-            <div class="card-panel p-4 h-100 d-flex flex-column">
-                <h3 class="h6 fw-bold mb-1">{{ s.Tipo_servicio }}</h3>
-                <p class="h4 fw-bold text-marca mb-1">${{ s.Precio_base|floatformat:"0g" }}</p>
-                <p class="small text-muted mb-3"><i class="bi bi-clock me-1"></i>Duración estimada: {{ s.Duracion_horas }} horas</p>
-                {% with materiales=s.recursos.all %}
-                {% if materiales %}
-                <p class="text-muted small mb-0">Incluye: {% for r in materiales %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
-                {% endif %}
-                {% endwith %}
+    <div class="carousel-inner">
+        {% for d in diapositivas %}
+        <div class="carousel-item{% if forloop.first %} active{% endif %}">
+            <div class="portada-foto" style="background-image: url('{% static d.imagen %}')" role="img" aria-label="{{ d.titulo }}"></div>
+            <div class="portada-texto">
+                <span class="etiqueta-blanca mb-3"><i class="bi bi-truck"></i>{{ empresa.eslogan }} · {{ empresa.anios }} años</span>
+                <h1 class="display-5 fw-bold mb-3">{{ d.titulo }}</h1>
+                <p class="fs-5 mb-4">{{ d.texto }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'registro_cliente' %}" class="btn btn-primary btn-lg"><i class="bi bi-box-seam me-2"></i>Pedir mi mudanza</a>
+                    <a href="https://wa.me/{{ empresa.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-lg"><i class="bi bi-whatsapp me-2"></i>Consultanos</a>
+                </div>
             </div>
         </div>
         {% endfor %}
     </div>
-    {% if adicionales %}
-    <h3 class="h6 fw-bold mt-4 mb-2">Y si querés, le sumás</h3>
-    <ul class="list-unstyled row g-2 mb-0">
-        {% for s in adicionales %}
-        <li class="col-md-4"><i class="bi bi-plus-circle text-marca me-1"></i>{{ s.Tipo_servicio }}{% if s.Precio_base > 0 %} <span class="text-muted">· ${{ s.Precio_base|floatformat:"0g" }}</span>{% endif %}</li>
+    <button class="carousel-control-prev" type="button" data-bs-target="#portada" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Anterior</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#portada" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Siguiente</span>
+    </button>
+</div>
+
+{# ---------- servicios ---------- #}
+<section id="servicios" class="seccion-inicio">
+    <div class="text-center mb-4">
+        <h2 class="h3 fw-bold mb-1">Servicios</h2>
+        <p class="text-muted mb-0">{{ empresa.bajada }}</p>
+    </div>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for s in especialidades %}
+        <div class="col">
+            <article class="card-panel h-100 overflow-hidden">
+                <img src="{% static s.imagen %}" alt="{{ s.titulo }}" class="foto-servicio" loading="lazy">
+                <div class="p-4">
+                    <h3 class="h5 fw-bold">{{ s.titulo }}</h3>
+                    <p class="text-muted mb-3">{{ s.texto }}</p>
+                    <a href="{% url 'registro_cliente' %}" class="btn btn-sm btn-outline-primary">Solicitar presupuesto</a>
+                </div>
+            </article>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
+    {% if pedibles %}
+    <div class="text-center mt-4">
+        <p class="fw-semibold mb-2">Lo que podés pedir online</p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            {% for s in pedibles %}
+            <span class="chip-adicional"><i class="bi {% if s.Categoria == 'Principal' %}bi-truck{% else %}bi-plus-circle{% endif %} me-1 text-marca"></i>{{ s.Tipo_servicio }}</span>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
+</section>
+
+{# ---------- por qué elegirnos ---------- #}
+<section id="por-que" class="seccion-inicio">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-5">
+            <img src="{% static 'empresa/metodologia.jpg' %}" alt="El equipo de Mudanzas Salta trabajando" class="img-fluid foto-redondeada" loading="lazy">
+        </div>
+        <div class="col-lg-7">
+            <h2 class="h3 fw-bold mb-3">¿Por qué elegir Mudanzas Salta?</h2>
+            <div class="row row-cols-1 row-cols-sm-2 g-3">
+                {% for r in razones %}
+                <div class="col">
+                    <div class="d-flex gap-3">
+                        <span class="icono-marca flex-shrink-0"><i class="bi {{ r.icono }} fs-5"></i></span>
+                        <div><h3 class="h6 fw-bold mb-1">{{ r.titulo }}</h3><p class="small text-muted mb-0">{{ r.texto }}</p></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <p class="fw-semibold mt-4 mb-2">Destinos frecuentes</p>
+            <div class="d-flex flex-wrap gap-2">
+                {% for d in empresa.destinos %}<span class="chip-adicional"><i class="bi bi-geo-alt me-1 text-marca"></i>{{ d }}</span>{% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ---------- formas de pago ---------- #}
+<section class="seccion-inicio text-center">
+    <img src="{% static 'empresa/formas-de-pago.jpg' %}" alt="Aceptamos todas las tarjetas, Mercado Pago, hasta 12 cuotas, Pago Fácil, Link, Rapipago y Provincia Net"
+         class="img-fluid" style="max-width: 420px" loading="lazy">
+    <p class="fw-semibold mt-2 mb-0">{{ empresa.pagos }}</p>
+</section>
+
+{# ---------- cómo funciona el sistema ---------- #}
+<section id="como-funciona" class="seccion-inicio">
+    <div class="text-center mb-4">
+        <h2 class="h3 fw-bold mb-1">Pedí tu mudanza online</h2>
+        <p class="text-muted mb-0">Sin llamar ni esperar: cargás el pedido y seguís su estado.</p>
+    </div>
+    <ol class="row row-cols-1 row-cols-md-3 g-3 list-unstyled">
+        {% for p in pasos %}
+        <li class="col">
+            <div class="card-panel p-4 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="numero-paso">{{ forloop.counter }}</span>
+                    <i class="bi {{ p.icono }} fs-3 text-marca"></i>
+                </div>
+                <h3 class="h5 fw-bold">{{ p.titulo }}</h3>
+                <p class="text-muted mb-0">{{ p.texto }}</p>
+            </div>
+        </li>
+        {% endfor %}
+    </ol>
+</section>
+
+{# ---------- camiones (de la base de datos) ---------- #}
+{% if camiones %}
+<section id="camiones" class="seccion-inicio">
+    <div class="text-center mb-4">
+        <h2 class="h3 fw-bold mb-1">Nuestros camiones</h2>
+        <p class="text-muted mb-0">Elegís el tamaño según lo que tengas que llevar.</p>
+    </div>
+    <div class="row row-cols-1 row-cols-md-3 g-3">
+        {% for c in camiones %}
+        <div class="col">
+            <div class="card-panel p-4 h-100 text-center">
+                <i class="bi bi-truck text-marca camion-{{ c.tamanio }}"></i>
+                <h3 class="h5 fw-bold mt-2">{{ c.tipo }}</h3>
+                <p class="mb-0">Hasta {{ c.capacidad_kg|floatformat:"0g" }} kg · {{ c.capacidad_m3|floatformat:"-2" }} m³</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </section>
 {% endif %}
 
-<section class="card-panel p-4 mb-2">
-    <div class="row g-3 align-items-center">
-        <div class="col-md">
-            <p class="mb-1"><i class="bi bi-moon-stars text-marca me-2"></i><strong>A cualquier hora.</strong>
-                En el centro de la ciudad conviene mudarse de madrugada, y lo podés pedir así.</p>
-            <p class="mb-0 text-muted small">¿Trabajás en la empresa? Entrá con tu usuario desde «Ingresar».</p>
+{# ---------- reseñas ---------- #}
+<section class="banda-resenas seccion-inicio" style="background-image: url('{% static 'empresa/resenas.jpg' %}')">
+    <div class="banda-resenas-texto text-center p-4 p-md-5">
+        <h2 class="h2 fw-bold mb-2">La experiencia de nuestros clientes habla por nosotros</h2>
+        <p class="mb-4">Cientos de personas ya confiaron en nuestro servicio. Leé sus opiniones reales y descubrí por qué somos la mejor opción para tu mudanza.</p>
+        <a href="{{ empresa.resenas }}" target="_blank" rel="noopener noreferrer" class="btn btn-light btn-lg"><i class="bi bi-google me-2"></i>Ver reseñas en Google</a>
+    </div>
+</section>
+
+{# ---------- nuestros trabajos (al tocar una foto se abre en grande) ---------- #}
+<section id="trabajos" class="seccion-inicio">
+    <div class="text-center mb-4">
+        <h2 class="h3 fw-bold mb-1">Nuestros trabajos</h2>
+        <p class="text-muted mb-0">Algunos de los trabajos que realizamos a diario.</p>
+    </div>
+    <div class="row row-cols-2 row-cols-md-3 g-2 g-md-3">
+        {% for t in trabajos %}
+        <div class="col">
+            <button type="button" class="foto-trabajo" data-bs-toggle="modal" data-bs-target="#visor" data-foto="{{ forloop.counter0 }}"
+                    aria-label="Ver el trabajo {{ forloop.counter }} en grande">
+                <img src="{% static t %}" alt="Trabajo {{ forloop.counter }} de Mudanzas Salta" loading="lazy">
+            </button>
         </div>
-        <div class="col-md-auto">
-            <a href="{% url 'registro_cliente' %}" class="btn btn-success fw-bold px-4">Crear mi cuenta</a>
+        {% endfor %}
+    </div>
+</section>
+
+{# ---------- llamado a la acción ---------- #}
+<section class="heroe-marca p-4 p-md-5 text-center mb-5">
+    <h2 class="h2 fw-bold mb-2">¿Te mudás? Empezá ahora</h2>
+    <p class="texto-suave mb-4">Cargá tu pedido en pocos minutos y la empresa te lo confirma.</p>
+    <a href="{% url 'registro_cliente' %}" class="btn btn-light btn-lg">Crear mi cuenta gratis</a>
+    <p class="small texto-suave mt-3 mb-0">¿Ya tenés cuenta? <a href="{% url 'login' %}" class="text-white fw-semibold">Ingresá</a></p>
+</section>
+
+{# ---------- contacto con el mapa ---------- #}
+<section id="contacto" class="seccion-inicio">
+    <div class="text-center mb-4">
+        <h2 class="h3 fw-bold mb-1">Contáctenos</h2>
+        <p class="text-muted mb-0">Consultanos lo que necesites y te respondemos de inmediato.</p>
+    </div>
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <div class="card-panel p-4 h-100">
+                <p class="mb-2"><i class="bi bi-whatsapp me-2 text-marca"></i><a href="https://wa.me/{{ empresa.whatsapp }}" target="_blank" rel="noopener noreferrer">{{ empresa.telefono }}</a></p>
+                <p class="mb-2"><i class="bi bi-envelope me-2 text-marca"></i><a href="mailto:{{ empresa.correo }}">{{ empresa.correo }}</a></p>
+                <p class="mb-2"><i class="bi bi-instagram me-2 text-marca"></i><a href="https://www.instagram.com/{{ empresa.instagram }}" target="_blank" rel="noopener noreferrer">@{{ empresa.instagram }}</a></p>
+                <p class="mb-2"><i class="bi bi-facebook me-2 text-marca"></i><a href="https://www.facebook.com/{{ empresa.facebook }}" target="_blank" rel="noopener noreferrer">{{ empresa.facebook }}</a></p>
+                <p class="mb-3"><i class="bi bi-geo-alt me-2 text-marca"></i>{{ empresa.direccion }}</p>
+                <a href="https://wa.me/{{ empresa.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp mb-3"><i class="bi bi-whatsapp me-2"></i>Escribinos por WhatsApp</a>
+                <p class="small text-muted mb-0"><b>Dónde trabajamos:</b> {{ empresa.zona }} Destinos frecuentes: {{ empresa.destinos|join:", " }}.</p>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <iframe title="Mapa: {{ empresa.direccion }}" src="{{ empresa.mapa }}" class="mapa-empresa" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
         </div>
     </div>
 </section>
 
+{# la foto de un trabajo en grande, con anterior / siguiente #}
+<div class="modal fade" id="visor" tabindex="-1" aria-label="Foto de un trabajo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border-0">
+            <div class="position-relative">
+                <img id="visorFoto" src="" alt="" class="w-100 rounded">
+                <button type="button" class="btn btn-light btn-sm visor-boton visor-anterior" data-paso="-1" aria-label="Foto anterior"><i class="bi bi-chevron-left"></i></button>
+                <button type="button" class="btn btn-light btn-sm visor-boton visor-siguiente" data-paso="1" aria-label="Foto siguiente"><i class="bi bi-chevron-right"></i></button>
+                <button type="button" class="btn-close btn-close-white visor-cerrar" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# pie con los datos de la empresa #}
+{% block pie %}
+<footer class="pie-empresa">
+    <div class="container py-4">
+        <div class="row g-4">
+            <div class="col-md-5">
+                <p class="fw-bold fs-5 mb-1">{{ empresa.nombre }}</p>
+                <p class="small mb-0">{{ empresa.eslogan }}. {{ empresa.anios }} años conectando destinos con seguridad y profesionalismo.</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="fw-semibold mb-2">La empresa</p>
+                <ul class="list-unstyled small mb-0">
+                    <li><a href="#servicios">Servicios</a></li>
+                    <li><a href="#camiones">Camiones</a></li>
+                    <li><a href="#como-funciona">Cómo funciona</a></li>
+                    <li><a href="#contacto">Contacto</a></li>
+                </ul>
+            </div>
+            <div class="col-6 col-md-4">
+                <p class="fw-semibold mb-2">Contacto</p>
+                <ul class="list-unstyled small mb-0">
+                    <li><a href="https://wa.me/{{ empresa.whatsapp }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp me-1"></i>{{ empresa.telefono }}</a></li>
+                    <li><a href="mailto:{{ empresa.correo }}"><i class="bi bi-envelope me-1"></i>{{ empresa.correo }}</a></li>
+                    <li><a href="https://www.instagram.com/{{ empresa.instagram }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram me-1"></i>@{{ empresa.instagram }}</a></li>
+                    <li><a href="https://www.facebook.com/{{ empresa.facebook }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook me-1"></i>{{ empresa.facebook }}</a></li>
+                </ul>
+            </div>
+        </div>
+        <p class="small border-top pt-3 mt-4 mb-0">&copy; 2026 {{ empresa.nombre }} - Grupo 5. Todos los derechos reservados.</p>
+    </div>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+{# las rutas de las fotos de «Nuestros trabajos», para pasar de una a otra en el visor #}
+{{ fotos_trabajos|json_script:"fotos-trabajos" }}
+<script>
+(function () {
+  const fotos = JSON.parse(document.getElementById('fotos-trabajos').textContent);
+  const visor = document.getElementById('visor');
+  const img = document.getElementById('visorFoto');
+  let actual = 0;
+  function mostrar(n) {
+    actual = (n + fotos.length) % fotos.length;
+    img.src = fotos[actual];
+    img.alt = 'Trabajo ' + (actual + 1) + ' de Mudanzas Salta';
+  }
+  // el botón de la foto que se tocó dice cuál abrir
+  visor.addEventListener('show.bs.modal', (e) => mostrar(Number(e.relatedTarget.dataset.foto)));
+  visor.querySelectorAll('[data-paso]').forEach((b) => b.addEventListener('click', () => mostrar(actual + Number(b.dataset.paso))));
+  visor.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') mostrar(actual - 1);
+    if (e.key === 'ArrowRight') mostrar(actual + 1);
+  });
+})();
+</script>
 {% endblock %}
