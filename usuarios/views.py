@@ -11,7 +11,7 @@ from .permisos import (  # noqa: F401
     tiene_permiso,
 )
 from . import operaciones
-from .utils import generate_username, validate_strong_password, generate_temp_password
+from .utils import generate_username
 
 # ---- LOGIN Y AUTENTICACIÓN ----
 def login_view(request):
@@ -92,40 +92,17 @@ def logout_view(request):
 # ---- RECUPERACIÓN / OLVIDÉ MI CONTRASEÑA ----
 @require_POST
 def olvide_clave_view(request):
-    ident = request.POST.get('identificador', '').strip()
-    deseada = request.POST.get('clave_deseada', '').strip()
-
-    usuario = None
-    if ident.isdigit():
-        usuario = Usuario.objects.filter(DNI=int(ident)).first()
-    if not usuario:
-        usuario = Usuario.objects.filter(NombreUsuario=ident.lower()).first()
-    if not usuario:
-        usuario = Usuario.objects.filter(Correo=ident.lower()).first()
-
-    if not usuario:
-        return JsonResponse({'ok': False, 'error': 'No se encontró ningún usuario con ese DNI, Usuario o Correo.'}, status=404)
-
-    if not usuario.Activo:
-        return JsonResponse({'ok': False, 'error': 'El usuario está dado de baja.'}, status=403)
-
-    if deseada:
-        valida, msg = validate_strong_password(deseada)
-        if not valida:
-            return JsonResponse({'ok': False, 'error': msg}, status=400)
-        nueva_clave = deseada
-    else:
-        nueva_clave = generate_temp_password(10)
-
-    usuario.set_clave(nueva_clave)
-    usuario.DebeCambiarClave = True
-    usuario.save()
-
-    return JsonResponse({
-        'ok': True,
-        'usuario': usuario.NombreUsuario,
-        'clave_provisoria': nueva_clave
-    })
+    """Solo clientes: con el DNI y el correo de la cuenta (los dos) eligen una clave nueva.
+    No se genera ni se muestra ninguna clave, y al personal se la restablece el administrador.
+    Antes alcanzaba con el DNI de cualquiera (incluido el administrador) y la clave nueva se
+    mostraba en pantalla. La regla está en operaciones.py y la usa también la API de React."""
+    try:
+        usuario = operaciones.recuperar_clave_cliente(
+            request.POST.get('dni', '').strip(), request.POST.get('correo', ''),
+            request.POST.get('nueva_clave', ''), request.POST.get('confirmar_clave', ''))
+    except operaciones.ErrorUsuario as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=e.status)
+    return JsonResponse({'ok': True, 'usuario': usuario.NombreUsuario})
 
 # ---- DASHBOARD DE ADMINISTRADOR (CRUD USUARIOS; LA FLOTA ESTÁ EN /vehiculos/) ----
 def admin_dashboard(request):

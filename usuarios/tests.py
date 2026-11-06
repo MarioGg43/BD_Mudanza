@@ -306,16 +306,36 @@ class PermisosTest(BaseHito2):
 
 
 class OlvideClaveTest(BaseHito2):
-    def test_genera_clave_provisoria(self):
-        r = self.client.post('/olvide-clave/', {'identificador': 'fernandezl'}).json()
-        u = Usuario.objects.get(DNI=CHOFER)
-        self.assertTrue(u.verificar_clave(r['clave_provisoria']))
-        self.assertTrue(u.DebeCambiarClave)
+    """«Olvidé mi clave»: solo clientes, con el DNI y el correo de la cuenta; no se muestra ninguna clave."""
+    def datos(self, **cambios):
+        cliente = Usuario.objects.get(idRol__nom_rol='Cliente', DNI=29876543)
+        d = {'dni': str(cliente.DNI), 'correo': cliente.Correo, 'nueva_clave': 'Nueva.456', 'confirmar_clave': 'Nueva.456'}
+        d.update(cambios)
+        return d
 
-    def test_usuario_inexistente_o_de_baja(self):
-        self.assertEqual(self.client.post('/olvide-clave/', {'identificador': 'nadie'}).status_code, 404)
-        Usuario.objects.filter(DNI=CHOFER).update(Activo=False)
-        self.assertEqual(self.client.post('/olvide-clave/', {'identificador': 'fernandezl'}).status_code, 403)
+    def test_el_cliente_elige_su_clave_nueva(self):
+        r = self.client.post('/olvide-clave/', self.datos()).json()
+        self.assertTrue(r['ok'])
+        self.assertNotIn('clave_provisoria', r)  # no se muestra ninguna clave
+        u = Usuario.objects.get(DNI=29876543)
+        self.assertTrue(u.verificar_clave('Nueva.456'))
+        self.assertFalse(u.DebeCambiarClave)
+
+    def test_hacen_falta_el_dni_y_el_correo(self):
+        r = self.client.post('/olvide-clave/', self.datos(correo='otro@ejemplo.com'))
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(Usuario.objects.get(DNI=29876543).verificar_clave('Nueva.456'))
+
+    def test_no_sirve_para_el_personal(self):
+        # antes, con el DNI del administrador se le cambiaba la clave a él
+        admin = Usuario.objects.get(DNI=ADMIN)
+        r = self.client.post('/olvide-clave/', self.datos(dni=str(ADMIN), correo=admin.Correo))
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(Usuario.objects.get(DNI=ADMIN).verificar_clave('Nueva.456'))
+
+    def test_de_baja(self):
+        Usuario.objects.filter(DNI=29876543).update(Activo=False)
+        self.assertEqual(self.client.post('/olvide-clave/', self.datos()).status_code, 403)
 
 
 class DatosHito3Test(BaseHito2):

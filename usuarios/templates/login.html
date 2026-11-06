@@ -117,18 +117,27 @@
     </div>
 
     <form onsubmit="solicitarRecuperacionClave(event)" class="p-6 space-y-4 text-xs sm:text-sm">
-      <p class="texto-suave">Ingrese su <strong class="texto-tinta">DNI</strong>, <strong class="texto-tinta">Usuario</strong> o <strong class="texto-tinta">Correo Electrónico</strong> para generar una nueva clave temporal.</p>
+      <p class="texto-suave">Para clientes: ingresá el <strong class="texto-tinta">DNI</strong> y el <strong class="texto-tinta">correo</strong> de tu cuenta y elegí una clave nueva. Si trabajás en la empresa, pedile al administrador que te restablezca la clave.</p>
 
       <div>
-        <label class="etiqueta block mb-1">Identificador de Usuario *</label>
-        <input type="text" id="olvidoIdentificador" required placeholder="Ej: 35123456 o sarmientoc"
-               class="campo w-full p-2.5">
+        <label for="olvidoDni" class="etiqueta block mb-1">DNI *</label>
+        <input type="text" id="olvidoDni" required inputmode="numeric" autocomplete="username" class="campo w-full p-2.5">
       </div>
 
       <div>
-        <label class="etiqueta block mb-1">Nueva Clave deseada (Opcional - dejar vacío para autogenerar)</label>
-        <input type="password" id="olvidoClaveDeseada" placeholder="Clave temporal"
-               class="campo w-full p-2.5">
+        <label for="olvidoCorreo" class="etiqueta block mb-1">Correo de tu cuenta *</label>
+        <input type="email" id="olvidoCorreo" required autocomplete="email" class="campo w-full p-2.5">
+      </div>
+
+      <div>
+        <label for="olvidoNueva" class="etiqueta block mb-1">Clave nueva *</label>
+        <input type="password" id="olvidoNueva" required autocomplete="new-password" class="campo w-full p-2.5">
+        <p class="text-[11px] texto-suave mt-1">8 o más caracteres, con mayúscula, minúscula, número y un caracter especial.</p>
+      </div>
+
+      <div>
+        <label for="olvidoConfirmar" class="etiqueta block mb-1">Repetí la clave nueva *</label>
+        <input type="password" id="olvidoConfirmar" required autocomplete="new-password" class="campo w-full p-2.5">
       </div>
 
       <div id="olvidoError" class="hidden aviso-error p-2.5 rounded-lg text-xs" role="alert"></div>
@@ -136,7 +145,7 @@
 
       <div class="flex justify-end gap-3 pt-3 linea-t">
         <button type="button" onclick="cerrarModalOlvido()" class="btn-secundario px-4 py-2 rounded-xl">Cerrar</button>
-        <button type="submit" id="btnSubmitOlvido" class="btn-primary px-5 py-2 rounded-xl">Restablecer Clave</button>
+        <button type="submit" id="btnSubmitOlvido" class="btn-primary px-5 py-2 rounded-xl">Guardar clave nueva</button>
       </div>
     </form>
   </div>
@@ -144,8 +153,7 @@
 
 <script>
 function abrirModalOlvido() {
-  document.getElementById('olvidoIdentificador').value = '';
-  document.getElementById('olvidoClaveDeseada').value = '';
+  ['olvidoDni', 'olvidoCorreo', 'olvidoNueva', 'olvidoConfirmar'].forEach((id) => { document.getElementById(id).value = ''; });
   document.getElementById('olvidoError').classList.add('hidden');
   document.getElementById('olvidoExito').classList.add('hidden');
   document.getElementById('btnSubmitOlvido').classList.remove('hidden');
@@ -158,16 +166,16 @@ function cerrarModalOlvido() {
 
 async function solicitarRecuperacionClave(e) {
   e.preventDefault();
-  const ident = document.getElementById('olvidoIdentificador').value.trim();
-  const deseada = document.getElementById('olvidoClaveDeseada').value.trim();
   const errDiv = document.getElementById('olvidoError');
   const exitoDiv = document.getElementById('olvidoExito');
   errDiv.classList.add('hidden');
   exitoDiv.classList.add('hidden');
 
   const formData = new FormData();
-  formData.append('identificador', ident);
-  formData.append('clave_deseada', deseada);
+  formData.append('dni', document.getElementById('olvidoDni').value.trim());
+  formData.append('correo', document.getElementById('olvidoCorreo').value.trim());
+  formData.append('nueva_clave', document.getElementById('olvidoNueva').value);
+  formData.append('confirmar_clave', document.getElementById('olvidoConfirmar').value);
   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
   try {
@@ -183,9 +191,8 @@ async function solicitarRecuperacionClave(e) {
     }
 
     exitoDiv.innerHTML = `
-      <p class="font-bold mb-1"><i class="fa-solid fa-circle-check mr-1"></i> Clave restablecida exitosamente</p>
-      <p>Su nueva clave provisoria es: <strong class="font-mono text-white text-sm">${data.clave_provisoria}</strong></p>
-      <p class="text-[11px] text-gray-300 mt-1">Úsela ahora para ingresar. El sistema le solicitará cambiarla por una definitiva.</p>
+      <p class="font-bold mb-1"><i class="fa-solid fa-circle-check mr-1"></i> Listo, guardamos tu clave nueva</p>
+      <p>Ya podés cerrar esta ventana e ingresar con tu DNI y la clave que elegiste.</p>
     `;
     exitoDiv.classList.remove('hidden');
     document.getElementById('btnSubmitOlvido').classList.add('hidden');
