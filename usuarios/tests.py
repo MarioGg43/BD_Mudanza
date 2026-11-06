@@ -91,9 +91,9 @@ class UtilidadesTest(TestCase):
 
 
 class LoginTest(BaseHito2):
-    def test_login_admin_va_al_panel(self):
+    def test_login_admin_va_a_los_pedidos(self):
         r = self.client.post('/login/', {'usuario': 'sarmientoc', 'clave': 'Admin123!'})
-        self.assertRedirects(r, '/panel/')
+        self.assertRedirects(r, '/pedidos/')
         self.assertIsNotNone(Usuario.objects.get(DNI=ADMIN).FechaUltimoAcceso)
 
     def test_login_con_dni_o_correo(self):
@@ -373,9 +373,12 @@ class DatosHito3Test(BaseHito2):
 
 
 class PortalTest(BaseHito2):
-    def test_el_portal_muestra_el_nombre_de_los_permisos(self):
+    def test_el_portal_muestra_los_permisos(self):
+        # con su descripción legible; el código queda al pasar el mouse
         self.entrar(CHOFER)
-        self.assertContains(self.client.get('/portal/'), 'MUDANZAS_OPERAR')
+        r = self.client.get('/portal/')
+        self.assertContains(r, 'ver el portal del personal y sus vehículos asignados')
+        self.assertContains(r, 'title="Permiso MUDANZAS_OPERAR"')
 
 
 class PersonalMuestraTest(TestCase):

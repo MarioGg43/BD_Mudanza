@@ -17,7 +17,19 @@
                 <td class="fw-semibold">{{ rol.nom_rol }}{% if rol.nom_rol in del_sistema %} <span class="badge bg-secondary">del sistema</span>{% endif %}</td>
                 <td class="small">{{ rol.desc_rol|default:"—" }}</td>
                 <td class="text-center">{{ rol.cantidad }}</td>
-                <td>{% for p in rol.permisos.all %}<span class="badge bg-success-subtle text-success-emphasis border me-1 mb-1" title="{{ p.desc_permiso }}">{{ p.nom_permiso }}</span>{% empty %}<span class="text-muted small">Sin permisos</span>{% endfor %}</td>
+                <td class="small">
+                    {# lo que puede hacer, en palabras; el código del permiso aparece al pasar el mouse #}
+                    {% with permisos=rol.permisos.all %}
+                    {% if permisos|length > 4 %}
+                    <details>
+                        <summary class="fw-semibold">{{ permisos|length }} permisos</summary>
+                        <ul class="mb-0 mt-1 ps-3">{% for p in permisos %}<li title="{{ p.nom_permiso }}">{{ p.desc_permiso|default:p.nom_permiso }}</li>{% endfor %}</ul>
+                    </details>
+                    {% else %}
+                    <ul class="mb-0 ps-3">{% for p in permisos %}<li title="{{ p.nom_permiso }}">{{ p.desc_permiso|default:p.nom_permiso }}</li>{% empty %}<span class="text-muted">Sin permisos</span>{% endfor %}</ul>
+                    {% endif %}
+                    {% endwith %}
+                </td>
                 <td class="text-end text-nowrap">
                     <a href="{% url 'roles_editar' rol.id_rol %}" class="btn btn-sm btn-warning">Editar</a>
                     {% if rol.cantidad == 0 and rol.nom_rol not in del_sistema %}

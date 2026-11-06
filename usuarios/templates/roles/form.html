@@ -25,7 +25,7 @@
         {% for codigo, descripcion, marcado in items %}
         <div class="form-check">
             <input class="form-check-input" type="checkbox" name="permisos" value="{{ codigo }}" id="p_{{ codigo }}"{% if marcado %} checked{% endif %}>
-            <label class="form-check-label" for="p_{{ codigo }}"><code>{{ codigo }}</code> — {{ descripcion }}</label>
+            <label class="form-check-label" for="p_{{ codigo }}">{{ descripcion }} <small class="text-muted">({{ codigo }})</small></label>
         </div>
         {% endfor %}
         {% endfor %}

@@ -51,15 +51,16 @@ class RolAMedidaTest(BaseAcceso):
         p = Usuario.objects.get(DNI=CLIENTE).pedidos.first()
         self.assertEqual(self.client.get(f'/pedidos/{p.pk}/anular/').status_code, 403)
 
-    def test_login_lo_lleva_al_panel(self):
+    def test_login_lo_lleva_a_los_pedidos(self):
+        # gestiona pedidos: empieza por los pedidos aunque también vea el panel de usuarios
         self.client.get('/logout/')
         r = self.client.post('/login/', {'usuario': 'recepcion', 'clave': 'Clave123!'})
-        self.assertRedirects(r, '/panel/')
+        self.assertRedirects(r, '/pedidos/')
 
 
 class PantallaInicioTest(BaseAcceso):
     def test_cada_rol_inicial_llega_a_su_pantalla(self):
-        for dni, destino in ((ADMIN, '/panel/'), (CLIENTE, '/pedidos/'), (CHOFER, '/portal/'),
+        for dni, destino in ((ADMIN, '/pedidos/'), (CLIENTE, '/pedidos/'), (CHOFER, '/portal/'),
                              (AYUDANTE, '/portal/')):
             self.entrar(dni)
             self.assertRedirects(self.client.get('/'), destino, msg_prefix=str(dni))

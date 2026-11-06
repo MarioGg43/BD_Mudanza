@@ -26,7 +26,10 @@ class RolesTest(TestCase):
     def test_lista_con_permisos_y_usuarios(self):
         r = self.client.get('/roles/')
         self.assertContains(r, 'Administrador')
-        self.assertContains(r, 'ROL_GESTIONAR')
+        self.assertContains(r, 'title="ROL_GESTIONAR"')        # el código, al pasar el mouse
+        self.assertContains(r, 'Ver, crear y editar roles y sus permisos')  # lo que se lee
+        self.assertContains(r, '16 permisos')                     # el administrador (todos menos registrar pedidos), plegado
+        self.assertContains(r, 'Registrar pedidos de mudanza')    # el cliente, a la vista
         self.assertContains(r, 'Nuevo rol')
 
     def test_crear_rol_con_permisos(self):

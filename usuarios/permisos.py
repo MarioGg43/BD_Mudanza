@@ -111,6 +111,9 @@ def requiere_permiso_api(codigo):
 def pantalla_inicio(usuario):
     """La primera pantalla que le corresponde según sus permisos."""
     p = permisos_de(usuario)
+    # quien gestiona pedidos empieza por ahí: es lo que se usa todos los días
+    if 'PED_GESTIONAR' in p and 'PED_CONSULTAR' in p:
+        return redirect('pedidos_lista')
     if 'USR_CONSULTAR' in p:
         return redirect('admin_dashboard')
     if 'PED_CONSULTAR' in p:
