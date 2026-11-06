@@ -45,6 +45,9 @@ class FiltroPedidosForm(forms.Form):
         if not ve_todos:
             del self.fields['cliente']
             del self.fields['vehiculo']
+            # los avisos (atrasadas, vencidos, para finalizar...) son del trabajo de la empresa:
+            # al cliente solo se le ofrecen los cuatro estados del pedido
+            self.fields['estado'].choices = [('', 'Todos')] + Pedido.ESTADOS
         con_bootstrap(self)
 
     def clean(self):

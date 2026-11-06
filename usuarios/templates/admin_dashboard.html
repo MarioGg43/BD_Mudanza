@@ -2,39 +2,13 @@
 {% block title %}Panel Administrador - Mudanzas y Fletes Salta{% endblock %}
 
 {% block content %}
-<!-- HEADER -->
-<header class="encabezado-marca px-6 py-4 flex flex-wrap justify-between items-center">
-  <div class="flex items-center space-x-3">
-    <span class="logo-pastilla"><img src="/static/img/logo.png" alt="Logo" class="object-contain"></span>
-    <div>
-      <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
-        Mudanzas y Fletes Salta
-      </h1>
-      <p class="text-xs texto-blanco-suave">Panel de Administración General de Usuarios y Seguridad</p>
-    </div>
-  </div>
+{% include '_cabecera.html' %}
 
-  <div class="flex flex-wrap items-center gap-3 mt-3 sm:mt-0">
-    <div class="menu-marca flex flex-wrap items-center gap-1 text-xs">
-      {% if 'VEH_GESTIONAR' in permisos %}<a href="/vehiculos/" class="text-xs font-semibold"><i class="fa-solid fa-truck-moving mr-1"></i> Flota de vehículos</a>{% endif %}{% if 'PED_CONSULTAR' in permisos %}<a href="/pedidos/" class="text-xs font-semibold"><i class="fa-solid fa-clipboard-list mr-1"></i> Pedidos</a>{% endif %}{% if 'PED_REGISTRAR' in permisos %}<a href="/pedidos/nuevo/" class="text-xs font-semibold"><i class="fa-solid fa-box-open mr-1"></i> Pedir mudanza</a>{% endif %}{% if 'SRV_GESTIONAR' in permisos %}<a href="/servicios/" class="text-xs font-semibold"><i class="fa-solid fa-tags mr-1"></i> Servicios</a>{% endif %}{% if 'ROL_GESTIONAR' in permisos %}<a href="/roles/" class="text-xs font-semibold"><i class="fa-solid fa-user-shield mr-1"></i> Roles</a>{% endif %}{% if 'AUD_CONSULTAR' in permisos %}<a href="/auditoria/" class="text-xs font-semibold"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Auditoría</a>{% endif %}{% if 'MUDANZAS_OPERAR' in permisos %}<a href="/portal/" class="text-xs font-semibold"><i class="fa-solid fa-id-badge mr-1"></i> Portal</a>{% endif %}
-    </div>
-    <div class="chip-degrade flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs">
-      <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-      <span class="font-semibold">Sesión: {{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }} ({{ usuario_actual.idRol.nom_rol }})</span>
-      <a href="{% url 'logout' %}" class="enlace-degrade ml-2 text-xs rounded" title="Cerrar sesión">Salir</a>
-    </div>
 
-    {% if 'USR_CREAR' in permisos %}
-    <button id="btnAltaUsuarioNav" onclick="abrirModalAlta()" class="btn-sobre-degrade px-4 py-2 rounded-xl text-sm flex items-center gap-2">
-      <i class="fa-solid fa-user-plus"></i>
-      <span>Alta de Usuario</span>
-    </button>
-    {% endif %}
-  </div>
-</header>
-
+<!-- CONTENIDO PRINCIPAL -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 space-y-6">
 {% if recordatorio_finalizar %}
-<div class="aviso-atencion mx-6 mt-4 p-4 rounded-xl" role="region" aria-label="Mudanzas para finalizar">
+<div class="aviso-atencion p-4 rounded-xl" role="region" aria-label="Mudanzas para finalizar">
   <p class="font-bold text-sm mb-2"><i class="fa-solid fa-bell mr-1"></i>{% if recordatorio_finalizar|length == 1 %}Hay 1 mudanza que ya tendría que haber terminado.{% else %}Hay {{ recordatorio_finalizar|length }} mudanzas que ya tendrían que haber terminado.{% endif %} Si el equipo terminó, tocá «Finalizar»:</p>
   <div class="space-y-2">
     {% for r in recordatorio_finalizar %}
@@ -52,9 +26,6 @@
   </div>
 </div>
 {% endif %}
-
-<!-- CONTENIDO PRINCIPAL -->
-<main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
   <!-- PANEL: USUARIOS Y SEGURIDAD (HITO 2) -->
   <div id="panelUsuarios" class="space-y-6">
@@ -81,6 +52,13 @@
           <input type="text" id="txtBuscar" onkeyup="filtrarTabla()" placeholder="Buscar DNI, apellido, usuario..."
                  class="campo pl-8 pr-3 py-1.5 text-xs w-64">
         </div>
+
+        {% if 'USR_CREAR' in permisos %}
+        <button id="btnAltaUsuarioNav" onclick="abrirModalAlta()" class="btn-primary px-4 py-2 rounded-xl text-sm flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Alta de Usuario</span>
+        </button>
+        {% endif %}
       </div>
     </div>
 
@@ -201,6 +179,7 @@
   <!-- FIN PANEL USUARIOS -->
 
 </main>
+{% include '_pie.html' %}
 
 <!-- MODAL: ALTA DE USUARIO -->
 <div id="modalAlta" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">

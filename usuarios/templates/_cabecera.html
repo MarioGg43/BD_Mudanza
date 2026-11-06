@@ -1,0 +1,50 @@
+{% load static %}
+{% comment %}
+  Cabecera única del sistema: la usan las pantallas con Bootstrap (vehiculos/base.html) y las de
+  Tailwind (panel de usuarios y portal del personal). Solo usa clases de marca.css, así se ve igual
+  con cualquiera de los dos. Cada opción aparece si el rol tiene el permiso.
+{% endcomment %}
+<header class="cabecera">
+    <div class="cabecera-interior">
+        <a href="{% url 'inicio' %}" class="cabecera-marca">
+            <span class="logo-pastilla"><img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta"></span>Mudanzas y Fletes Salta
+        </a>
+        <nav class="menu-marca" aria-label="Menú principal">
+            {% with ruta=request.path vista=request.resolver_match.url_name %}
+            {% if 'USR_CONSULTAR' in permisos %}
+            <a href="{% url 'admin_dashboard' %}"{% if vista == 'admin_dashboard' %} class="activo" aria-current="page"{% endif %}>Usuarios</a>
+            {% endif %}
+            {% if 'ROL_GESTIONAR' in permisos %}
+            <a href="{% url 'roles_lista' %}"{% if '/roles/' in ruta %} class="activo" aria-current="page"{% endif %}>Roles</a>
+            {% endif %}
+            {% if 'VEH_GESTIONAR' in permisos %}
+            <a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}>Vehículos</a>
+            {% endif %}
+            {% if 'PED_CONSULTAR' in permisos %}
+            <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta and vista != 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>{% if 'PED_GESTIONAR' in permisos %}Pedidos{% else %}Mis pedidos{% endif %}</a>
+            {% endif %}
+            {% if 'PED_REGISTRAR' in permisos %}
+            <a href="{% url 'pedidos_nuevo' %}"{% if vista == 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>Pedir mudanza</a>
+            {% endif %}
+            {% if 'SRV_GESTIONAR' in permisos %}
+            <a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}>Servicios</a>
+            {% endif %}
+            {% if 'OBJ_GESTIONAR' in permisos %}
+            <a href="{% url 'objetos_lista' %}"{% if '/objetos/' in ruta %} class="activo" aria-current="page"{% endif %}>Objetos</a>
+            {% endif %}
+            {% if 'AUD_CONSULTAR' in permisos %}
+            <a href="{% url 'auditoria_lista' %}"{% if '/auditoria/' in ruta %} class="activo" aria-current="page"{% endif %}>Auditoría</a>
+            {% endif %}
+            {% if 'MUDANZAS_OPERAR' in permisos %}
+            <a href="{% url 'usuario_portal' %}"{% if vista == 'usuario_portal' %} class="activo" aria-current="page"{% endif %}>Portal</a>
+            {% endif %}
+            {% if usuario_sesion %}
+            <a href="{% url 'logout' %}" title="Cerrar la sesión de {{ usuario_sesion.Nombre }} {{ usuario_sesion.Apellido }}">Salir <i class="bi bi-box-arrow-right"></i></a>
+            {% else %}
+            <a href="{% url 'registro_cliente' %}">Crear cuenta</a>
+            <a href="{% url 'login' %}">Ingresar <i class="bi bi-box-arrow-in-right"></i></a>
+            {% endif %}
+            {% endwith %}
+        </nav>
+    </div>
+</header>

@@ -10,54 +10,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/marca.css' %}">
+    <link rel="stylesheet" href="{% static 'css/marca.css' %}?v=2">
 </head>
 <body>
 
-    <header class="navbar-brand-custom text-white py-3 mb-4">
-        <div class="container d-flex flex-wrap gap-3 justify-content-between align-items-center">
-            <a href="{% url 'inicio' %}" class="text-white text-decoration-none fs-5 fw-bold d-flex align-items-center">
-                <span class="logo-pastilla me-2"><img src="{% static 'vehiculos/logo.png' %}" alt="Mudanzas y Fletes Salta"></span>Mudanzas y Fletes Salta
-            </a>
-            <nav class="menu-marca d-flex flex-wrap align-items-center gap-1 small text-uppercase fw-semibold">
-                {% with ruta=request.path vista=request.resolver_match.url_name %}
-                {% if 'USR_CONSULTAR' in permisos %}
-                <a href="{% url 'admin_dashboard' %}">Usuarios</a>
-                {% endif %}
-                {% if 'ROL_GESTIONAR' in permisos %}
-                <a href="{% url 'roles_lista' %}"{% if '/roles/' in ruta %} class="activo" aria-current="page"{% endif %}>Roles</a>
-                {% endif %}
-                {% if 'VEH_GESTIONAR' in permisos %}
-                <a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}>Vehículos</a>
-                {% endif %}
-                {% if 'PED_CONSULTAR' in permisos %}
-                <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta and vista != 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>{% if 'PED_GESTIONAR' in permisos %}Pedidos{% else %}Mis pedidos{% endif %}</a>
-                {% endif %}
-                {% if 'PED_REGISTRAR' in permisos %}
-                <a href="{% url 'pedidos_nuevo' %}"{% if vista == 'pedidos_nuevo' %} class="activo" aria-current="page"{% endif %}>Pedir mudanza</a>
-                {% endif %}
-                {% if 'SRV_GESTIONAR' in permisos %}
-                <a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}>Servicios</a>
-                {% endif %}
-                {% if 'OBJ_GESTIONAR' in permisos %}
-                <a href="{% url 'objetos_lista' %}"{% if '/objetos/' in ruta %} class="activo" aria-current="page"{% endif %}>Objetos</a>
-                {% endif %}
-                {% if 'AUD_CONSULTAR' in permisos %}
-                <a href="{% url 'auditoria_lista' %}"{% if '/auditoria/' in ruta %} class="activo" aria-current="page"{% endif %}>Auditoría</a>
-                {% endif %}
-                {% if 'MUDANZAS_OPERAR' in permisos %}
-                <a href="{% url 'usuario_portal' %}">Portal</a>
-                {% endif %}
-                {% if usuario_sesion %}
-                <a href="{% url 'logout' %}">Salir <i class="bi bi-box-arrow-right ms-1"></i></a>
-                {% else %}
-                <a href="{% url 'registro_cliente' %}">Crear cuenta</a>
-                <a href="{% url 'login' %}">Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i></a>
-                {% endif %}
-                {% endwith %}
-            </nav>
-        </div>
-    </header>
+    {% include '_cabecera.html' %}
 
     <main class="container mb-5">
         {% if messages %}
@@ -94,11 +51,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="pie-marca text-center small py-3">
-        <div class="container">
-            &copy; 2026 Mudanzas y Fletes Salta - Grupo 5.
-        </div>
-    </footer>
+    {% include '_pie.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/ver_clave.js' %}"></script>

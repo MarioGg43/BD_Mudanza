@@ -269,7 +269,34 @@ a:hover { color: var(--rojo-osc); }
 .estado-marca { background: var(--naranja-suave); color: var(--naranja-osc); }
 
 /* ---------- pie ---------- */
-.pie-marca { color: var(--tinta-2); border-top: 1px solid var(--linea); }
+.pie-marca {
+  color: var(--tinta-2); border-top: 1px solid var(--linea);
+  text-align: center; font-size: .875rem; padding: 1rem;
+}
+
+/* ---------- cabecera única (_cabecera.html) ----------
+ * La usan las pantallas con Bootstrap y las de Tailwind, por eso no depende de las
+ * clases de ninguno de los dos: mismo tamaño, mismo menú y mismo ancho en todas. */
+.cabecera {
+  background: var(--grad); color: #fff; padding: 1rem 0; margin-bottom: 1.5rem;
+  box-shadow: 0 10px 24px -16px rgba(120, 30, 0, .7);
+}
+.cabecera-interior {
+  max-width: 1140px; margin: 0 auto; padding: 0 12px;
+  display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center;
+}
+@media (min-width: 1400px) { .cabecera-interior { max-width: 1320px; } }
+.cabecera-marca {
+  color: #fff; text-decoration: none; font-size: 1.25rem; font-weight: 700;
+  display: flex; align-items: center; gap: .5rem;
+}
+.cabecera-marca:hover { color: #fff; }
+.cabecera a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.cabecera .menu-marca {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .25rem;
+  font-size: .875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .02em;
+}
+.cabecera .menu-marca a { display: inline-flex; align-items: center; gap: .3rem; line-height: 1.5; }
 
 /* =====================================================================
  * Pantallas Tailwind (login, panel del administrador, portal del personal).

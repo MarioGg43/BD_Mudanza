@@ -510,6 +510,22 @@ class AvisosPantallaTest(BaseVistas):
         self.assertContains(r, 'href="/pedidos/?estado=Vencido"')
         self.assertContains(r, '>Para finalizar</span>')
 
+    def test_el_cliente_no_ve_los_avisos_de_la_empresa(self):
+        """«Para finalizar», «Atrasadas», «Sin chofer»... son del trabajo de la empresa: el cliente
+        filtra solo por los cuatro estados del pedido y no ve esas etiquetas."""
+        hecho = self.pedido_de(self.cliente)
+        reglas.confirmar(self.con_chofer(hecho).pk)
+        Pedido.objects.filter(pk=hecho.pk).update(fecha_servicio=timezone.localdate() - timedelta(days=1))
+        self.entrar(CLIENTE)
+        for url in ('/pedidos/', f'/pedidos/{hecho.pk}/'):
+            r = self.client.get(url)
+            self.assertNotContains(r, 'Para finalizar')
+            self.assertNotContains(r, 'Sin chofer')
+            self.assertNotContains(r, 'Atrasadas')
+        self.assertContains(self.client.get('/pedidos/'), '<option value="Finalizado">')
+        # pedirlo a mano por la URL no filtra nada: el filtro se descarta
+        self.assertContains(self.client.get('/pedidos/?estado=Para+finalizar'), f'>{hecho.pk}<')
+
     def test_sin_avisos_no_muestra_nada(self):
         self.entrar(ADMIN)
         r = self.client.get('/pedidos/')
