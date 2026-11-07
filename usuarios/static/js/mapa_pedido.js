@@ -39,6 +39,9 @@
     const mapa = L.map(lienzo, { scrollWheelZoom: false });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
+      // OpenStreetMap bloquea los pedidos que no dicen desde qué sitio vienen («Access blocked»).
+      // Django no manda ese dato a otros sitios (política same-origin): acá se manda solo el origen.
+      referrerPolicy: 'strict-origin-when-cross-origin',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Ruta: openrouteservice.org',
     }).addTo(mapa);
     const ruta = L.geoJSON(datos.ruta, { style: { color: COLOR, weight: 5, opacity: 0.85 } }).addTo(mapa);
