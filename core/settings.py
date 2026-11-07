@@ -14,6 +14,9 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
+# Mapa del recorrido (OpenRouteService). Sin clave, las pantallas muestran solo el enlace «Cómo llegar».
+ORS_API_KEY = os.environ.get('ORS_API_KEY', '').strip()
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',

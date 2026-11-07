@@ -479,3 +479,9 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 .pie-empresa a { color: rgba(255, 255, 255, .85); text-decoration: none; }
 .pie-empresa a:hover { color: #fff; text-decoration: underline; }
 .pie-empresa .border-top { border-color: rgba(255, 255, 255, .15) !important; }
+
+/* mapa del recorrido (pedidos/_mapa.html) */
+.mapa-caja { height: 340px; border-radius: var(--radio-sm); overflow: hidden; border: 1px solid var(--linea); }
+.mapa-caja .leaflet-popup-content { font-family: var(--font); }
+.btn-como-llegar { background: var(--grad); color: #fff; font-weight: 600; }
+.btn-como-llegar:hover { color: #fff; opacity: .9; }

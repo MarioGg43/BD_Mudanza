@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio
 from usuarios.permisos import pantalla_inicio
 from usuarios.views import get_usuario_actual
-from . import reglas
+from . import mapa, reglas
 from .pdf import respuesta_pdf
 from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
                     RegistroClienteForm, ReprogramarForm, ServiciosPedidoForm, objetos_para_elegir)
@@ -112,6 +112,7 @@ def detalle(request, id_pedido):
     return render(request, 'pedidos/detalle.html', {
         'pedido': pedido, 'reprogramaciones': reprogramaciones, 'ultima': ultima, 'cambio_nuevo': cambio_nuevo,
         'whatsapp': whatsapp,
+        'como_llegar': mapa.como_llegar(pedido.origen, pedido.destino),
         'siguiente': siguiente, 'comparte_siguiente': siguiente and reglas.que_comparten(pedido, siguiente),
         'anterior': anterior, 'comparte_anterior': anterior and reglas.que_comparten(anterior, pedido),
         'chofer': next((x.idUsuario for x in personal if x.Funcion == PersonalPedido.CHOFER), None),
@@ -467,3 +468,24 @@ def registro(request):
         messages.success(request, f'¡Bienvenida/o! Tu usuario es {cliente.NombreUsuario}.')
         return redirect('pedidos_lista')
     return render(request, 'pedidos/registro.html', {'form': form})
+
+
+def recorrido(request, id_pedido):
+    """El recorrido del pedido para el mapa (JSON). Lo ven el cliente dueño del pedido, quien
+    gestiona pedidos y el personal asignado a esa mudanza. La página lo pide aparte, así no
+    espera al servicio de mapas para mostrarse."""
+    usuario = get_usuario_actual(request)
+    if not usuario:
+        return JsonResponse({'ok': False, 'error': 'Tenés que iniciar sesión.'}, status=401)
+    pedido = get_object_or_404(Pedido, pk=id_pedido)
+    es_suyo = tiene_permiso(usuario, 'PED_CONSULTAR') and (
+        _ve_todos(usuario) or pedido.idUsuario_id == usuario.id_usuario)
+    lo_hace = tiene_permiso(usuario, 'MUDANZAS_OPERAR') and pedido.personal.filter(idUsuario=usuario).exists()
+    if not (es_suyo or lo_hace):
+        raise Http404('Pedido inexistente')  # como en el detalle: no se revela que existe
+    respuesta = {'como_llegar': mapa.como_llegar(pedido.origen, pedido.destino)}
+    try:
+        respuesta.update(ok=True, **mapa.recorrido(pedido.origen, pedido.destino))
+    except mapa.ErrorMapa as e:
+        respuesta.update(ok=False, error=str(e))
+    return JsonResponse(respuesta)

@@ -50,6 +50,7 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
+      ORS_API_KEY: ${ORS_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

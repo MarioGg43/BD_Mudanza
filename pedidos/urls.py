@@ -20,6 +20,7 @@ urlpatterns = [
     path('pedidos/<int:id_pedido>/cancelar/', views.cancelar, name='pedidos_cancelar'),
     path('pedidos/<int:id_pedido>/relevamiento/', views.relevamiento, name='pedidos_relevamiento'),
     path('pedidos/<int:id_pedido>/terminar/', views.terminar, name='pedidos_terminar'),
+    path('pedidos/<int:id_pedido>/recorrido/', views.recorrido, name='pedidos_recorrido'),
     path('pedidos/<int:id_pedido>/comprobante/', views.comprobante, name='pedidos_comprobante'),
     path('pedidos/<int:id_pedido>/comprobante/pdf/', views.comprobante_pdf, name='pedidos_comprobante_pdf'),
     path('servicios/', views_servicios.lista, name='servicios_lista'),

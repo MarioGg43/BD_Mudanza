@@ -60,7 +60,12 @@
         {% endif %}
       </div>
       {% endif %}
-      <p><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b> &nbsp;→&nbsp; <span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></p>
+      <p class="flex flex-wrap items-center gap-2">
+        <span><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b> &nbsp;→&nbsp; <span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></span>
+        <a href="{{ p.como_llegar }}" target="_blank" rel="noopener noreferrer" class="btn-como-llegar px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-route"></i> Cómo llegar
+        </a>
+      </p>
       <p><span class="texto-suave">Vehículo:</span> {{ p.patente_vehiculo.patente }} · {{ p.patente_vehiculo.marca_modelo }}
          &nbsp;·&nbsp; <span class="texto-suave">Servicios:</span> {% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
       <p><span class="texto-suave">Equipo:</span> {% for x in p.personal.all %}{{ x.idUsuario.Nombre }} {{ x.idUsuario.Apellido }} ({{ x.get_Funcion_display|lower }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
