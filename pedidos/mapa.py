@@ -82,6 +82,11 @@ def recorrido(origen, destino):
 
     lon_o, lat_o, etiqueta_o = geocodificar(origen)
     lon_d, lat_d, etiqueta_d = geocodificar(destino)
+    if abs(lon_o - lon_d) < 0.0005 and abs(lat_o - lat_d) < 0.0005:  # unos 50 metros
+        # pasa con direcciones vagas («zona norte», «zona este»): el servicio las ubica en el mismo
+        # punto y el recorrido daría 0 km, que confunde más de lo que ayuda
+        raise ErrorMapa('Las dos direcciones caen en el mismo punto del mapa. Revisá que tengan calle, '
+                        'número y localidad.')
     datos = _pedir(f'{URL_ORS}/v2/directions/driving-hgv/geojson',
                    {'coordinates': [[lon_o, lat_o], [lon_d, lat_d]]})
     try:

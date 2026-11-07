@@ -71,6 +71,17 @@ class RecorridoTest(BaseVistas):
         self.assertIn('No encontramos «Calle Inventada 999»', datos['error'])
         self.assertIn('google.com/maps/dir/', datos['como_llegar'])  # el botón sigue andando
 
+    def test_direcciones_vagas_en_el_mismo_punto(self):
+        # «zona norte» y «zona este» las ubica en el mismo lugar: no se muestra un recorrido de 0 km
+        self.pedido.destino = 'Origen 1'
+        self.pedido.save()
+        self.entrar(self.cliente.DNI)
+        with mock.patch.object(mapa, '_pedir', side_effect=ors_simulado) as ors:
+            datos = self.client.get(self.url).json()
+        self.assertFalse(datos['ok'])
+        self.assertIn('caen en el mismo punto', datos['error'])
+        self.assertEqual(ors.call_count, 2)  # ni se pide la ruta
+
     def test_servicio_caido(self):
         self.entrar(self.cliente.DNI)
         with mock.patch.object(mapa, '_pedir', side_effect=mapa.ErrorMapa('No hay conexión con el servicio de mapas.')):
