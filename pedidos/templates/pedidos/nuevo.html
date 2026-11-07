@@ -108,10 +108,13 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
+        {# lo que se fue agregando con «Agregar y cargar otro», sin cerrar la ventana #}
+        <div class="alert alert-success py-2 small d-none" id="agregadosEnVentana" aria-live="polite"></div>
         <div id="bloqueBuscar">
           <label for="buscarObjeto" class="form-label fw-semibold">¿Qué hay que llevar? Buscalo en la lista</label>
           <input type="text" class="form-control form-control-lg" id="buscarObjeto" maxlength="50" autocomplete="off"
                  placeholder="Escribí para buscar: heladera, sillas…">
+          <button type="button" class="btn btn-link px-0 mt-1 d-none" id="cambiarObjeto"><i class="bi bi-arrow-left me-1"></i>Volver a elegir otro objeto</button>
           <div class="mt-2 small" id="avisoBusqueda" aria-live="polite"></div>
           <p class="small text-muted mt-2 mb-1" id="tituloSugerencias">O tocá uno de la lista:</p>
           <div class="d-flex flex-wrap gap-2 mb-3" id="sugerencias"></div>
@@ -149,7 +152,10 @@
         </ul>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="cerrarObjeto">Cancelar</button>
+        <button type="button" class="btn btn-outline-primary fw-semibold" id="guardarYOtro" disabled>
+          <i class="bi bi-plus-lg me-1"></i>Agregar y cargar otro
+        </button>
         <button type="button" class="btn btn-success fw-bold" id="guardarObjeto" disabled>Agregar a la lista</button>
       </div>
     </div>
@@ -334,6 +340,11 @@
   const aviso = document.getElementById('avisoBusqueda');
   const sugerencias = document.getElementById('sugerencias');
   const guardar = document.getElementById('guardarObjeto');
+  const guardarYOtro = document.getElementById('guardarYOtro');
+  const cerrar = document.getElementById('cerrarObjeto');
+  const cajaAgregados = document.getElementById('agregadosEnVentana');
+  const cambiarObjeto = document.getElementById('cambiarObjeto');
+  let agregadosAhora = []; // lo que se agregó con «Agregar y cargar otro» desde que se abrió la ventana
   let editando = -1;    // posición del que se edita, o -1 si es nuevo
   let seleccion = null; // { id, nombre, nuevo }
 
@@ -348,6 +359,9 @@
     cant.value = it ? it.cantidad : 1;
     fragil.checked = it ? it.fragil : false;
     detalle.value = it ? it.detalle : '';
+    agregadosAhora = [];
+    mostrarAgregados();
+    guardarYOtro.classList.toggle('d-none', Boolean(it)); // al editar uno no hace falta
     buscando(false);
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
@@ -431,11 +445,19 @@
     const enOtro = !!(seleccion && seleccion.nuevo);
     bloqueOtro.classList.toggle('d-none', !enOtro);
     document.getElementById('bloqueBuscar').classList.toggle('d-none', enOtro);
+    // con un objeto de la lista ya elegido: se puede volver atrás y elegir otro
+    cambiarObjeto.classList.toggle('d-none', !(seleccion && !seleccion.nuevo));
     revisar();
   }
   buscar.addEventListener('input', () => {
     if (seleccion && seleccion.nuevo) seleccion = null;  // si vuelve a buscar, deja «Otro»
     buscando(true);
+  });
+  cambiarObjeto.addEventListener('click', () => {
+    seleccion = null;
+    buscar.value = '';
+    buscando(false);
+    buscar.focus();
   });
   document.getElementById('volverALista').addEventListener('click', () => {
     seleccion = null;
@@ -511,17 +533,47 @@
       ? marcar('cantidad', 'ok', 'Cantidad: ' + n)
       : marcar('cantidad', 'mal', 'La cantidad tiene que ser un número entero de 1 a ' + MAX_CANT)) && ok;
     guardar.disabled = !ok;
+    guardarYOtro.disabled = !ok;
     return ok;
   }
   cant.addEventListener('input', revisar);
 
+  function objetoDeLaVentana() {
+    return { id: seleccion.id, nombre: seleccion.nombre, nuevo: seleccion.nuevo, cantidad: Number(cant.value),
+             fragil: fragil.checked, detalle: detalle.value.trim() };
+  }
   guardar.addEventListener('click', () => {
     if (!revisar()) return;
-    const it = { id: seleccion.id, nombre: seleccion.nombre, nuevo: seleccion.nuevo, cantidad: Number(cant.value),
-                 fragil: fragil.checked, detalle: detalle.value.trim() };
+    const it = objetoDeLaVentana();
     if (editando >= 0) items[editando] = it; else items.push(it);
     dibujar();
     bootstrap.Modal.getInstance(modalEl).hide();
+  });
+
+  // «Agregar y cargar otro»: lo suma a la lista y deja la ventana abierta y limpia para el siguiente
+  function mostrarAgregados() {
+    cajaAgregados.classList.toggle('d-none', !agregadosAhora.length);
+    cerrar.textContent = agregadosAhora.length ? 'Listo' : 'Cancelar';
+    if (!agregadosAhora.length) return;
+    cajaAgregados.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>';
+    cajaAgregados.append('Agregaste ' + agregadosAhora.map((it) => it.cantidad + ' × ' + etiqueta(it)).join(', ')
+                         + '. Elegí el siguiente o tocá «Listo».');
+  }
+  guardarYOtro.addEventListener('click', () => {
+    if (!revisar()) return;
+    const it = objetoDeLaVentana();
+    items.push(it);
+    dibujar();
+    agregadosAhora.push(it);
+    mostrarAgregados();
+    seleccion = null;
+    buscar.value = '';
+    queEs.value = '';
+    cant.value = 1;
+    fragil.checked = false;
+    detalle.value = '';
+    buscando(false);
+    buscar.focus();
   });
   // Enter en la ventana = agregar, si se puede (y no manda el formulario de afuera)
   modalEl.addEventListener('keydown', (e) => {

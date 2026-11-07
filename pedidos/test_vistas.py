@@ -187,6 +187,17 @@ class RegistrarPantallaTest(BaseVistas):
         self.assertContains(r, '>Embalaje — $25.000</label>')
         self.assertContains(r, 'data-precio="25000.00"')
 
+    def test_la_ventana_de_objetos_deja_cargar_varios_y_volver(self):
+        # «Agregar y cargar otro» deja la ventana abierta para el siguiente objeto, y
+        # «Volver a elegir otro objeto» deshace la elección sin cerrarla
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/nuevo/')
+        self.assertContains(r, 'id="guardarYOtro"')
+        self.assertContains(r, 'Agregar y cargar otro')
+        self.assertContains(r, 'id="cambiarObjeto"')
+        self.assertContains(r, 'Volver a elegir otro objeto')
+        self.assertContains(r, 'id="agregadosEnVentana"')
+
     def test_otro_con_observacion(self):
         self.entrar(CLIENTE)
         r = self.client.post('/pedidos/nuevo/', self.datos(**{

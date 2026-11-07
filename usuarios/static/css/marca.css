@@ -486,3 +486,7 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 .btn-como-llegar { background: var(--grad); color: #fff; font-weight: 600; }
 .btn-como-llegar:hover { color: #fff; opacity: .9; }
 .mapa-elegir { height: 380px; cursor: crosshair; }
+/* ventana «Agregar objeto» en el celular: los tres botones de abajo, a lo ancho y fáciles de tocar */
+@media (max-width: 575.98px) {
+  #modalObjeto .modal-footer > .btn { flex: 1 1 100%; margin-left: 0; margin-right: 0; }
+}
