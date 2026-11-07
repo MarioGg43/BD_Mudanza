@@ -60,4 +60,5 @@
     {% if pagina.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?{{ filtros }}&pagina={{ pagina.next_page_number }}">Siguiente</a>{% endif %}
 </nav>
 {% endif %}
+{% include 'pedidos/_fecha_hora.html' %}
 {% endblock %}

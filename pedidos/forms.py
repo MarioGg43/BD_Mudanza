@@ -51,6 +51,16 @@ def campo_fecha(etiqueta):
         attrs={'data-calendario': '', 'autocomplete': 'off', 'placeholder': 'Elegí el día'}, format='%Y-%m-%d'))
 
 
+def filtro_fecha(no_antes_de=None):
+    """Fecha de un filtro (pedidos, auditoría): el mismo calendario, sin límites porque ahí sirven
+    los días pasados, y con la fecha corta (07/11/2026) para que entre en la columna. «Hasta» no
+    deja elegir un día anterior a «Desde»."""
+    attrs = {'data-calendario': '', 'data-formato': 'd/m/Y', 'autocomplete': 'off', 'placeholder': 'Cualquier día'}
+    if no_antes_de:
+        attrs['data-no-antes-de'] = no_antes_de
+    return forms.DateInput(attrs=attrs, format='%Y-%m-%d')
+
+
 def campo_hora(etiqueta):
     return forms.TimeField(label=etiqueta, widget=SelectorHora(attrs={'data-hora-de': 'id_fecha_servicio'}))
 
@@ -73,10 +83,8 @@ class PatenteField(forms.ModelChoiceField):
 
 
 class FiltroPedidosForm(forms.Form):
-    desde = forms.DateField(required=False, label='Desde',
-                            widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
-    hasta = forms.DateField(required=False, label='Hasta',
-                            widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
+    desde = forms.DateField(required=False, label='Desde', widget=filtro_fecha())
+    hasta = forms.DateField(required=False, label='Hasta', widget=filtro_fecha(no_antes_de='id_desde'))
     estado = forms.ChoiceField(required=False, label='Estado',
                                choices=[('', 'Todos')] + Pedido.ESTADOS
                                        + [(reglas.ATRASADA, 'Atrasadas'), (reglas.VENCIDO, 'Vencidos'), (reglas.PARA_FINALIZAR, 'Para finalizar'),

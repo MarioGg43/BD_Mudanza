@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render
 from django.urls import reverse
 
+from pedidos.forms import filtro_fecha
 from pedidos.pdf import respuesta_pdf
 
 from .models import LogAuditoria, Usuario
@@ -27,8 +28,8 @@ TABLAS = {
 
 
 class FiltroAuditoriaForm(forms.Form):
-    desde = forms.DateField(required=False, label='Desde', widget=forms.DateInput(attrs={'type': 'date'}))
-    hasta = forms.DateField(required=False, label='Hasta', widget=forms.DateInput(attrs={'type': 'date'}))
+    desde = forms.DateField(required=False, label='Desde', widget=filtro_fecha())
+    hasta = forms.DateField(required=False, label='Hasta', widget=filtro_fecha(no_antes_de='id_desde'))
     tabla = forms.ChoiceField(required=False, label='Tabla', choices=[('', 'Todas')] + sorted(TABLAS.items(), key=lambda t: t[1]))
     accion = forms.ChoiceField(required=False, label='Acción', choices=[('', 'Todas')] + LogAuditoria.ACCIONES)
     usuario = forms.ModelChoiceField(required=False, label='Usuario', empty_label='Todos',

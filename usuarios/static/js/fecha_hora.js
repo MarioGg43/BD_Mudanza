@@ -34,7 +34,8 @@
       locale: 'es',
       dateFormat: 'Y-m-d',            // lo que se manda al servidor
       altInput: true,
-      altFormat: 'l j \\de F \\de Y', // lo que ve la persona: «martes 17 de noviembre de 2026»
+      // lo que ve la persona: «martes 17 de noviembre de 2026»; en los filtros, corta: «17/11/2026»
+      altFormat: input.dataset.formato || 'l j \\de F \\de Y',
       minDate: input.dataset.min,
       maxDate: input.dataset.max,
       disableMobile: true,            // el mismo calendario también en el celular
@@ -42,8 +43,12 @@
       formatDate: (fecha, formato) => formato === 'Y-m-d'
         ? flatpickr.formatDate(fecha, formato)
         : flatpickr.formatDate(fecha, formato, flatpickr.l10ns.es).toLowerCase(),
-      onChange: () => {
+      onChange: (elegidas) => {
         if (selectHora) revisarHoras(selectHora, input);
+        // filtros: «Hasta» no deja elegir un día anterior a «Desde»
+        document.querySelectorAll('input[data-no-antes-de="' + input.id + '"]').forEach((hasta) => {
+          if (hasta._flatpickr) hasta._flatpickr.set('minDate', elegidas[0] || null);
+        });
         input.dispatchEvent(new Event('change', { bubbles: true })); // busca los vehículos libres
       },
     });
@@ -52,5 +57,10 @@
       // si la página queda abierta, cada minuto se apaga la hora que va pasando
       setInterval(() => revisarHoras(selectHora, input), 60000);
     }
+  });
+  // al volver de filtrar, «Hasta» ya arranca desde el «Desde» elegido
+  document.querySelectorAll('input[data-no-antes-de]').forEach((hasta) => {
+    const desde = document.getElementById(hasta.dataset.noAntesDe);
+    if (desde && desde.value && hasta._flatpickr) hasta._flatpickr.set('minDate', desde.value);
   });
 })();
