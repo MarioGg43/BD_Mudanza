@@ -485,3 +485,4 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 .mapa-caja .leaflet-popup-content { font-family: var(--font); }
 .btn-como-llegar { background: var(--grad); color: #fff; font-weight: 600; }
 .btn-como-llegar:hover { color: #fff; opacity: .9; }
+.mapa-elegir { height: 380px; cursor: crosshair; }

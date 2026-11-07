@@ -103,3 +103,28 @@ def recorrido(origen, destino):
     }
     cache.set(clave_cache, resultado, UN_DIA)
     return resultado
+
+
+def direccion_de(lat, lon):
+    """La dirección de un punto que la persona tocó en el mapa (geocodificación inversa):
+    «Avenida Belgrano 1250, Salta». Lanza ErrorMapa si no hay clave o no encuentra nada cerca."""
+    if not settings.ORS_API_KEY:
+        raise ErrorMapa('El mapa todavía no está configurado (falta la clave de OpenRouteService).')
+    clave_cache = f'direccion:{lat:.5f},{lon:.5f}'
+    guardada = cache.get(clave_cache)
+    if guardada:
+        return guardada
+    datos = _pedir(f'{URL_ORS}/geocode/reverse?' + urlencode({
+        'point.lat': lat, 'point.lon': lon, 'size': 1, 'boundary.country': 'AR'}))
+    lugares = datos.get('features') or []
+    if not lugares:
+        raise ErrorMapa('No encontramos una dirección en ese punto. Probá tocando sobre una calle.')
+    p = lugares[0].get('properties', {})
+    calle = ' '.join(x for x in (p.get('street'), p.get('housenumber')) if x) or p.get('name', '')
+    localidad = p.get('locality') or p.get('localadmin') or p.get('county') or ''
+    partes = [x for x in (calle, localidad) if x]
+    direccion = ', '.join(dict.fromkeys(partes)) or p.get('label', '').removesuffix(', Argentina')
+    if not direccion:
+        raise ErrorMapa('No encontramos una dirección en ese punto. Probá tocando sobre una calle.')
+    cache.set(clave_cache, direccion, UN_DIA)
+    return direccion

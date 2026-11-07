@@ -113,3 +113,64 @@ class ComoLlegarTest(BaseVistas):
         self.assertEqual(mapa.como_llegar('Zuviría 150, Salta', 'Av. Belgrano 1250'),
                          'https://www.google.com/maps/dir/?api=1&origin=Zuvir%C3%ADa+150%2C+Salta'
                          '&destination=Av.+Belgrano+1250&travelmode=driving')
+
+
+INVERSA = {'features': [{'properties': {'street': 'Avenida Belgrano', 'housenumber': '1250', 'locality': 'Salta',
+                                        'label': 'Avenida Belgrano 1250, Salta, SA, Argentina'}}]}
+
+
+@override_settings(ORS_API_KEY='clave-de-prueba')
+class ElegirEnElMapaTest(BaseVistas):
+    URL = '/pedidos/direccion/?lat=-24.7869&lon=-65.4155'
+
+    def setUp(self):
+        cache.clear()
+
+    def test_el_cliente_toca_el_mapa_y_recibe_la_direccion(self):
+        self.entrar(self.cliente.DNI)
+        with mock.patch.object(mapa, '_pedir', return_value=INVERSA) as ors:
+            datos = self.client.get(self.URL).json()
+            self.client.get(self.URL)  # el mismo punto otra vez: sale de la caché
+        self.assertEqual(datos, {'ok': True, 'direccion': 'Avenida Belgrano 1250, Salta'})
+        self.assertEqual(ors.call_count, 1)
+        self.assertIn('/geocode/reverse?', ors.call_args.args[0])
+
+    def test_sin_calle_usa_la_etiqueta(self):
+        self.entrar(self.cliente.DNI)
+        sin_calle = {'features': [{'properties': {'label': 'Parque San Martín, Salta, Argentina'}}]}
+        with mock.patch.object(mapa, '_pedir', return_value=sin_calle):
+            self.assertEqual(self.client.get(self.URL).json()['direccion'], 'Parque San Martín, Salta')
+
+    def test_punto_sin_direccion(self):
+        self.entrar(self.cliente.DNI)
+        with mock.patch.object(mapa, '_pedir', return_value={'features': []}):
+            datos = self.client.get(self.URL).json()
+        self.assertFalse(datos['ok'])
+        self.assertIn('No encontramos una dirección en ese punto', datos['error'])
+
+    def test_coordenadas_malas_o_fuera_del_pais(self):
+        self.entrar(self.cliente.DNI)
+        with mock.patch.object(mapa, '_pedir') as ors:
+            self.assertEqual(self.client.get('/pedidos/direccion/?lat=hola&lon=1').status_code, 400)
+            self.assertEqual(self.client.get('/pedidos/direccion/?lat=40.4&lon=-3.7').status_code, 400)  # Madrid
+        ors.assert_not_called()
+
+    def test_solo_quien_registra_pedidos(self):
+        with mock.patch.object(mapa, '_pedir', return_value=INVERSA):
+            self.assertEqual(self.client.get(self.URL).status_code, 401)   # sin sesión
+            self.entrar(ADMIN)                                             # no registra pedidos
+            self.assertEqual(self.client.get(self.URL).status_code, 403)
+
+    def test_el_formulario_trae_el_boton_del_mapa(self):
+        self.entrar(self.cliente.DNI)
+        r = self.client.get('/pedidos/nuevo/')
+        self.assertContains(r, 'data-elegir-en-mapa="id_origen"')
+        self.assertContains(r, 'data-elegir-en-mapa="id_destino"')
+        self.assertContains(r, 'id="modalMapa"')
+
+    @override_settings(ORS_API_KEY='')
+    def test_sin_clave_no_hay_boton(self):
+        self.entrar(self.cliente.DNI)
+        r = self.client.get('/pedidos/nuevo/')
+        self.assertNotContains(r, 'data-elegir-en-mapa')
+        self.assertNotContains(r, 'id="modalMapa"')

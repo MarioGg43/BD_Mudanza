@@ -1,4 +1,5 @@
 {% extends 'vehiculos/base.html' %}
+{% load static %}
 {% block title %}{% if pedido %}Modificar pedido N° {{ pedido.id_pedido }}{% else %}Pedir una mudanza{% endif %}{% endblock %}
 {% block content %}
 <div class="mx-auto" style="max-width: 900px;">
@@ -18,9 +19,20 @@
             <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>1. Cuándo y dónde</h2>
             <div class="row g-3">
                 {% for field in form %}{% if field.name == 'fecha_servicio' or field.name == 'hora_servicio' or field.name == 'origen' or field.name == 'destino' %}
-                <div class="col-sm-6 col-lg-3">
+                <div class="col-md-6">{# dos por fila: las direcciones necesitan lugar #}
                     <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                    {% if mapa_activo and field.name == 'origen' or mapa_activo and field.name == 'destino' %}
+                    {# la dirección se escribe o se elige tocando el mapa #}
+                    <div class="input-group">
+                        {{ field }}
+                        <button type="button" class="btn btn-outline-secondary" data-elegir-en-mapa="{{ field.id_for_label }}"
+                                data-titulo="{{ field.label }}" title="Elegir «{{ field.label }}» en el mapa" aria-label="Elegir «{{ field.label }}» en el mapa">
+                            <i class="bi bi-geo-alt-fill text-marca"></i>
+                        </button>
+                    </div>
+                    {% else %}
                     {{ field }}
+                    {% endif %}
                     {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
                 </div>
                 {% endif %}{% endfor %}
@@ -143,6 +155,37 @@
     </div>
   </div>
 </div>
+{% if mapa_activo %}
+{# «Elegir en el mapa»: se toca el lugar y la dirección se completa sola (elegir_direccion.js) #}
+<div class="modal fade" id="modalMapa" tabindex="-1" aria-labelledby="tituloModalMapa" aria-hidden="true"
+     data-url-direccion="{% url 'pedidos_direccion' %}">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5 fw-bold" id="tituloModalMapa">Elegí el lugar en el mapa</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <p class="small text-muted mb-0">Tocá el mapa donde es la mudanza. Podés acercarte con la rueda del mouse o con los dedos.</p>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-mi-ubicacion><i class="bi bi-crosshair me-1"></i>Estoy acá</button>
+        </div>
+        <div class="mapa-caja mapa-elegir" data-mapa-elegir role="application" aria-label="Mapa para elegir la dirección"></div>
+        <label for="direccionElegida" class="form-label fw-semibold mt-3 mb-1">Dirección</label>
+        <input type="text" id="direccionElegida" class="form-control" maxlength="200" placeholder="Tocá un punto del mapa" disabled>
+        <div class="form-text" data-mapa-estado>Si falta el número o algo no coincide, corregilo acá antes de usarla.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary fw-bold" data-usar-direccion disabled>Usar esta dirección</button>
+      </div>
+    </div>
+  </div>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+<script src="{% static 'js/elegir_direccion.js' %}?v=1" defer></script>
+{% endif %}
 {{ catalogo|json_script:"catalogo" }}
 {{ items_iniciales|json_script:"items-iniciales" }}
 

@@ -2,6 +2,7 @@
 from datetime import date, time
 from urllib.parse import quote
 
+from django.conf import settings
 from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,7 +11,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
 from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio
-from usuarios.permisos import pantalla_inicio
+from usuarios.permisos import pantalla_inicio, requiere_permiso_api
 from usuarios.views import get_usuario_actual
 from . import mapa, reglas
 from .pdf import respuesta_pdf
@@ -214,6 +215,7 @@ def _formulario_pedido(request, pedido=None):
     return render(request, 'pedidos/nuevo.html', {
         'form': form, 'items': items, 'catalogo': catalogo, 'items_iniciales': items_iniciales, 'pedido': pedido,
         'horas_limite': reglas.HORAS_LIMITE_CLIENTE,
+        'mapa_activo': bool(settings.ORS_API_KEY),  # «Elegir en el mapa» solo si hay clave
         'max_cantidad': reglas.MAX_CANTIDAD,
         'servicios': form.fields['servicio'].queryset,
         'adicionales': form.fields['adicionales'].queryset,
@@ -489,3 +491,19 @@ def recorrido(request, id_pedido):
     except mapa.ErrorMapa as e:
         respuesta.update(ok=False, error=str(e))
     return JsonResponse(respuesta)
+
+
+@requiere_permiso_api('PED_REGISTRAR')
+@require_GET
+def direccion_en_mapa(request):
+    """La dirección del punto que el cliente tocó en el mapa al cargar el pedido (JSON)."""
+    try:
+        lat, lon = float(request.GET['lat']), float(request.GET['lon'])
+    except (KeyError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Faltan las coordenadas del punto.'}, status=400)
+    if not (-56 <= lat <= -21 and -74 <= lon <= -53):  # más o menos, la Argentina
+        return JsonResponse({'ok': False, 'error': 'Elegí un punto dentro de la Argentina.'}, status=400)
+    try:
+        return JsonResponse({'ok': True, 'direccion': mapa.direccion_de(lat, lon)})
+    except mapa.ErrorMapa as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
