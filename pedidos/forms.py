@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django import forms
 from django.db import transaction
+from django.utils import timezone
 
 from django.db.models import Case, IntegerField, Q, Value, When
 
@@ -15,6 +18,52 @@ def con_bootstrap(form):
         if isinstance(w, (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect)):
             continue
         w.attrs.setdefault('class', 'form-select' if isinstance(w, forms.Select) else 'form-control')
+
+
+# ---- fecha y hora del pedido: un calendario y una lista de horas, sin días ni horas pasadas ----
+PASO_MINUTOS = 15
+
+
+def _hhmm(valor):
+    """'09:30' a partir de un time, de '09:30:00' o de '09:30'; '' si no hay nada."""
+    if not valor:
+        return ''
+    return valor.strftime('%H:%M') if hasattr(valor, 'strftime') else str(valor)[:5]
+
+
+class SelectorHora(forms.Select):
+    """La hora de inicio en una lista de 15 en 15 minutos, en formato de 24 horas (00:00 a 23:45).
+    Reemplaza al control de hora del navegador, que mostraba «--:-- -----» y «a. m. / p. m.»."""
+    def format_value(self, value):
+        return [_hhmm(value)]
+
+
+def opciones_de_hora(actual=''):
+    horas = [f'{h:02d}:{m:02d}' for h in range(24) for m in range(0, 60, PASO_MINUTOS)]
+    if actual and actual not in horas:  # un pedido viejo con otra hora (17:25) la conserva
+        horas = sorted(horas + [actual])
+    return [('', 'Elegí la hora')] + [(h, h) for h in horas]
+
+
+def campo_fecha(etiqueta):
+    """Fecha con calendario (fecha_hora.js). Sin JavaScript igual acepta «2026-11-20»."""
+    return forms.DateField(label=etiqueta, widget=forms.DateInput(
+        attrs={'data-calendario': '', 'autocomplete': 'off', 'placeholder': 'Elegí el día'}, format='%Y-%m-%d'))
+
+
+def campo_hora(etiqueta):
+    return forms.TimeField(label=etiqueta, widget=SelectorHora(attrs={'data-hora-de': 'id_fecha_servicio'}))
+
+
+def preparar_fecha_y_hora(form):
+    """El calendario arranca hoy y llega a un año (la misma regla que reglas._validar_fecha), y la
+    lista de horas conserva la hora que ya tenía el pedido. Las horas que ya pasaron, si el día
+    es hoy, las apaga fecha_hora.js; el servidor igual lo vuelve a revisar."""
+    hoy = timezone.localdate()
+    form.fields['fecha_servicio'].widget.attrs.update(
+        {'data-min': hoy.isoformat(), 'data-max': (hoy + timedelta(days=reglas.MAX_DIAS_ADELANTO)).isoformat()})
+    actual = form.data.get(form.add_prefix('hora_servicio')) if form.is_bound else form.initial.get('hora_servicio')
+    form.fields['hora_servicio'].widget.choices = opciones_de_hora(_hhmm(actual))
 
 
 class PatenteField(forms.ModelChoiceField):
@@ -72,10 +121,8 @@ class VehiculoField(forms.ModelChoiceField):
 
 class PedidoForm(forms.Form):
     """Solo convierte tipos; las reglas (fecha, hora, disponibilidad) están en reglas.py."""
-    fecha_servicio = forms.DateField(label='Fecha de la mudanza',
-                                     widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
-    hora_servicio = forms.TimeField(label='Hora de inicio', widget=forms.TimeInput(
-        attrs={'type': 'time', 'step': 900}, format='%H:%M'))
+    fecha_servicio = campo_fecha('Fecha de la mudanza')
+    hora_servicio = campo_hora('Hora de inicio')
     origen = forms.CharField(max_length=200, label='Desde', widget=forms.TextInput(
         attrs={'placeholder': 'Calle, número y ciudad'}))
     destino = forms.CharField(max_length=200, label='Hasta', widget=forms.TextInput(
@@ -93,6 +140,7 @@ class PedidoForm(forms.Form):
         self.fields['servicio'].queryset = activos.filter(Categoria=Servicio.PRINCIPAL)
         self.fields['adicionales'].queryset = activos.filter(Categoria=Servicio.ADICIONAL)
         self.fields['vehiculo'].queryset = Vehiculo.objects.filter(estado='Disponible').order_by('patente')
+        preparar_fecha_y_hora(self)
         con_bootstrap(self)
 
 
@@ -124,10 +172,8 @@ InventarioFormSet = forms.formset_factory(ItemInventarioForm, extra=0, min_num=1
 
 class ReprogramarForm(forms.Form):
     """Solo convierte tipos; lo que decide si el horario sirve está en reglas.reprogramar."""
-    fecha_servicio = forms.DateField(label='Fecha nueva',
-                                     widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
-    hora_servicio = forms.TimeField(label='Hora nueva', widget=forms.TimeInput(
-        attrs={'type': 'time', 'step': 900}, format='%H:%M'))
+    fecha_servicio = campo_fecha('Fecha nueva')
+    hora_servicio = campo_hora('Hora nueva')
     vehiculo = VehiculoField(queryset=Vehiculo.objects.none(), label='Vehículo', empty_label=None)
     motivo = forms.ChoiceField(choices=[('', 'Elegí el motivo')] + Reprogramacion.MOTIVOS, label='Motivo')
     observacion = forms.CharField(max_length=reglas.MAX_OBSERVACION, required=False, label='Observación',
@@ -147,6 +193,7 @@ class ReprogramarForm(forms.Form):
         # los disponibles, más el que ya tiene (aunque ahora esté en mantenimiento)
         self.fields['vehiculo'].queryset = Vehiculo.objects.filter(
             Q(estado='Disponible') | Q(pk=pedido.patente_vehiculo_id)).order_by('patente')
+        preparar_fecha_y_hora(self)
         con_bootstrap(self)
         self.fields['quitar_ocupados'].widget.attrs['class'] = 'form-check-input'
 

@@ -490,3 +490,14 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 @media (max-width: 575.98px) {
   #modalObjeto .modal-footer > .btn { flex: 1 1 100%; margin-left: 0; margin-right: 0; }
 }
+
+/* calendario de la fecha del pedido (Flatpickr) con los colores de la marca */
+.flatpickr-calendar { font-family: var(--font); box-shadow: var(--sombra); border-radius: var(--radio-sm); }
+.flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus {
+  background: var(--naranja-osc); border-color: var(--naranja-osc); color: #fff;
+}
+.flatpickr-day.today { border-color: var(--naranja-osc); }
+.flatpickr-day.today:hover { background: var(--naranja-suave); color: var(--tinta); }
+.flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover { color: rgba(35, 26, 21, .25); }
+.flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--tinta); }
+input[data-calendario] + .form-control[readonly] { background-color: #fff; cursor: pointer; }

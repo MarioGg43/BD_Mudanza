@@ -192,6 +192,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 <script src="{% static 'js/elegir_direccion.js' %}?v=1" defer></script>
 {% endif %}
+{% include 'pedidos/_fecha_hora.html' %}
 {{ catalogo|json_script:"catalogo" }}
 {{ items_iniciales|json_script:"items-iniciales" }}
 

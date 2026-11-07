@@ -596,3 +596,47 @@ class AsignarPantallaTest(BaseVistas):
             self.assertContains(r, 'Origen 1')
             self.assertContains(r, 'Cajas')
             self.assertNotContains(r, '$')
+
+
+class FechaYHoraTest(BaseVistas):
+    """El calendario arranca hoy y llega a un año; la hora se elige de una lista de 15 en 15 minutos."""
+
+    def test_el_formulario_trae_calendario_y_lista_de_horas(self):
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/nuevo/')
+        hoy = timezone.localdate()
+        self.assertContains(r, f'data-min="{hoy.isoformat()}"')
+        self.assertContains(r, f'data-max="{(hoy + timedelta(days=reglas.MAX_DIAS_ADELANTO)).isoformat()}"')
+        self.assertContains(r, 'data-calendario')
+        self.assertContains(r, '<option value="" selected>Elegí la hora</option>', html=True)
+        self.assertContains(r, '<option value="09:15">09:15</option>', html=True)
+        self.assertContains(r, '<option value="23:45">23:45</option>', html=True)
+        self.assertEqual(len(r.context['form'].fields['hora_servicio'].widget.choices), 1 + 24 * 4)
+        self.assertNotContains(r, 'type="time"')  # ya no el control del navegador
+
+    def test_modificar_conserva_una_hora_fuera_de_la_lista(self):
+        p = self.pedido_de(self.cliente, dias=5)
+        Pedido.objects.filter(pk=p.pk).update(hora_servicio=time(17, 25))
+        self.entrar(CLIENTE)
+        r = self.client.get(f'/pedidos/{p.pk}/modificar/')
+        self.assertContains(r, '<option value="17:25" selected>17:25</option>', html=True)
+
+    def test_la_hora_elegida_llega_bien_al_servidor(self):
+        self.entrar(CLIENTE)
+        manana = timezone.localdate() + timedelta(days=2)
+        r = self.client.post('/pedidos/nuevo/', {
+            'fecha_servicio': manana.isoformat(), 'hora_servicio': '10:30', 'origen': 'Origen 1', 'destino': 'Destino 2',
+            'servicio': self.local.id_servicio, 'vehiculo': 'AD-321-JK',
+            'inv-TOTAL_FORMS': 1, 'inv-INITIAL_FORMS': 0, 'inv-MIN_NUM_FORMS': 1, 'inv-MAX_NUM_FORMS': 50,
+            'inv-0-objeto': Objeto.objects.get(nom_objeto='Cajas').pk, 'inv-0-cantidad': 2})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Pedido.objects.latest('pk').hora_servicio, time(10, 30))
+
+    def test_una_fecha_pasada_igual_la_rechaza_el_servidor(self):
+        self.entrar(CLIENTE)
+        r = self.client.post('/pedidos/nuevo/', {
+            'fecha_servicio': (timezone.localdate() - timedelta(days=1)).isoformat(), 'hora_servicio': '10:30',
+            'origen': 'Origen 1', 'destino': 'Destino 2', 'servicio': self.local.id_servicio, 'vehiculo': 'AD-321-JK',
+            'inv-TOTAL_FORMS': 1, 'inv-INITIAL_FORMS': 0, 'inv-MIN_NUM_FORMS': 1, 'inv-MAX_NUM_FORMS': 50,
+            'inv-0-objeto': Objeto.objects.get(nom_objeto='Cajas').pk, 'inv-0-cantidad': 2})
+        self.assertContains(r, 'tiene que ser de hoy en adelante')
