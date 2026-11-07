@@ -62,7 +62,8 @@
     </div>
 </form>
 
-<div class="card-panel bg-white p-0 overflow-auto">
+{# en la computadora, la tabla; en el celular, una tarjeta por pedido (abajo) #}
+<div class="card-panel bg-white p-0 overflow-auto d-none d-md-block">
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
             <tr>
@@ -80,7 +81,7 @@
                 {% if ve_todos %}<td>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</td>{% endif %}
                 <td class="small">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td class="text-end">${{ p.total|floatformat:"2g" }}</td>
-                <td>{% if ve_todos %}{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar atrasada=p.atrasada en_curso=p.en_curso %}{% else %}{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido en_curso=p.en_curso %}{% endif %}{% if p.horario_cambiado %} <span class="badge text-bg-info"><i class="bi bi-calendar2-week me-1"></i>Cambió el horario</span>{% endif %}</td>
+                <td>{% include 'pedidos/_estado_fila.html' %}</td>
                 <td class="text-end"><a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
             </tr>
             {% empty %}
@@ -89,4 +90,24 @@
         </tbody>
     </table>
 </div>
+
+<ul class="list-unstyled d-md-none mb-0" aria-label="Pedidos">
+    {% for p in pedidos %}
+    <li class="card-panel bg-white p-3 mb-2 tarjeta-pedido">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold">Pedido N° {{ p.id_pedido }}</span>
+            <span class="text-end">{% include 'pedidos/_estado_fila.html' %}</span>
+        </div>
+        <p class="mb-1"><i class="bi bi-calendar-event me-1 text-marca"></i>{{ p.fecha_servicio|date:"l"|capfirst }} {{ p.fecha_servicio|date:"d/m/Y" }} · {{ p.hora_servicio|time:"H:i" }} a {{ p.hasta }}</p>
+        {% if ve_todos %}<p class="mb-1 small"><i class="bi bi-person me-1 text-marca"></i>{{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</p>{% endif %}
+        <p class="mb-2 small text-muted">{% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">${{ p.total|floatformat:"2g" }}</span>
+            <a href="{% url 'pedidos_detalle' p.id_pedido %}" class="btn btn-sm btn-outline-secondary px-3" aria-label="Ver el pedido N° {{ p.id_pedido }}">Ver</a>
+        </div>
+    </li>
+    {% empty %}
+    <li class="card-panel bg-white p-4 text-center text-muted">No hay pedidos con esos filtros.</li>
+    {% endfor %}
+</ul>
 {% endblock %}

@@ -1,0 +1,26 @@
+{% comment %}
+  Línea de estado del pedido: Pendiente → Confirmado → En curso → Finalizado, con el paso actual
+  marcado. «En curso» es cuando el chofer tocó «Empezamos». Un pedido anulado no la muestra:
+  el detalle ya explica la anulación.
+{% endcomment %}
+{% if pedido.estado != 'Anulado' %}
+{% if pedido.estado == 'Finalizado' %}{% firstof 4 as paso %}{% elif pedido.en_curso %}{% firstof 3 as paso %}{% elif pedido.estado == 'Confirmado' %}{% firstof 2 as paso %}{% else %}{% firstof 1 as paso %}{% endif %}
+<ol class="linea-estado card-panel bg-white p-3 mb-3" aria-label="En qué estado está el pedido">
+    <li class="{% if paso == '1' %}actual{% else %}hecho{% endif %}"{% if paso == '1' %} aria-current="step"{% endif %}>
+        <span class="linea-estado-punto">{% if paso == '1' %}1{% else %}<i class="bi bi-check-lg"></i>{% endif %}</span>
+        <span class="linea-estado-texto"><b>Pendiente</b><small>Registrado el {{ pedido.Fecha_pedido|date:"d/m/Y" }}{% if pedido.vencido %} · nadie lo confirmó a tiempo{% elif paso == '1' %} · esperando que la empresa lo confirme{% endif %}</small></span>
+    </li>
+    <li class="{% if paso == '2' %}actual{% elif paso > '2' %}hecho{% endif %}"{% if paso == '2' %} aria-current="step"{% endif %}>
+        <span class="linea-estado-punto">{% if paso > '2' %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</span>
+        <span class="linea-estado-texto"><b>Confirmado</b><small>{% if paso >= '2' %}La empresa lo aceptó{% else %}Cuando la empresa lo acepte{% endif %}</small></span>
+    </li>
+    <li class="{% if paso == '3' %}actual{% elif paso > '3' %}hecho{% endif %}"{% if paso == '3' %} aria-current="step"{% endif %}>
+        <span class="linea-estado-punto">{% if paso > '3' %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}</span>
+        <span class="linea-estado-texto"><b>En curso</b><small>{% if pedido.inicio_real %}Empezó el {{ pedido.inicio_real|date:"d/m" }} a las {{ pedido.inicio_real|time:"H:i" }}{% else %}Empieza el {{ pedido.fecha_servicio|date:"d/m" }} a las {{ pedido.hora_servicio|time:"H:i" }}{% endif %}</small></span>
+    </li>
+    <li class="{% if paso == '4' %}hecho actual{% endif %}"{% if paso == '4' %} aria-current="step"{% endif %}>
+        <span class="linea-estado-punto">{% if paso == '4' %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}</span>
+        <span class="linea-estado-texto"><b>Finalizado</b><small>{% if pedido.fin_real %}Terminó el {{ pedido.fin_real|date:"d/m" }} a las {{ pedido.fin_real|time:"H:i" }}{% elif paso == '4' %}Mudanza hecha{% else %}Cuando termine la mudanza{% endif %}</small></span>
+    </li>
+</ol>
+{% endif %}

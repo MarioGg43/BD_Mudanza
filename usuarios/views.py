@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
@@ -166,6 +167,33 @@ def usuario_portal(request):
         'vehiculos': vehiculos,
         'mudanzas': mudanzas,
     })
+
+# ---- MI CUENTA: cada persona ve sus datos y cambia su clave; el cliente, también su correo y teléfono ----
+def mi_cuenta(request):
+    usuario = get_usuario_actual(request)
+    if not usuario:
+        return redirect('login')
+    # el personal no cambia su correo solo: eso lo hace el administrador (Hito 2)
+    edita_datos = tiene_permiso(usuario, 'PED_REGISTRAR')
+    errores, datos = {}, {'correo': usuario.Correo, 'telefono': usuario.Telefono or ''}
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+        try:
+            if accion == 'datos' and edita_datos:
+                datos = {'correo': request.POST.get('correo', ''), 'telefono': request.POST.get('telefono', '')}
+                operaciones.actualizar_mis_datos(usuario, datos['correo'], datos['telefono'])
+                messages.success(request, 'Guardamos tus datos.')
+                return redirect('mi_cuenta')
+            if accion == 'clave':
+                operaciones.cambiar_mi_clave(usuario, request.POST.get('actual', ''),
+                                             request.POST.get('nueva', ''), request.POST.get('confirmar', ''))
+                messages.success(request, 'Listo, cambiamos tu clave. La próxima vez entrá con la nueva.')
+                return redirect('mi_cuenta')
+        except operaciones.ErrorUsuario as e:
+            errores = {'accion': accion, (e.campo or 'general'): str(e)}
+    return render(request, 'mi_cuenta.html', {
+        'usuario_actual': usuario, 'edita_datos': edita_datos, 'datos': datos, 'errores': errores})
+
 
 def sin_permisos(request):
     if not get_usuario_actual(request):

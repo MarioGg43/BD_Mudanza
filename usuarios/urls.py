@@ -5,6 +5,7 @@ urlpatterns = [
     path('panel/', views.admin_dashboard, name='admin_dashboard'),
     path('portal/', views.usuario_portal, name='usuario_portal'),
     path('sin-permisos/', views.sin_permisos, name='sin_permisos'),
+    path('mi-cuenta/', views.mi_cuenta, name='mi_cuenta'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('cambiar-clave-obligatoria/', views.cambiar_clave_obligatoria, name='cambiar_clave_obligatoria'),

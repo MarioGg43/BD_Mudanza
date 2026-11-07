@@ -1,0 +1,4 @@
+{% comment %}
+  Las etiquetas de estado de un pedido en la lista (tabla y tarjetas). Al cliente no se le muestran
+  los avisos del trabajo de la empresa (para finalizar, atrasada).
+{% endcomment %}{% if ve_todos %}{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido para_finalizar=p.para_finalizar atrasada=p.atrasada en_curso=p.en_curso %}{% else %}{% include 'pedidos/_estado.html' with estado=p.estado vencido=p.vencido en_curso=p.en_curso %}{% endif %}{% if p.horario_cambiado %} <span class="badge text-bg-info"><i class="bi bi-calendar2-week me-1"></i>Cambió el horario</span>{% endif %}

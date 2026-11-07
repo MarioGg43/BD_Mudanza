@@ -640,3 +640,35 @@ class FechaYHoraTest(BaseVistas):
             'inv-TOTAL_FORMS': 1, 'inv-INITIAL_FORMS': 0, 'inv-MIN_NUM_FORMS': 1, 'inv-MAX_NUM_FORMS': 50,
             'inv-0-objeto': Objeto.objects.get(nom_objeto='Cajas').pk, 'inv-0-cantidad': 2})
         self.assertContains(r, 'tiene que ser de hoy en adelante')
+
+
+class LineaDeEstadoYTarjetasTest(BaseVistas):
+    def linea(self, pedido):
+        import re
+        html = self.client.get(f'/pedidos/{pedido.pk}/').content.decode()
+        return re.findall(r'<li class="([^"]*)"(?: aria-current="step")?>\s*<span class="linea-estado-punto">', html)
+
+    def test_cada_estado_marca_su_paso(self):
+        self.entrar(self.cliente.DNI)
+        p = self.pedido_de(self.cliente)
+        self.assertEqual(self.linea(p), ['actual', '', '', ''])                       # pendiente
+        reglas.confirmar(self.con_chofer(p).pk)
+        self.assertEqual(self.linea(p), ['hecho', 'actual', '', ''])                  # confirmado
+        Pedido.objects.filter(pk=p.pk).update(inicio_real=timezone.now())
+        self.assertEqual(self.linea(p), ['hecho', 'hecho', 'actual', ''])             # en curso
+        Pedido.objects.filter(pk=p.pk).update(estado=Pedido.FINALIZADO, fin_real=timezone.now())
+        self.assertEqual(self.linea(p), ['hecho', 'hecho', 'hecho', 'hecho actual'])  # finalizado
+
+    def test_un_anulado_no_la_muestra(self):
+        self.entrar(self.cliente.DNI)
+        p = self.pedido_de(self.cliente)
+        Pedido.objects.filter(pk=p.pk).update(estado=Pedido.ANULADO)
+        self.assertNotContains(self.client.get(f'/pedidos/{p.pk}/'), 'class="linea-estado')
+
+    def test_la_lista_trae_tarjetas_para_el_celular(self):
+        p = self.pedido_de(self.cliente)
+        self.entrar(self.cliente.DNI)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, 'class="card-panel bg-white p-0 overflow-auto d-none d-md-block"')  # la tabla
+        self.assertContains(r, '<ul class="list-unstyled d-md-none mb-0"')                        # las tarjetas
+        self.assertContains(r, f'aria-label="Ver el pedido N° {p.pk}"')

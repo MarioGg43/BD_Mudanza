@@ -39,6 +39,7 @@
             <a href="{% url 'usuario_portal' %}"{% if vista == 'usuario_portal' %} class="activo" aria-current="page"{% endif %}>Portal</a>
             {% endif %}
             {% if usuario_sesion %}
+            <a href="{% url 'mi_cuenta' %}"{% if vista == 'mi_cuenta' %} class="activo" aria-current="page"{% endif %}>Mi cuenta</a>
             <a href="{% url 'logout' %}" title="Cerrar la sesión de {{ usuario_sesion.Nombre }} {{ usuario_sesion.Apellido }}">Salir <i class="bi bi-box-arrow-right"></i></a>
             {% else %}
             {# visitantes: las partes de la página de inicio de la empresa #}

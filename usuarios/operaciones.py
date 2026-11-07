@@ -1,6 +1,8 @@
 """Reglas del ABM de usuarios (Hito 2). Las usan el panel de Django (views.py) y la API de React
 (api/views_usuarios.py), así una regla se escribe una sola vez.
 `actor` es quien hace la operación: no puede actuar sobre roles con más permisos que el suyo."""
+import re
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
@@ -17,8 +19,9 @@ MENSAJE_ROL_SUPERIOR = 'No podés operar sobre un rol con más permisos administ
 class ErrorUsuario(Exception):
     """Un error para mostrarle a la persona; `status` es el código HTTP (400 o 403)."""
 
-    def __init__(self, mensaje, status=400):
+    def __init__(self, mensaje, status=400, campo=None):
         self.status = status
+        self.campo = campo  # el campo del formulario al que se refiere, si es uno solo
         super().__init__(mensaje)
 
 
@@ -169,3 +172,51 @@ def cambiar_rol(actor, usuario, id_rol):
     usuario.idRol = rol
     usuario.save()
     return anterior
+
+
+# ---- «Mi cuenta»: cada persona cambia lo suyo (no hace falta ningún permiso de administración) ----
+TELEFONO_VALIDO = re.compile(r'^\+?[\d\s-]{7,20}$')
+
+
+def _validar_telefono(telefono):
+    """Opcional. Si se escribe: números, espacios, guiones y un + al principio, de 7 a 15 dígitos."""
+    telefono = (telefono or '').strip()
+    if not telefono:
+        return None
+    digitos = sum(c.isdigit() for c in telefono)
+    if not TELEFONO_VALIDO.match(telefono) or not 7 <= digitos <= 15:
+        raise ErrorUsuario('Escribí un teléfono válido: solo números (con código de área), por ejemplo 387 4112233.',
+                           campo='telefono')
+    return telefono
+
+
+def actualizar_mis_datos(usuario, correo, telefono):
+    """El cliente cambia su correo y su teléfono desde «Mi cuenta». El correo sigue siendo único."""
+    correo = (correo or '').strip().lower()
+    try:
+        validate_email(correo)
+    except ValidationError:
+        raise ErrorUsuario('Escribí un correo válido.', campo='correo')
+    if Usuario.objects.filter(Correo=correo).exclude(pk=usuario.pk).exists():
+        raise ErrorUsuario('Ese correo ya lo usa otra cuenta.', campo='correo')
+    usuario.Telefono = _validar_telefono(telefono)
+    usuario.Correo = correo
+    usuario.save()
+    return usuario
+
+
+def cambiar_mi_clave(usuario, actual, nueva, confirmar):
+    """Cambio de clave voluntario desde «Mi cuenta»: pide la clave actual, como en cualquier sistema."""
+    if not usuario.verificar_clave(actual or ''):
+        raise ErrorUsuario('La clave actual no coincide.', campo='actual')
+    if nueva != confirmar:
+        raise ErrorUsuario('Las dos claves nuevas no coinciden.', campo='confirmar')
+    valida, msg = validate_strong_password(nueva)
+    if not valida:
+        raise ErrorUsuario(msg, campo='nueva')
+    if (nueva or '').strip() == (actual or '').strip():
+        raise ErrorUsuario('La clave nueva tiene que ser distinta de la actual.', campo='nueva')
+    usuario.set_clave(nueva)
+    usuario.DebeCambiarClave = False
+    usuario.save()
+    return usuario

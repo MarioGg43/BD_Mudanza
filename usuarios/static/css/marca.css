@@ -501,3 +501,28 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover { color: rgba(35, 26, 21, .25); }
 .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--tinta); }
 input[data-calendario] + .form-control[readonly] { background-color: #fff; cursor: pointer; }
+
+/* línea de estado del pedido (pedidos/_linea_estado.html): de izquierda a derecha; en el celular, de arriba abajo */
+.linea-estado { list-style: none; display: flex; gap: .5rem; margin: 0; }
+.linea-estado li { flex: 1 1 0; display: flex; align-items: flex-start; gap: .6rem; position: relative; color: var(--tinta-2); }
+.linea-estado li:not(:last-child)::after {
+  content: ''; position: absolute; top: 16px; left: 42px; right: 4px; height: 3px;
+  background: var(--linea); border-radius: 2px;
+}
+.linea-estado li.hecho:not(:last-child)::after { background: var(--naranja-osc); }
+.linea-estado-punto {
+  flex: 0 0 34px; height: 34px; border-radius: 50%; display: inline-grid; place-items: center;
+  background: #fff; border: 2px solid var(--linea); font-weight: 700; position: relative; z-index: 1;
+}
+.linea-estado li.hecho .linea-estado-punto { background: var(--naranja-osc); border-color: var(--naranja-osc); color: #fff; }
+.linea-estado li.actual .linea-estado-punto { border-color: var(--naranja-osc); box-shadow: 0 0 0 4px var(--naranja-suave); color: var(--naranja-osc); }
+.linea-estado li.hecho.actual .linea-estado-punto { color: #fff; }
+.linea-estado-texto { display: flex; flex-direction: column; padding-top: 40px; margin-left: -40px; line-height: 1.25; }
+.linea-estado-texto b { color: var(--tinta); }
+.linea-estado li.actual .linea-estado-texto b { color: var(--naranja-osc); }
+.linea-estado-texto small { font-size: .78rem; }
+@media (max-width: 767.98px) {
+  .linea-estado { flex-direction: column; gap: 1rem; }
+  .linea-estado li:not(:last-child)::after { top: 36px; bottom: -18px; left: 15px; right: auto; width: 3px; height: auto; }
+  .linea-estado-texto { padding-top: 4px; margin-left: 0; }
+}
