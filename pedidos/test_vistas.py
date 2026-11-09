@@ -672,3 +672,20 @@ class LineaDeEstadoYTarjetasTest(BaseVistas):
         self.assertContains(r, 'class="card-panel bg-white p-0 overflow-auto d-none d-md-block"')  # la tabla
         self.assertContains(r, '<ul class="list-unstyled d-md-none mb-0"')                        # las tarjetas
         self.assertContains(r, f'aria-label="Ver el pedido N° {p.pk}"')
+
+
+class PaginacionListaTest(BaseVistas):
+    def test_de_a_25_y_conserva_los_filtros(self):
+        from pedidos.views import POR_PAGINA
+        # pedidos directos (sin pasar por las reglas de disponibilidad) para llegar a más de una página
+        base = self.pedido_de(self.cliente)
+        for _ in range(POR_PAGINA + 2):
+            base.pk = None
+            base.save()
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/', {'estado': 'Pendiente'})
+        self.assertEqual(len(r.context['pedidos']), POR_PAGINA)
+        self.assertContains(r, 'Página 1 de 2')
+        self.assertContains(r, 'href="?estado=Pendiente&amp;pagina=2"')
+        r = self.client.get('/pedidos/', {'estado': 'Pendiente', 'pagina': 2})
+        self.assertEqual(len(r.context['pedidos']), 3)

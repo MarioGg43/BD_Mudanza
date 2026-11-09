@@ -1,9 +1,10 @@
 """Pantallas del pedido de mudanza (Hito 3). Las reglas viven en reglas.py."""
 from datetime import date, time
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -18,6 +19,9 @@ from .pdf import respuesta_pdf
 from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
                     RegistroClienteForm, ReprogramarForm, ServiciosPedidoForm, objetos_para_elegir)
 from .permisos import requiere_permiso, tiene_permiso
+
+
+POR_PAGINA = 25
 
 
 def _ve_todos(usuario):
@@ -51,7 +55,9 @@ def lista(request):
     form, ve_todos, pedidos = _consulta(request)
     avisos = reglas.contar_avisos() if ve_todos else {}
     atrasadas = {p.pk for p in reglas.mudanzas_atrasadas()} if ve_todos else set()
-    pedidos = list(pedidos)
+    # de a 25 por página: con cientos de pedidos la lista entera tardaba en cargar
+    pagina = Paginator(pedidos, POR_PAGINA).get_page(request.GET.get('pagina'))
+    pedidos = list(pagina.object_list)
     # al cliente se le marca el pedido que cambió de horario y todavía no abrió
     cambiados = set() if ve_todos else set(Reprogramacion.objects.filter(
         idPedido__in=[p.pk for p in pedidos], visto_cliente=False).values_list('idPedido', flat=True))
@@ -59,7 +65,8 @@ def lista(request):
         p.atrasada = p.pk in atrasadas
         p.horario_cambiado = p.pk in cambiados
     return render(request, 'pedidos/lista.html', {
-        'form': form, 've_todos': ve_todos, 'pedidos': pedidos, 'atrasadas': avisos.get(reglas.ATRASADA),
+        'form': form, 've_todos': ve_todos, 'pedidos': pedidos, 'pagina': pagina,
+        'consulta': urlencode({k: v for k, v in request.GET.items() if k != 'pagina'}), 'atrasadas': avisos.get(reglas.ATRASADA),
         'vencidos': avisos.get(reglas.VENCIDO), 'para_finalizar': avisos.get(reglas.PARA_FINALIZAR),
         'por_confirmar': avisos.get(reglas.POR_CONFIRMAR), 'dias_por_confirmar': reglas.DIAS_POR_CONFIRMAR,
         'sin_chofer': avisos.get(reglas.SIN_CHOFER),

@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1">{% if ve_todos %}Pedidos{% else %}Mis pedidos{% endif %}</h1>
-        <p class="text-muted mb-0">{{ pedidos|length }} pedido{{ pedidos|length|pluralize }}.</p>
+        <p class="text-muted mb-0">{{ pagina.paginator.count }} pedido{{ pagina.paginator.count|pluralize }}{% if pagina.paginator.num_pages > 1 %} · mostrando del {{ pagina.start_index }} al {{ pagina.end_index }}{% endif %}.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
     <a href="{% url 'pedidos_descargar' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
@@ -110,5 +110,20 @@
     <li class="card-panel bg-white p-4 text-center text-muted">No hay pedidos con esos filtros.</li>
     {% endfor %}
 </ul>
+{% if pagina.paginator.num_pages > 1 %}
+<nav class="d-flex justify-content-center mt-3" aria-label="Páginas de pedidos">
+    <ul class="pagination mb-0">
+        {% if pagina.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{{ consulta }}{% if consulta %}&amp;{% endif %}pagina=1" aria-label="Primera página">«</a></li>
+        <li class="page-item"><a class="page-link" href="?{{ consulta }}{% if consulta %}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" aria-label="Página anterior">‹</a></li>
+        {% endif %}
+        <li class="page-item active" aria-current="page"><span class="page-link">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span></li>
+        {% if pagina.has_next %}
+        <li class="page-item"><a class="page-link" href="?{{ consulta }}{% if consulta %}&amp;{% endif %}pagina={{ pagina.next_page_number }}" aria-label="Página siguiente">›</a></li>
+        <li class="page-item"><a class="page-link" href="?{{ consulta }}{% if consulta %}&amp;{% endif %}pagina={{ pagina.paginator.num_pages }}" aria-label="Última página">»</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% include 'pedidos/_fecha_hora.html' %}
 {% endblock %}
