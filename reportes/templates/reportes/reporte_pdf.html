@@ -1,0 +1,46 @@
+{% load reportes %}<html><head><meta charset="utf-8">
+<style>
+    /* pie en todas las hojas: filtros, quién lo emitió, cuándo y el número de página */
+    @page { size: A4 landscape; margin: 1.4cm 1.4cm 2.2cm 1.4cm;
+            @frame pie { -pdf-frame-content: pie; left: 1.4cm; right: 1.4cm; bottom: 0.6cm; height: 1.3cm; } }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #231A15; }
+    h1 { font-size: 15pt; margin: 0; }
+    h2 { font-size: 9.5pt; color: #C04F00; text-transform: uppercase; margin: 10px 0 4px; }
+    table { width: 100%; }
+    th { background-color: #FFF0E2; text-align: left; padding: 4px; font-size: 8.5pt; }
+    td { padding: 3px 4px; border-bottom: 0.5px solid #EEE4DD; vertical-align: top; }
+    .num { text-align: right; }
+    .cab td { border: none; }
+    .linea { border-bottom: 2px solid #FF7A00; margin: 6px 0 8px; }
+    .total td { font-weight: bold; background-color: #FAF6F3; border-top: 1px solid #C04F00; }
+    #pie { font-size: 7.5pt; color: #5E524B; border-top: 0.5px solid #C04F00; padding-top: 3px; }
+</style></head><body>
+<table class="cab"><tr>
+    <td width="18%"><img src="/static/img/logo.png" width="110"></td>
+    <td><b>Mudanzas y Fletes Salta</b><br>Barrio El Huaico, Salta · Tel. 387 473-2192 · info@mudanzassalta.com.ar</td>
+    <td class="num"><h1>{{ reporte.titulo }}</h1>Reporte consolidado · {{ reporte.cruza }}</td>
+</tr></table>
+<div class="linea"></div>
+
+{% if datos.resumen %}
+<h2>Resumen por motivo</h2>
+<table>
+<tr><th>Tipo</th><th>Motivo</th><th class="num">Cantidad</th><th class="num">% del total</th></tr>
+{% for r in datos.resumen %}<tr><td>{{ r.tipo }}</td><td>{{ r.motivo }}</td><td class="num">{{ r.cantidad }}</td><td class="num">{{ r.porcentaje|formato:"porcentaje" }}</td></tr>{% endfor %}
+</table>
+<h2>Detalle</h2>
+{% endif %}
+<table repeat="1">
+<tr>{% for titulo, clave_col, tipo in datos.columnas %}<th{% if tipo|es_numero %} class="num"{% endif %}>{{ titulo }}</th>{% endfor %}</tr>
+{% for fila in datos.filas %}<tr>{% for titulo, clave_col, tipo in datos.columnas %}<td{% if tipo|es_numero %} class="num"{% endif %}>{% if clave_col == 'pedido' %}N° {{ fila.pedido }}{% else %}{{ fila|dato:clave_col|formato:tipo }}{% endif %}</td>{% endfor %}</tr>
+{% empty %}<tr><td colspan="{{ datos.columnas|length }}">No hay datos para esos filtros.</td></tr>{% endfor %}
+{% if datos.filas %}<tr class="total">{% for titulo, clave_col, tipo in datos.columnas %}<td{% if tipo|es_numero %} class="num"{% endif %}>{% if forloop.first %}Total: {% endif %}{% if tipo == 'fechahora' %}{{ datos.totales|dato:clave_col }}{% else %}{{ datos.totales|dato:clave_col|formato:tipo }}{% endif %}</td>{% endfor %}</tr>{% endif %}
+</table>
+<p style="font-size: 8pt; color: #5E524B;">{{ datos.nota }}</p>
+
+<div id="pie">
+    <b>Filtros:</b> {% for etiqueta, valor in filtros_usados %}{{ etiqueta }}: {{ valor }}{% if not forloop.last %} · {% endif %}{% empty %}ninguno{% endfor %}
+    · <b>Emitido por:</b> {{ usuario.Nombre }} {{ usuario.Apellido }} ({{ usuario.NombreUsuario }}) el {{ emitido|date:"d/m/Y" }} a las {{ emitido|time:"H:i" }}
+    · Página <pdf:pagenumber> de <pdf:pagecount>
+</div>
+</body></html>

@@ -35,6 +35,9 @@
             {% if 'AUD_CONSULTAR' in permisos %}
             <a href="{% url 'auditoria_lista' %}"{% if '/auditoria/' in ruta %} class="activo" aria-current="page"{% endif %}>Auditoría</a>
             {% endif %}
+            {% if 'REP_CONSULTAR' in permisos or 'REP_FINANZAS' in permisos %}
+            <a href="{% url 'reportes_indice' %}"{% if '/reportes/' in ruta %} class="activo" aria-current="page"{% endif %}>Reportes</a>
+            {% endif %}
             {% if 'MUDANZAS_OPERAR' in permisos %}
             <a href="{% url 'usuario_portal' %}"{% if vista == 'usuario_portal' %} class="activo" aria-current="page"{% endif %}>Portal</a>
             {% endif %}

@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'vehiculos',
     'usuarios',
     'pedidos',
+    'reportes',
     'api',
 ]
 

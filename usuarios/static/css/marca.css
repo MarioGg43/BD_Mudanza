@@ -526,3 +526,8 @@ input[data-calendario] + .form-control[readonly] { background-color: #fff; curso
   .linea-estado li:not(:last-child)::after { top: 36px; bottom: -18px; left: 15px; right: auto; width: 3px; height: auto; }
   .linea-estado-texto { padding-top: 4px; margin-left: 0; }
 }
+
+/* reportes consolidados (Parcial N° 2) */
+.tarjeta-reporte { transition: transform .15s, box-shadow .15s; }
+.tarjeta-reporte:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -18px rgba(70, 30, 5, .5); }
+.tabla-reporte .fila-total td { font-weight: 700; background: var(--fondo); border-top: 2px solid var(--naranja-osc); }
