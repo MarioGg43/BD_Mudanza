@@ -426,11 +426,16 @@ tabla(['Tabla', 'Campos'], [
 parrafo('DFD: cambiar «Asignar Recursos al Pedido» (registra la salida de materiales) y agregar '
         '«Registrar Ingreso de Material».')
 
-titulo('4.2 Cobros (sin pagos en línea)', 2)
-parrafo('Registrar el cobro al finalizar el pedido: monto y método de pago elegido de una lista fija '
-        '(Efectivo, Transferencia, Tarjeta, Mercado Pago). Usa COBRANZAS y DETALLE_COBRANZAS, que ya '
-        'están en el DER. Si se decide no hacerlo, hay que sacar esas tablas del DER y la cobranza del '
-        'documento y la presentación.')
+titulo('5. Fuera del alcance: cobros (decidido el 09/11/2026)', 1)
+parrafo('El grupo decidió que los cobros quedan totalmente fuera del alcance del sistema. Por eso:')
+lista([
+    ('DER: ', 'sacar las tablas COBRANZAS y DETALLE_COBRANZAS y sus relaciones con PEDIDOS.'),
+    ('DFD: ', 'no hace falta ningún DFD de cobros; si algún diagrama menciona un almacén «Cobranzas», sacarlo.'),
+    ('Documento y presentación: ', 'sacar la cobranza de los objetivos, el alcance y los requerimientos, y '
+                                   'agregarla en «Fuera del alcance».'),
+    ('Sistema: ', 'las dos tablas todavía existen en la base (vacías, ninguna pantalla las usa). Se pueden quitar '
+                  'con una migración cuando el grupo lo confirme.'),
+])
 
 doc.save(SALIDA)
 print('ok', SALIDA)
