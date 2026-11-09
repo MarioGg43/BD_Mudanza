@@ -10,11 +10,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/marca.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/marca.css' %}?v=12">
 </head>
-<body>
+<body{% if menu_lateral %} class="con-lateral"{% endif %}>
 
-    {% include '_cabecera.html' %}
+    {% include '_navegacion.html' %}
 
     <main class="container mb-5">
         {% if messages %}

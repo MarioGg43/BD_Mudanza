@@ -174,7 +174,7 @@ class BandejaTest(BaseAlertas):
         r = self.client.get('/notificaciones/')
         self.assertContains(r, 'Para el administrador')
         self.assertNotContains(r, 'Para María')
-        self.assertContains(r, 'class="campanita-numero">1<')
+        self.assertContains(r, 'class="barra-numero">1<')  # la campanita de la barra de arriba (menú lateral)
         self.entrar(CLIENTE)
         self.assertContains(self.client.get('/notificaciones/'), 'Para María')
 

@@ -56,7 +56,7 @@ class VehiculosTest(TestCase):
 
     def test_con_sesion_la_portada_lleva_a_la_pantalla_de_cada_rol(self):
         # la portada (Ver vehículos / Ingresar) es solo para visitantes
-        for dni, destino in ((29876543, '/pedidos/'), (ADMIN, '/pedidos/'), (CHOFER, '/portal/')):
+        for dni, destino in ((29876543, '/pedidos/'), (ADMIN, '/tablero/'), (CHOFER, '/portal/')):
             self.entrar(dni)
             self.assertRedirects(self.client.get('/'), destino, msg_prefix=str(dni))
 

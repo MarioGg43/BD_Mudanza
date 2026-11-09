@@ -1,0 +1,96 @@
+{% load static %}
+{% comment %}
+  Menú lateral del personal (administrador, chofer, ayudante): las opciones agrupadas por sección,
+  cada una solo si el rol tiene el permiso, con el número de lo pendiente al lado. Arriba del
+  contenido, una barra con la fecha, la campanita y el usuario. En el celular el menú se esconde
+  y se abre con el botón de las tres rayas. El cliente sigue con el menú de arriba (_cabecera.html).
+{% endcomment %}
+{% with ruta=request.path vista=request.resolver_match.url_name %}
+<aside class="lateral" id="menuLateral" aria-label="Menú principal">
+    <a href="{% url 'inicio' %}" class="lateral-marca">
+        <span class="logo-pastilla"><img src="{% static 'vehiculos/logo.png' %}" alt=""></span>
+        <span><b>Mudanzas y Fletes Salta</b><small>Panel de gestión</small></span>
+    </a>
+
+    {% if 'PED_GESTIONAR' in permisos %}
+    <a href="{% url 'pedidos_lista' %}?estado=Pendiente" class="lateral-accion">
+        <i class="bi bi-clipboard-check"></i><span>Pedidos por confirmar</span><b>{{ pedidos_pendientes }}</b>
+    </a>
+    {% elif 'MUDANZAS_OPERAR' in permisos %}
+    <a href="{% url 'usuario_portal' %}" class="lateral-accion"><i class="bi bi-truck"></i><span>Mis mudanzas</span><i class="bi bi-arrow-right"></i></a>
+    {% endif %}
+
+    <nav class="lateral-menu">
+        <p class="lateral-seccion">Principal</p>
+        {% if 'PED_GESTIONAR' in permisos and 'PED_CONSULTAR' in permisos %}
+        <a href="{% url 'tablero' %}"{% if vista == 'tablero' %} class="activo" aria-current="page"{% endif %}><i class="bi bi-speedometer2"></i>Tablero</a>
+        {% endif %}
+        <a href="{% url 'notificaciones_bandeja' %}"{% if '/notificaciones/' in ruta and vista != 'notificaciones_configuracion' %} class="activo" aria-current="page"{% endif %}>
+            <i class="bi bi-bell"></i>Notificaciones{% if notificaciones_sin_leer %}<span class="lateral-numero rojo">{{ notificaciones_sin_leer }}</span>{% endif %}</a>
+
+        {% if 'PED_CONSULTAR' in permisos or 'MUDANZAS_OPERAR' in permisos %}
+        <p class="lateral-seccion">Operación</p>
+        {% if 'PED_CONSULTAR' in permisos %}
+        <a href="{% url 'pedidos_lista' %}"{% if '/pedidos/' in ruta %} class="activo" aria-current="page"{% endif %}>
+            <i class="bi bi-box-seam"></i>Pedidos{% if pedidos_pendientes %}<span class="lateral-numero">{{ pedidos_pendientes }}</span>{% endif %}</a>
+        {% endif %}
+        {% if 'MUDANZAS_OPERAR' in permisos %}
+        <a href="{% url 'usuario_portal' %}"{% if vista == 'usuario_portal' %} class="activo" aria-current="page"{% endif %}><i class="bi bi-person-badge"></i>Portal del personal</a>
+        {% endif %}
+        {% endif %}
+
+        {% if 'VEH_GESTIONAR' in permisos or 'SRV_GESTIONAR' in permisos or 'OBJ_GESTIONAR' in permisos %}
+        <p class="lateral-seccion">Catálogo</p>
+        {% if 'VEH_GESTIONAR' in permisos %}<a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-truck"></i>Vehículos</a>{% endif %}
+        {% if 'SRV_GESTIONAR' in permisos %}<a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-tags"></i>Servicios</a>{% endif %}
+        {% if 'OBJ_GESTIONAR' in permisos %}<a href="{% url 'objetos_lista' %}"{% if '/objetos/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-archive"></i>Objetos</a>{% endif %}
+        {% endif %}
+
+        {% if 'REP_CONSULTAR' in permisos or 'REP_FINANZAS' in permisos or 'AUD_CONSULTAR' in permisos %}
+        <p class="lateral-seccion">Análisis</p>
+        {% if 'REP_CONSULTAR' in permisos or 'REP_FINANZAS' in permisos %}<a href="{% url 'reportes_indice' %}"{% if '/reportes/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-bar-chart-line"></i>Reportes</a>{% endif %}
+        {% if 'AUD_CONSULTAR' in permisos %}<a href="{% url 'auditoria_lista' %}"{% if '/auditoria/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-clock-history"></i>Auditoría</a>{% endif %}
+        {% endif %}
+
+        {% if 'USR_CONSULTAR' in permisos or 'ROL_GESTIONAR' in permisos or 'CFG_GESTIONAR' in permisos %}
+        <p class="lateral-seccion">Seguridad</p>
+        {% if 'USR_CONSULTAR' in permisos %}<a href="{% url 'admin_dashboard' %}"{% if vista == 'admin_dashboard' %} class="activo" aria-current="page"{% endif %}><i class="bi bi-people"></i>Usuarios</a>{% endif %}
+        {% if 'ROL_GESTIONAR' in permisos %}<a href="{% url 'roles_lista' %}"{% if '/roles/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-shield-lock"></i>Roles</a>{% endif %}
+        {% if 'CFG_GESTIONAR' in permisos %}<a href="{% url 'notificaciones_configuracion' %}"{% if vista == 'notificaciones_configuracion' %} class="activo" aria-current="page"{% endif %}><i class="bi bi-sliders"></i>Umbrales de alertas</a>{% endif %}
+        {% endif %}
+    </nav>
+
+    <div class="lateral-usuario">
+        <span class="lateral-avatar" aria-hidden="true">{{ usuario_sesion.Nombre|first|upper }}</span>
+        <a href="{% url 'mi_cuenta' %}" class="lateral-usuario-datos"><b>{{ usuario_sesion.Nombre }} {{ usuario_sesion.Apellido }}</b><small>{{ usuario_sesion.idRol.nom_rol }}</small></a>
+        <a href="{% url 'logout' %}" class="lateral-salir" title="Salir" aria-label="Cerrar la sesión"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+</aside>
+<div class="lateral-fondo" id="fondoLateral" hidden></div>
+
+<header class="barra-superior">
+    <button type="button" class="barra-boton solo-celular" id="abrirLateral" aria-controls="menuLateral" aria-expanded="false" aria-label="Abrir el menú"><i class="bi bi-list"></i></button>
+    <span class="barra-fecha"><i class="bi bi-calendar3" style="margin-right:.35rem"></i>{% now "l j \d\e F, H:i" %}</span>
+    <div class="barra-derecha">
+        <a href="{% url 'notificaciones_bandeja' %}" class="barra-boton" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}">
+            <i class="bi bi-bell{% if notificaciones_sin_leer %}-fill{% endif %}"></i>{% if notificaciones_sin_leer %}<span class="barra-numero">{% if notificaciones_sin_leer > 99 %}99+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}
+        </a>
+        <a href="{% url 'mi_cuenta' %}" class="barra-usuario"><span class="lateral-avatar chico" aria-hidden="true">{{ usuario_sesion.Nombre|first|upper }}</span><span class="solo-ancho">{{ usuario_sesion.Nombre }}</span></a>
+    </div>
+</header>
+<script>
+(function () {
+  // en el celular, el menú lateral se abre y se cierra con el botón de las tres rayas
+  const menu = document.getElementById('menuLateral'), fondo = document.getElementById('fondoLateral');
+  const boton = document.getElementById('abrirLateral');
+  function poner(abierto) {
+    menu.classList.toggle('abierto', abierto);
+    fondo.hidden = !abierto;
+    boton.setAttribute('aria-expanded', abierto);
+  }
+  boton.addEventListener('click', () => poner(!menu.classList.contains('abierto')));
+  fondo.addEventListener('click', () => poner(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') poner(false); });
+})();
+</script>
+{% endwith %}

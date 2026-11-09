@@ -1,0 +1,131 @@
+{% extends 'vehiculos/base.html' %}
+{% load static reportes %}
+{% block title %}Tablero{% endblock %}
+{% block content %}
+
+{# ---------- saludo con lo de hoy ---------- #}
+<section class="tablero-saludo mb-4">
+    <div>
+        <span class="tablero-fecha"><i class="bi bi-sun me-1"></i>{{ hoy|date:"l j \d\e F \d\e Y"|capfirst }}</span>
+        <h1 class="h2 fw-bold mt-2 mb-1">{{ saludo }}, {{ usuario_sesion.Nombre }} <span aria-hidden="true">👋</span></h1>
+        <p class="mb-3">Así viene <b>Mudanzas y Fletes Salta</b> hoy. ¡A cargar el camión!</p>
+        <div class="d-flex flex-wrap gap-2">
+            <div class="tablero-mini"><b>{{ mudanzas_hoy }}</b><span>mudanza{{ mudanzas_hoy|pluralize }} hoy</span></div>
+            <div class="tablero-mini"><b>{{ en_curso }}</b><span>en curso ahora</span></div>
+            <div class="tablero-mini"><b>{{ por_confirmar }}</b><span>por confirmar</span></div>
+            <div class="tablero-mini"><b>{{ disponibles }}/{{ flota }}</b><span>vehículos disponibles</span></div>
+        </div>
+    </div>
+    <div class="tablero-dibujo d-none d-md-grid" aria-hidden="true">
+        <img src="{% static 'vehiculos/logo.png' %}" alt="">
+    </div>
+</section>
+
+{# ---------- accesos rápidos ---------- #}
+<nav class="tablero-accesos mb-4" aria-label="Accesos rápidos">
+    {% if 'PED_CONSULTAR' in permisos %}<a href="{% url 'pedidos_lista' %}?estado=Pendiente"><span class="acceso-icono naranja"><i class="bi bi-clipboard-check"></i></span><span><b>Por confirmar</b><small>{{ por_confirmar }} pedido{{ por_confirmar|pluralize }}</small></span></a>{% endif %}
+    {% if 'PED_CONSULTAR' in permisos %}<a href="{% url 'pedidos_lista' %}"><span class="acceso-icono violeta"><i class="bi bi-box-seam"></i></span><span><b>Pedidos</b><small>Todos</small></span></a>{% endif %}
+    {% if 'VEH_GESTIONAR' in permisos %}<a href="{% url 'lista_vehiculos' %}"><span class="acceso-icono azul"><i class="bi bi-truck"></i></span><span><b>Vehículos</b><small>{{ disponibles }} disponible{{ disponibles|pluralize }}</small></span></a>{% endif %}
+    {% if 'REP_CONSULTAR' in permisos or 'REP_FINANZAS' in permisos %}<a href="{% url 'reportes_indice' %}"><span class="acceso-icono verde"><i class="bi bi-bar-chart-line"></i></span><span><b>Reportes</b><small>Con PDF</small></span></a>{% endif %}
+    <a href="{% url 'notificaciones_bandeja' %}"><span class="acceso-icono rosa"><i class="bi bi-bell"></i></span><span><b>Avisos</b><small>{{ notificaciones_sin_leer|default:0 }} sin leer</small></span></a>
+    {% if 'USR_CONSULTAR' in permisos %}<a href="{% url 'admin_dashboard' %}"><span class="acceso-icono gris"><i class="bi bi-people"></i></span><span><b>Usuarios</b><small>Altas y bajas</small></span></a>{% endif %}
+</nav>
+
+{# ---------- indicadores del mes ---------- #}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-4">
+    <div class="col"><div class="tarjeta-kpi kpi-naranja">
+        <div class="kpi-cabeza"><span>Mudanzas del mes</span><i class="bi bi-truck"></i></div>
+        <b>{{ mes.mudanzas }}</b>
+        <small>{% include 'reportes/_variacion.html' with valor=var_mudanzas %} vs. el mismo tramo del mes anterior</small>
+    </div></div>
+    <div class="col"><div class="tarjeta-kpi kpi-verde">
+        <div class="kpi-cabeza"><span>Facturación del mes</span><i class="bi bi-cash-stack"></i></div>
+        <b>{{ mes.facturacion|formato:"pesos" }}</b>
+        <small>{% include 'reportes/_variacion.html' with valor=var_facturacion %} · mudanzas finalizadas</small>
+    </div></div>
+    <div class="col"><div class="tarjeta-kpi kpi-azul">
+        <div class="kpi-cabeza"><span>Ticket promedio</span><i class="bi bi-receipt"></i></div>
+        <b>{{ mes.ticket|formato:"pesos" }}</b>
+        <small>{% include 'reportes/_variacion.html' with valor=var_ticket %} · por mudanza finalizada</small>
+    </div></div>
+    <div class="col"><div class="tarjeta-kpi kpi-rojo">
+        <div class="kpi-cabeza"><span>Cancelaciones del mes</span><i class="bi bi-x-octagon"></i></div>
+        <b>{{ mes.anulados }} <span class="fs-6 fw-semibold">({{ cancelacion|floatformat:1 }} %)</span></b>
+        <small>{% if var_cancelacion is not None %}<span class="kpi-chip">{% if var_cancelacion > 0 %}+{% endif %}{{ var_cancelacion|floatformat:1 }} pts</span>{% else %}<span class="kpi-chip">—</span>{% endif %} vs. el mes anterior</small>
+    </div></div>
+</div>
+
+{# ---------- gráficos ---------- #}
+<div class="row g-3 mb-3">
+    <div class="col-xxl-8">
+        <section class="card-panel bg-white p-3 h-100">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                    <h2 class="h6 fw-bold mb-0">Mudanzas por día</h2>
+                    <p class="small text-muted mb-0">{{ total_periodo }} en el período y lo que viene en los próximos 7 días</p>
+                </div>
+                <form method="get"><label for="periodo" class="visually-hidden">Período</label>
+                    <select id="periodo" name="periodo" class="form-select form-select-sm" onchange="this.form.submit()">
+                        {% for valor, texto in periodos.items %}<option value="{{ valor }}"{% if valor == periodo %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+                    </select>
+                </form>
+            </div>
+            <div class="grafico-caja alto"><canvas id="graficoDias" role="img" aria-label="Mudanzas por día: hechas y programadas"></canvas></div>
+        </section>
+    </div>
+    <div class="col-xxl-4">
+        <section class="card-panel bg-white p-3 h-100">
+            <h2 class="h6 fw-bold mb-0">Mudanzas por servicio</h2>
+            <p class="small text-muted mb-2">Servicio principal, en el período</p>
+            <div class="grafico-caja"><canvas id="graficoServicios" role="img" aria-label="Mudanzas por servicio"></canvas></div>
+            <ul class="list-unstyled small mt-3 mb-0 leyenda-servicios">
+                {% for etiqueta in graficos.servicios.etiquetas %}<li data-indice="{{ forloop.counter0 }}"></li>{% endfor %}
+            </ul>
+        </section>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xxl-4">
+        <section class="card-panel bg-white p-3 h-100">
+            <h2 class="h6 fw-bold mb-0">Horarios pico</h2>
+            <p class="small text-muted mb-2">Mudanzas según la hora de inicio</p>
+            <div class="grafico-caja"><canvas id="graficoHoras" role="img" aria-label="Mudanzas por hora de inicio"></canvas></div>
+        </section>
+    </div>
+    <div class="col-md-6 col-xxl-4">
+        <section class="card-panel bg-white p-3 h-100">
+            <h2 class="h6 fw-bold mb-0">Vehículos más usados</h2>
+            <p class="small text-muted mb-2">Horas de uso en el período</p>
+            <div class="grafico-caja"><canvas id="graficoVehiculos" role="img" aria-label="Horas de uso por vehículo"></canvas></div>
+        </section>
+    </div>
+    <div class="col-xxl-4">
+        <section class="card-panel bg-white p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 fw-bold mb-0">Próximas mudanzas</h2>
+                <a href="{% url 'pedidos_lista' %}" class="small">Ver todas</a>
+            </div>
+            <ul class="list-unstyled mb-0 proximas">
+                {% for p in proximas %}
+                <li>
+                    <a href="{% url 'pedidos_detalle' p.id_pedido %}" class="text-reset text-decoration-none d-flex gap-2 align-items-start">
+                        <span class="proxima-fecha"><b>{{ p.fecha_servicio|date:"d" }}</b>{{ p.fecha_servicio|date:"M" }}</span>
+                        <span class="flex-grow-1" style="min-width:0">
+                            <b class="d-block text-truncate">N° {{ p.id_pedido }} · {{ p.idUsuario.Apellido }}, {{ p.idUsuario.Nombre }}</b>
+                            <small class="text-muted">{{ p.hora_servicio|time:"H:i" }} · {{ p.patente_vehiculo_id }}{% if p.chofer %} · {{ p.chofer.Nombre }}{% else %} · <span class="text-danger">sin chofer</span>{% endif %}</small>
+                        </span>
+                        {% include 'pedidos/_estado.html' with estado=p.estado %}
+                    </a>
+                </li>
+                {% empty %}
+                <li class="text-muted small">No hay mudanzas programadas.</li>
+                {% endfor %}
+            </ul>
+        </section>
+    </div>
+</div>
+
+{{ graficos|json_script:"datos-tablero" }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="{% static 'js/tablero.js' %}?v=1" defer></script>
+{% endblock %}

@@ -91,9 +91,9 @@ class UtilidadesTest(TestCase):
 
 
 class LoginTest(BaseHito2):
-    def test_login_admin_va_a_los_pedidos(self):
+    def test_login_admin_va_al_tablero(self):
         r = self.client.post('/login/', {'usuario': 'sarmientoc', 'clave': 'Admin123!'})
-        self.assertRedirects(r, '/pedidos/')
+        self.assertRedirects(r, '/tablero/')
         self.assertIsNotNone(Usuario.objects.get(DNI=ADMIN).FechaUltimoAcceso)
 
     def test_login_con_dni_o_correo(self):

@@ -173,3 +173,38 @@ class DatosDemoTest(TestCase):
         call_command('cargar_datos_demo', borrar=True, stdout=io.StringIO())
         self.assertEqual(Pedido.objects.count(), reales)
         self.assertEqual(LogAuditoria.objects.count(), antes)  # borrar datos de prueba no ensucia la auditoría
+
+
+class TableroYMenuLateralTest(BaseReportes):
+    def test_el_tablero_del_administrador(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/tablero/')
+        self.assertContains(r, 'Mudanzas del mes')
+        self.assertContains(r, 'id="datos-tablero"')                  # los datos de los gráficos
+        self.assertContains(r, f'href="/pedidos/{self.hecha.pk}/"', count=0)  # una mudanza pasada no es «próxima»
+        datos = r.context['graficos']
+        self.assertEqual(len(datos['dias']['etiquetas']), 30 + 7)     # 30 días + los próximos 7
+        self.assertIn('Mudanza local', datos['servicios']['etiquetas'])
+        self.assertEqual(len(self.client.get('/tablero/', {'periodo': '7'}).context['graficos']['dias']['etiquetas']), 14)
+        self.assertEqual(len(self.client.get('/tablero/', {'periodo': 'raro'}).context['graficos']['dias']['etiquetas']), 37)
+
+    def test_solo_quien_gestiona_pedidos(self):
+        for dni in (CLIENTE, CHOFER):
+            self.entrar(dni)
+            self.assertEqual(self.client.get('/tablero/').status_code, 403)
+
+    def test_menu_lateral_para_el_personal_y_de_arriba_para_el_cliente(self):
+        self.entrar(ADMIN)
+        r = self.client.get('/pedidos/')
+        self.assertContains(r, 'class="lateral"')
+        self.assertContains(r, 'body class="con-lateral"')
+        self.assertContains(r, 'href="/tablero/"')
+        self.entrar(CHOFER)
+        r = self.client.get('/portal/')
+        self.assertContains(r, 'class="lateral"')
+        self.assertNotContains(r, 'href="/tablero/"')                 # el chofer no ve el tablero
+        self.assertNotContains(r, 'href="/panel/"')
+        self.entrar(CLIENTE)
+        r = self.client.get('/pedidos/')
+        self.assertNotContains(r, 'class="lateral"')
+        self.assertContains(r, 'class="cabecera"')
