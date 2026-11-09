@@ -88,7 +88,7 @@ def tabla(encabezado, filas, anchos=None):
 t = doc.add_heading('Cambios pendientes en el DER y los DFD', 0)
 for r in t.runs:
     r.font.color.rgb = TINTA
-p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Actualizado al 28/10/2026')
+p = doc.add_paragraph('Mudanzas y Fletes Salta · Grupo 5 · Actualizado al 09/11/2026')
 p.runs[0].italic = True
 parrafo('Este documento junta todo lo que hay que agregar o corregir en el DER de alto refinamiento '
         'y en los DFD del documento oficial para que coincidan con lo que ya hace el sistema y con '
@@ -233,7 +233,50 @@ tabla(['Campo', 'Tipo', 'Clave / descripción'], [
 parrafo('Relación: USUARIOS 1 : N LOG_AUDITORIA. No tiene FK a las demás tablas a propósito: guarda el nombre '
         'de la tabla y la clave como texto para poder auditar cualquiera.')
 
-titulo('1.10 Diferencias entre el DER del documento y el sistema', 2)
+titulo('1.10 Tabla nueva: NOTIFICACION (Parcial N° 2, M3)', 2)
+parrafo('Cada aviso que genera una regla de notificación queda guardado acá: aparece en la campanita y en la '
+        'bandeja del perfil destino (o de un usuario puntual, como el cliente). Las columnas que pide la consigna '
+        'son id, fecha, tipo, mensaje, destino_perfil, leída y fecha_lectura; el sistema agrega cuatro más.')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_notificacion', 'INT', 'PK'],
+    ['fecha_notif', 'DATETIME', 'Cuándo se generó'],
+    ['tipo_notif', 'VARCHAR(40)', 'Pedido sin confirmar, Mudanza atrasada, Cliente con cancelaciones, '
+                                  'Mudanza confirmada, Mudanza reprogramada'],
+    ['mensaje_notif', 'VARCHAR(300)', 'El texto del aviso'],
+    ['id_rol_destino', 'INT', 'FK → ROLES (destino_perfil: a qué perfil le llega)'],
+    ['leida_notif', 'BOOLEAN', 'Si ya se leyó'],
+    ['fecha_lectura_notif', 'DATETIME', 'Cuándo se leyó (vacío si no)'],
+    ['id_usuario_destino (agregado)', 'INT', 'FK → USUARIOS. Para un usuario puntual (el cliente); vacío = todo el perfil'],
+    ['enlace_notif (agregado)', 'VARCHAR(200)', 'A qué pantalla lleva (el pedido)'],
+    ['clave_notif (agregado)', 'VARCHAR(80)', 'Única. Ej.: «sin_confirmar:18». Impide que la misma alerta se cree dos veces'],
+    ['correo_notif (agregado)', 'VARCHAR(200)', 'A quién se mandó el correo y si salió bien'],
+], [150, 90, 220])
+parrafo('Relaciones: ROLES 1 : N NOTIFICACION y USUARIOS 1 : N NOTIFICACION.')
+
+titulo('1.11 Tabla nueva: CONFIGURACION (Parcial N° 2, M3)', 2)
+parrafo('Los umbrales de las reglas de notificación. La consigna pide que no estén escritos en el código: se '
+        'cambian desde la pantalla «Umbrales de alertas» (permiso CFG_GESTIONAR) y cada cambio queda en LOG_AUDITORIA.')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_configuracion', 'INT', 'PK'],
+    ['clave_conf', 'VARCHAR(60)', 'Único. Nombre del parámetro'],
+    ['valor_conf', 'VARCHAR(150)', 'El valor (número o correo)'],
+    ['descripcion_conf', 'VARCHAR(200)', 'Qué controla'],
+], [150, 90, 220])
+parrafo('Filas que se cargan: horas_sin_confirmar (48), correo_empresa (vacío), minutos_atraso (60), '
+        'cancelaciones_cliente (3), dias_cancelaciones (90) y correo_al_cliente (1 = sí). No tiene relaciones: '
+        'las reglas la leen por la clave.')
+
+titulo('1.12 PERMISOS: tres permisos nuevos (son filas, no cambia la estructura)', 2)
+tabla(['Permiso', 'Para qué', 'Quién lo tiene'], [
+    ['REP_CONSULTAR', 'Ver los reportes de desempeño del personal y de cambios y cancelaciones', 'Administrador'],
+    ['REP_FINANZAS', 'Ver el reporte con montos (uso e ingresos de la flota). Es el «reporte sensible '
+                     'restringido por perfil» que pide la consigna', 'Administrador'],
+    ['CFG_GESTIONAR', 'Cambiar los umbrales de las alertas (CONFIGURACION)', 'Administrador'],
+], [110, 260, 90])
+parrafo('Los reportes consolidados (M2) y la analítica (M1) no agregan tablas: leen PEDIDOS, DETALLE_PEDIDOS, '
+        'SERVICIOS, PERSONAL_PEDIDO, REPROGRAMACIONES y VEHICULOS.')
+
+titulo('1.13 Diferencias entre el DER del documento y el sistema', 2)
 parrafo('El DER del documento tiene 16 tablas y el sistema trabaja con las del DER anterior. Estas tablas '
         'están en el DER pero el sistema todavía no las usa (hay que programarlas o explicarlo):')
 lista([('ESTADO_USUARIO: ', 'el sistema usa Estado_usuario (BOOLEAN) dentro de USUARIOS.'),
@@ -319,13 +362,55 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Cancelar Pedido', 'Cliente hasta 24 h antes (queda Anulado con su motivo)', 'Pedidos'],
     ['Registrar Inicio y Fin de la Mudanza', 'Chofer de esa mudanza (desde el portal; los ayudantes no)', 'Pedidos, Personal pedido'],
     ['Consultar Auditoría', 'Administrador (filtros por fecha, tabla, acción, usuario y registro)', 'Log auditoría'],
-    ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Aviso de cambio '
-                           'de horario»', 'Pedidos, Reprogramaciones, Vehículos, Personal pedido'],
+    ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Horario nuevo '
+                           'de la mudanza» (no «Aviso de cambio de horario»: «aviso» es una acción)',
+     'Pedidos, Reprogramaciones, Vehículos, Personal pedido, Notificación'],
     ['Consultar Pedidos', 'Administrador (todos, con los avisos: atrasadas, vencidos, para finalizar, por '
                           'confirmar, sin chofer) o Cliente (los suyos), con filtros',
      'Pedidos, Usuarios, Servicios, Vehículos, Personal pedido'],
     ['Emitir Comprobante', 'Administrador o Cliente', 'Pedidos, Detalle pedidos, Inventario detalles'],
 ], [130, 190, 140])
+
+titulo('3.1 DFD nuevos por el Parcial N° 2 y lo que se agregó después del Hito 4', 2)
+parrafo('Con las mismas reglas: flujos con sustantivos que nombran el dato y almacenes que nunca confirman ni avisan. '
+        'Las entidades externas nuevas son «Reloj del sistema» (la tarea programada que corre cada 15 minutos), '
+        '«Servidor de correo» (Gmail) y «Servicio de mapas» (OpenRouteService).')
+tabla(['Proceso', 'Quién lo estimula', 'Almacenes', 'Flujos principales'], [
+    ['Evaluar Alertas Programadas', 'Reloj del sistema (cada 15 minutos)', 'Pedidos, Configuración, Notificación',
+     'Hacia Configuración: «Clave del parámetro» → «Umbral». Hacia Pedidos: «Fecha y hora actual» → «Pedidos '
+     'pendientes y confirmados». Guarda en Notificación: «Datos de la notificación». Al Servidor de correo: '
+     '«Correo del pedido sin confirmar»'],
+    ['Registrar Notificación de Cancelaciones', 'Se dispara al Anular o Cancelar un Pedido', 'Pedidos, Configuración, '
+     'Notificación', 'Hacia Pedidos: «id del cliente» → «Pedidos anulados del cliente». Guarda: «Datos de la notificación»'],
+    ['Registrar Notificación al Cliente', 'Se dispara al Confirmar o Reprogramar un Pedido', 'Configuración, Notificación',
+     'Guarda: «Datos de la notificación». Al Servidor de correo: «Correo de la mudanza confirmada» / «Correo del '
+     'horario nuevo»'],
+    ['Consultar Notificaciones', 'Cualquier usuario (bandeja y campanita)', 'Notificación',
+     'Hacia Notificación: «Perfil y id del usuario» → «Notificaciones del usuario». Al leer, guarda: «Fecha de lectura»'],
+    ['Configurar Umbrales', 'Administrador', 'Configuración', 'Guarda: «Valores de los umbrales»'],
+    ['Consultar Reporte Consolidado', 'Administrador (el de la flota solo con REP_FINANZAS)',
+     'Pedidos, Personal pedido, Reprogramaciones, Vehículos, Detalle pedidos',
+     'Del Administrador: «Rango de fechas y filtro». Sale: «Reporte» (pantalla y PDF)'],
+    ['Generar Gráficos de Analítica', 'Administrador (corre el script)', 'Pedidos, Detalle pedidos, Servicios',
+     'Del Administrador: «Rango de fechas y objetivo mensual». Sale: «Gráficos del período» (PNG)'],
+    ['Consultar Tablero', 'Administrador (pantalla de inicio)', 'Pedidos, Vehículos, Detalle pedidos, Servicios, '
+     'Personal pedido', 'Del Administrador: «Período». Sale: «Indicadores y gráficos del período»'],
+    ['Actualizar Datos de la Cuenta', 'Cliente («Mi cuenta»)', 'Usuarios', 'Guarda: «Correo y teléfono del cliente»'],
+    ['Cambiar Clave', 'Cualquier usuario («Mi cuenta»)', 'Usuarios',
+     'Hacia Usuarios: «DNI del usuario» → «Clave cifrada». Guarda: «Clave nueva cifrada»'],
+    ['Recuperar Clave', 'Cliente («¿Olvidaste tu contraseña?»)', 'Usuarios, Roles',
+     'Hacia Usuarios: «DNI y correo» → «Datos del usuario». Guarda: «Clave nueva cifrada»'],
+    ['Consultar Recorrido', 'Administrador, Cliente o Chofer (detalle del pedido)', 'Pedidos',
+     'Al Servicio de mapas: «Direcciones de origen y destino» → «Ruta, distancia y duración»'],
+    ['Obtener Dirección del Mapa', 'Cliente (al registrar el pedido)', '—',
+     'Al Servicio de mapas: «Coordenadas del punto» → «Dirección del punto». Es parte de Registrar un Pedido'],
+], [105, 105, 100, 150])
+parrafo('Los procesos que ya estaban y cambian: Confirmar Pedido y Reprogramar Pedido suman la salida hacia '
+        '«Registrar Notificación al Cliente»; Anular Pedido y Cancelar Pedido, hacia «Registrar Notificación de '
+        'Cancelaciones».')
+parrafo('Si el profesor de Análisis y Diseño pide el modelo C4, estos cambios también aparecen ahí: tres sistemas '
+        'externos nuevos (Servidor de correo, Servicio de mapas y la librería de gráficos Chart.js que se carga '
+        'desde un CDN) y un contenedor nuevo: la tarea programada de alertas.')
 
 # ---------------------------------------------------------------- futuro
 titulo('4. Mejoras futuras (todavía no decididas)')
