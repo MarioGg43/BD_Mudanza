@@ -1,0 +1,13 @@
+{% comment %}
+  Título de una pantalla del personal, con el estilo del tablero: un ícono en un cuadrado de color,
+  el título y una línea que explica la pantalla. Uso:
+  {% include '_titulo_pagina.html' with icono='bi-box-seam' color='violeta' titulo='Pedidos' bajada='...' %}
+  Colores: naranja, violeta, azul, verde, rosa, gris (los mismos de los accesos rápidos del tablero).
+{% endcomment %}
+<div class="titulo-pagina">
+    <span class="acceso-icono icono-pagina {{ color|default:'naranja' }}" aria-hidden="true"><i class="bi {{ icono }}"></i></span>
+    <div>
+        <h1 class="h3 fw-bold mb-1">{{ titulo }}</h1>
+        {% if bajada %}<p class="text-muted mb-0">{{ bajada }}</p>{% endif %}
+    </div>
+</div>

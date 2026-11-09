@@ -484,7 +484,7 @@ class VencidosPantallaTest(BaseVistas):
     def test_la_lista_avisa_y_filtra(self):
         self.entrar(ADMIN)
         r = self.client.get('/pedidos/')
-        self.assertContains(r, 'vencido')
+        self.assertContains(r, '<b>1</b><span>Vencidos</span>')
         self.assertContains(r, 'href="/pedidos/?estado=Vencido"')
         r = self.client.get('/pedidos/', {'estado': 'Vencido'})
         self.assertEqual([p.pk for p in r.context['pedidos']], [self.p.pk])
@@ -515,9 +515,9 @@ class AvisosPantallaTest(BaseVistas):
         Pedido.objects.filter(pk=vencido.pk).update(fecha_servicio=timezone.localdate() - timedelta(days=3))
         self.entrar(ADMIN)
         r = self.client.get('/pedidos/')
-        self.assertContains(r, '1</b> mudanza confirmada ya pasó')
-        self.assertContains(r, 'href="/pedidos/?estado=Para+finalizar"')
-        self.assertContains(r, 'href="/pedidos/?estado=Por+confirmar"')
+        self.assertContains(r, '<b>1</b><span>Para finalizar</span>')  # las tarjetas de aviso
+        self.assertContains(r, 'href="/pedidos/?estado=Para%20finalizar"')
+        self.assertContains(r, 'href="/pedidos/?estado=Por%20confirmar"')
         self.assertContains(r, 'href="/pedidos/?estado=Vencido"')
         self.assertContains(r, '>Para finalizar</span>')
 

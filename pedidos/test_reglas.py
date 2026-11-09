@@ -689,7 +689,8 @@ class AtrasadaTest(BaseReglas):
             s['usuario_dni'], s['usuario_rol'] = ADMIN, 'Administrador'
             s.save()
             r = self.client.get('/pedidos/')
-            self.assertContains(r, 'mudanza viene <b>atrasada</b>')
+            self.assertContains(r, '<b>1</b><span>Atrasadas</span>')  # la tarjeta de aviso
+            self.assertContains(r, 'href="/pedidos/?estado=Atrasada" class="aviso-tarjeta rojo"')
             r = self.client.get(f'/pedidos/{self.primera.pk}/')
             self.assertContains(r, 'Mudanza atrasada:')
             self.assertContains(r, f'pedido N° {otra.pk}</a>')

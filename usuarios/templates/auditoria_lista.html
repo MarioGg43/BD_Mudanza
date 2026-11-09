@@ -1,11 +1,8 @@
 {% extends 'vehiculos/base.html' %}
 {% block title %}Auditoría{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
-    <div>
-    <h1 class="h3 fw-bold mb-1">Log de auditoría</h1>
-    <p class="text-muted mb-0">Cada modificación, anulación, baja o borrado de un registro, con los valores de antes y de después, la fecha y hora y quién lo hizo.</p>
-    </div>
+<div class="encabezado-pagina">
+    {% include '_titulo_pagina.html' with icono='bi-clock-history' color='gris' titulo='Log de auditoría' bajada='Cada modificación, anulación, baja o borrado de un registro, con los valores de antes y de después, la fecha y hora y quién lo hizo.' %}
     <a href="{% url 'auditoria_descargar' %}{% if filtros %}?{{ filtros }}{% endif %}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
 </div>
 
@@ -25,6 +22,14 @@
     </div>
 </form>
 
+<div class="avisos-pedidos mb-3" role="list" aria-label="Cambios por tipo">
+    {% for accion, cantidad, icono, tono in resumen %}
+    <div class="aviso-tarjeta {% if cantidad %}{{ tono }}{% else %}apagada{% endif %}" role="listitem">
+        <span class="aviso-icono"><i class="bi {{ icono }}"></i></span>
+        <span class="aviso-texto"><b>{{ cantidad }}</b><span>{{ accion }}</span></span>
+    </div>
+    {% endfor %}
+</div>
 <p class="small text-muted">{{ pagina.paginator.count }} registro{{ pagina.paginator.count|pluralize }}.</p>
 <div class="card-panel bg-white p-0 overflow-auto">
     <table class="table align-middle mb-0 small">

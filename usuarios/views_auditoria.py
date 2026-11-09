@@ -7,6 +7,7 @@ from django import forms
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render
@@ -236,7 +237,14 @@ def lista(request):
     _preparar(pagina)
     filtros = request.GET.copy()
     filtros.pop('pagina', None)
-    return render(request, 'auditoria_lista.html', {'form': form, 'pagina': pagina, 'filtros': filtros.urlencode()})
+    # cuántos cambios de cada tipo hay con estos filtros (las tarjetas de arriba)
+    por_accion = dict(logs.order_by().values_list('accion').annotate(n=Count('pk')))
+    resumen = [(accion, por_accion.get(accion, 0), icono, tono) for accion, icono, tono in (
+        (LogAuditoria.MODIFICACION, 'bi-pencil-square', 'azul'), (LogAuditoria.ANULACION, 'bi-x-octagon', 'rojo'),
+        (LogAuditoria.BAJA, 'bi-person-dash', 'naranja'), (LogAuditoria.REACTIVACION, 'bi-arrow-counterclockwise', 'verde'),
+        (LogAuditoria.ELIMINACION, 'bi-trash', 'gris'))]
+    return render(request, 'auditoria_lista.html', {'form': form, 'pagina': pagina, 'filtros': filtros.urlencode(),
+                                                    'resumen': resumen})
 
 
 @requiere_permiso('AUD_CONSULTAR')

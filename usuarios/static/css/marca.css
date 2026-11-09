@@ -741,3 +741,46 @@ body.con-lateral { padding-left: var(--ancho-lateral); }
 .flotante.f4 { bottom: 18px; right: -22px; animation-delay: -.7s; }
 @keyframes flotar { 50% { transform: translateY(-7px) rotate(-4deg); } }
 @media (prefers-reduced-motion: reduce) { .flotante, .barra-estado.activo .punto-vivo { animation: none; } }
+
+/* ---- encabezado de las pantallas del personal (_titulo_pagina.html) ---- */
+.encabezado-pagina { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
+.titulo-pagina { display: flex; align-items: flex-start; gap: .9rem; min-width: 0; flex: 1 1 360px; }
+.icono-pagina { flex-basis: 48px; height: 48px; border-radius: 14px; font-size: 1.3rem; box-shadow: 0 10px 20px -14px rgba(30, 10, 0, .7); }
+.titulo-pagina p { max-width: 70ch; }
+
+/* ---- tarjetas de avisos (pedidos) y de cambios por tipo (auditoría) ---- */
+.avisos-pedidos { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: .75rem; }
+.aviso-tarjeta { display: flex; align-items: flex-start; gap: .7rem; padding: .85rem .9rem; border-radius: 16px; background: #fff;
+  border: 1px solid var(--linea); color: var(--tinta); text-decoration: none; position: relative; overflow: hidden;
+  transition: transform .15s, box-shadow .15s; }
+a.aviso-tarjeta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18px rgba(70, 30, 5, .55); color: var(--tinta); }
+.aviso-tarjeta::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--tono, #c8c2bc); }
+.aviso-icono { flex: 0 0 38px; height: 38px; border-radius: 11px; display: inline-grid; place-items: center; font-size: 1.05rem;
+  background: var(--tono-suave, #f3efeb); color: var(--tono, #8a7f78); }
+.aviso-texto { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.aviso-texto b { font-size: 1.45rem; }
+.aviso-texto span { font-weight: 600; font-size: .9rem; }
+.aviso-texto small { font-size: .74rem; color: var(--tinta-2); margin-top: .15rem; }
+.aviso-tarjeta.rojo { --tono: #c62f35; --tono-suave: #fdecec; }
+.aviso-tarjeta.naranja { --tono: #d4561a; --tono-suave: #fff0e2; }
+.aviso-tarjeta.azul { --tono: #2465bd; --tono-suave: #e8f1fc; }
+.aviso-tarjeta.violeta { --tono: #5143c9; --tono-suave: #efedff; }
+.aviso-tarjeta.amarillo { --tono: #9a6a00; --tono-suave: #fdf3d8; }
+.aviso-tarjeta.verde { --tono: #138a5d; --tono-suave: #e5f6ee; }
+.aviso-tarjeta.gris { --tono: #5e524b; --tono-suave: #f1ece8; }
+.aviso-tarjeta.apagada { opacity: .6; }
+.aviso-tarjeta.apagada .aviso-texto b { color: var(--tinta-2); }
+@media (max-width: 575.98px) {
+  .avisos-pedidos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .aviso-tarjeta { padding: .65rem; gap: .5rem; }
+  .aviso-icono { flex-basis: 32px; height: 32px; font-size: .95rem; }
+  .aviso-texto b { font-size: 1.2rem; }
+  .aviso-texto small { display: none; }
+  .titulo-pagina { flex-basis: 100%; }
+  .titulo-pagina p { font-size: .85rem; }
+  .icono-pagina { flex-basis: 42px; height: 42px; font-size: 1.1rem; }
+}
+@media (max-width: 400px) {
+  .aviso-icono { display: none; }
+  .aviso-texto span { font-size: .82rem; }
+}

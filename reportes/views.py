@@ -21,21 +21,21 @@ POR_PAGINA = 15
 # Cada reporte: título, para qué sirve, quién lo ve, cómo se calcula y su filtro propio del dominio.
 REPORTES = {
     'personal': {
-        'titulo': 'Desempeño del personal', 'icono': 'bi-people',
+        'titulo': 'Desempeño del personal', 'icono': 'bi-people', 'color': 'azul',
         'descripcion': 'Mudanzas hechas por cada chofer y ayudante, horas reales contra las estimadas y puntualidad.',
         'cruza': 'Pedidos + asignación de personal + «Empezamos / Terminamos» del chofer',
         'permiso': 'REP_CONSULTAR', 'calcular': consultas.desempeno_personal,
         'filtro': ('funcion', 'Función', [('', 'Todas')] + PersonalPedido.FUNCIONES),
     },
     'flota': {
-        'titulo': 'Uso e ingresos de la flota', 'icono': 'bi-truck',
+        'titulo': 'Uso e ingresos de la flota', 'icono': 'bi-truck', 'color': 'verde',
         'descripcion': 'Mudanzas, horas de uso, ingresos y recargos de cada vehículo. Tiene montos: solo con permiso.',
         'cruza': 'Pedidos + anulaciones + recargos del relevamiento',
         'permiso': 'REP_FINANZAS', 'calcular': consultas.uso_flota,
         'filtro': ('tipo', 'Tipo de vehículo', [('', 'Todos')] + [(t, t) for t in Vehiculo.TIPOS]),
     },
     'cambios': {
-        'titulo': 'Cambios y cancelaciones', 'icono': 'bi-arrow-repeat',
+        'titulo': 'Cambios y cancelaciones', 'icono': 'bi-arrow-repeat', 'color': 'rosa',
         'descripcion': 'Cada reprogramación y anulación del período con su motivo y quién la hizo, y el resumen por motivo.',
         'cruza': 'Pedidos + reprogramaciones + anulaciones',
         'permiso': 'REP_CONSULTAR', 'calcular': consultas.cambios_y_cancelaciones,

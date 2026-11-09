@@ -1,11 +1,12 @@
 {% extends 'vehiculos/base.html' %}
 {% block title %}Pedidos{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h3 fw-bold mb-1">{% if ve_todos %}Pedidos{% else %}Mis pedidos{% endif %}</h1>
-        <p class="text-muted mb-0">{{ pagina.paginator.count }} pedido{{ pagina.paginator.count|pluralize }}{% if pagina.paginator.num_pages > 1 %} · mostrando del {{ pagina.start_index }} al {{ pagina.end_index }}{% endif %}.</p>
-    </div>
+<div class="encabezado-pagina">
+    {% if ve_todos %}
+    {% include '_titulo_pagina.html' with icono='bi-box-seam' color='violeta' titulo='Pedidos' bajada='Todas las mudanzas: confirmalas, asignales el personal, reprogramalas o finalizalas.' %}
+    {% else %}
+    {% include '_titulo_pagina.html' with icono='bi-box-seam' color='naranja' titulo='Mis pedidos' bajada='Tus mudanzas y en qué estado está cada una.' %}
+    {% endif %}
     <div class="d-flex flex-wrap gap-2">
     <a href="{% url 'pedidos_descargar' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
     {% if puede_registrar %}
@@ -14,37 +15,16 @@
     </div>
 </div>
 
-{% if atrasadas %}
-<div class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2" role="alert">
-    <span><i class="bi bi-alarm me-1"></i>{% if atrasadas == 1 %}<b>1</b> mudanza viene <b>atrasada</b>: ya tenía que terminar y el mismo vehículo o personal tiene otra que empieza enseguida.{% else %}<b>{{ atrasadas }}</b> mudanzas vienen <b>atrasadas</b>: ya tenían que terminar y el mismo vehículo o personal tiene otra que empieza enseguida.{% endif %}</span>
-    <a href="{% url 'pedidos_lista' %}?estado=Atrasada" class="btn btn-sm btn-outline-dark">Ver atrasadas</a>
+{% if ve_todos %}
+{# los avisos del trabajo, como tarjetas: las que están en cero se ven apagadas #}
+<div class="avisos-pedidos mb-4" role="list" aria-label="Avisos de pedidos">
+    {% include 'pedidos/_aviso.html' with cantidad=atrasadas tono='rojo' icono='bi-alarm' texto='Atrasadas' detalle='Ya tenían que terminar y otra mudanza las espera' estado='Atrasada' %}
+    {% include 'pedidos/_aviso.html' with cantidad=vencidos tono='naranja' icono='bi-exclamation-triangle' texto='Vencidos' detalle='Pendientes con la fecha pasada, sin confirmar' estado='Vencido' %}
+    {% include 'pedidos/_aviso.html' with cantidad=para_finalizar tono='azul' icono='bi-flag' texto='Para finalizar' detalle='Confirmadas que ya pasaron' estado='Para finalizar' %}
+    {% include 'pedidos/_aviso.html' with cantidad=por_confirmar tono='violeta' icono='bi-hourglass-split' texto='Por confirmar' detalle='Pendientes de los próximos días' estado='Por confirmar' %}
+    {% include 'pedidos/_aviso.html' with cantidad=sin_chofer tono='amarillo' icono='bi-person-exclamation' texto='Sin chofer' detalle='Confirmadas sin chofer asignado' estado='Sin chofer' %}
 </div>
 {% endif %}
-{% if vencidos %}
-<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-    <span><i class="bi bi-exclamation-triangle me-1"></i>Hay <b>{{ vencidos }}</b> pedido{{ vencidos|pluralize }} vencido{{ vencidos|pluralize }}: pendiente{{ vencidos|pluralize }} con la fecha ya pasada, sin confirmar.</span>
-    <a href="{% url 'pedidos_lista' %}?estado=Vencido" class="btn btn-sm btn-outline-dark">Ver vencidos</a>
-</div>
-{% endif %}
-{% if para_finalizar %}
-<div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-    <span><i class="bi bi-flag me-1"></i>{% if para_finalizar == 1 %}<b>1</b> mudanza confirmada ya pasó y falta finalizarla.{% else %}<b>{{ para_finalizar }}</b> mudanzas confirmadas ya pasaron y falta finalizarlas.{% endif %}</span>
-    <a href="{% url 'pedidos_lista' %}?estado=Para+finalizar" class="btn btn-sm btn-outline-dark">Ver para finalizar</a>
-</div>
-{% endif %}
-{% if por_confirmar %}
-<div class="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-    <span><i class="bi bi-hourglass-split me-1"></i><b>{{ por_confirmar }}</b> pedido{{ por_confirmar|pluralize }} pendiente{{ por_confirmar|pluralize }} para los próximos {{ dias_por_confirmar }} días: confirmalo{{ por_confirmar|pluralize }} antes de que se venza{{ por_confirmar|pluralize:"n" }}.</span>
-    <a href="{% url 'pedidos_lista' %}?estado=Por+confirmar" class="btn btn-sm btn-outline-dark">Ver por confirmar</a>
-</div>
-{% endif %}
-{% if sin_chofer %}
-<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-    <span><i class="bi bi-person-exclamation me-1"></i><b>{{ sin_chofer }}</b> pedido{{ sin_chofer|pluralize }} confirmado{{ sin_chofer|pluralize }} sin chofer asignado.</span>
-    <a href="{% url 'pedidos_lista' %}?estado=Sin+chofer" class="btn btn-sm btn-outline-dark">Ver sin chofer</a>
-</div>
-{% endif %}
-{% if atrasadas or vencidos or para_finalizar or por_confirmar or sin_chofer %}<div class="mb-3"></div>{% endif %}
 
 <form method="get" class="card-panel bg-white p-3 mb-4">
     <div class="row g-2 align-items-end">
@@ -63,6 +43,7 @@
 </form>
 
 {# en la computadora, la tabla; en el celular, una tarjeta por pedido (abajo) #}
+<p class="small text-muted mb-2">{{ pagina.paginator.count }} pedido{{ pagina.paginator.count|pluralize }}{% if pagina.paginator.num_pages > 1 %} · mostrando del {{ pagina.start_index }} al {{ pagina.end_index }}{% endif %}.</p>
 <div class="card-panel bg-white p-0 overflow-auto d-none d-md-block">
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">

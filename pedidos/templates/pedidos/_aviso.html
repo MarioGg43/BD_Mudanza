@@ -1,0 +1,7 @@
+{% comment %}
+  Una tarjeta de aviso de la lista de pedidos (atrasadas, vencidos...): el número, qué es y el enlace
+  para ver esos pedidos. En cero se ve apagada y no es un enlace: no hay nada que ver.
+{% endcomment %}{% if cantidad %}<a href="{% url 'pedidos_lista' %}?estado={{ estado|urlencode }}" class="aviso-tarjeta {{ tono }}" role="listitem">{% else %}<div class="aviso-tarjeta apagada" role="listitem">{% endif %}
+    <span class="aviso-icono"><i class="bi {{ icono }}"></i></span>
+    <span class="aviso-texto"><b>{{ cantidad|default:0 }}</b><span>{{ texto }}</span><small>{{ detalle }}</small></span>
+{% if cantidad %}</a>{% else %}</div>{% endif %}

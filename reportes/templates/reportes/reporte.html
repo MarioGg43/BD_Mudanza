@@ -4,14 +4,12 @@
 {% block content %}
 <a href="{% url 'reportes_indice' %}" class="small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Reportes</a>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mt-1 mb-3">
-    <div>
-        <h1 class="h3 fw-bold mb-1">{{ reporte.titulo }}</h1>
-        <p class="text-muted mb-0 small">{{ reporte.descripcion }} <span class="d-block"><i class="bi bi-diagram-3 me-1 text-marca"></i>Cruza: {{ reporte.cruza }}</span></p>
-    </div>
+    {% include '_titulo_pagina.html' with icono=reporte.icono color=reporte.color titulo=reporte.titulo bajada=reporte.descripcion %}
     {% if datos %}
     <a href="{% url 'reportes_pdf' clave %}?{{ consulta }}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
     {% endif %}
 </div>
+<p class="small mb-3"><i class="bi bi-diagram-3 me-1 text-marca"></i>Cruza: {{ reporte.cruza }}</p>
 
 <form method="get" class="card-panel bg-white p-3 mb-3" novalidate>
     <div class="row g-2 align-items-end">
