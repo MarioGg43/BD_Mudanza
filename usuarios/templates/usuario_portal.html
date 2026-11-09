@@ -8,19 +8,30 @@
 <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pb-6 space-y-6">
 
   <!-- SALUDO Y DATOS DE LA CUENTA, EN UNA SOLA FRANJA: lo importante son sus mudanzas -->
-  <div class="tarjeta p-4 flex flex-wrap items-center justify-between gap-3">
+  <section class="tablero-saludo">
     <div>
-      <h2 class="text-xl font-bold">¡Hola, {{ usuario_actual.Nombre }}!</h2>
-      <p class="text-xs texto-suave mt-0.5">
-        Usuario <strong class="texto-tinta">{{ usuario_actual.NombreUsuario }}</strong> · DNI {{ usuario_actual.DNI }} · {{ usuario_actual.Correo }}
-      </p>
+      <span class="tablero-fecha"><i class="bi bi-sun" style="margin-right:.3rem"></i>{% now "l j \d\e F" %}</span>
+      <h1 class="saludo-titulo">¡Hola, {{ usuario_actual.Nombre }}!</h1>
+      <p class="saludo-bajada">{{ usuario_actual.idRol.nom_rol }} · usuario <b>{{ usuario_actual.NombreUsuario }}</b> · DNI {{ usuario_actual.DNI }}</p>
+      <div class="saludo-numeros">
+        <div class="tablero-mini"><b>{{ mudanzas|length }}</b><span>mudanza{{ mudanzas|length|pluralize }} asignada{{ mudanzas|length|pluralize }}</span></div>
+        <div class="tablero-mini"><b>{{ en_curso }}</b><span>en curso ahora</span></div>
+        {% with proxima=mudanzas.0 %}{% if proxima %}<div class="tablero-mini"><b>{{ proxima.fecha_servicio|date:"d/m" }}</b><span>la próxima, a las {{ proxima.hora_servicio|time:"H:i" }}</span></div>{% endif %}{% endwith %}
+        {% if vehiculos %}<div class="tablero-mini"><b>{{ vehiculos.0.patente }}</b><span>su vehículo habitual</span></div>{% endif %}
+      </div>
     </div>
-    <div class="text-xs text-right">
-      <span class="chip-marca font-bold px-3 py-1 rounded-full">{{ usuario_actual.idRol.nom_rol }}</span>
-      <p class="texto-suave mt-2">Puede:
+    <div class="tablero-dibujo saludo-dibujo" aria-hidden="true">
+      <img src="/static/vehiculos/logo.png" alt="">
+      <span class="flotante f1"><i class="bi bi-box-seam"></i></span>
+      <span class="flotante f2"><i class="bi bi-geo-alt"></i></span>
+      <span class="flotante f3"><i class="bi bi-house-heart"></i></span>
+      <span class="flotante f4"><i class="bi bi-key"></i></span>
+    </div>
+  </section>
+  <div class="text-xs texto-suave">
+      <p>Puede:
         {% for perm in permisos_rol %}<span title="Permiso {{ perm.nom_permiso }}">{{ perm.desc_permiso|default:perm.nom_permiso|lower }}</span>{% if not forloop.last %}; {% endif %}{% empty %}sin permisos{% endfor %}.
       </p>
-    </div>
   </div>
 
   {% if messages %}{% for m in messages %}

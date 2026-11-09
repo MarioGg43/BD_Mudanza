@@ -1,11 +1,8 @@
 {% extends 'vehiculos/base.html' %}
 {% block title %}Objetos{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h3 fw-bold mb-1">Objetos</h1>
-        <p class="text-muted mb-0">La lista de la que el cliente elige qué hay que llevar. Si algo se pide seguido como «Otro», agregalo acá.</p>
-    </div>
+<div class="encabezado-pagina">
+    {% include '_titulo_pagina.html' with icono='bi-archive' color='verde' titulo='Objetos' bajada='La lista de la que el cliente elige qué hay que llevar. Si algo se pide seguido como «Otro», agregalo acá.' %}
     <a href="{% url 'objetos_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo objeto</a>
 </div>
 <div class="card-panel bg-white p-0 overflow-auto">

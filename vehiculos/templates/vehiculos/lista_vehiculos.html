@@ -2,11 +2,8 @@
 {% block title %}Vehículos{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h3 fw-bold mb-1">Vehículos</h1>
-        <p class="text-muted mb-0">Listado de unidades registradas.</p>
-    </div>
+<div class="encabezado-pagina">
+    {% include '_titulo_pagina.html' with icono='bi-truck' color='azul' titulo='Vehículos' bajada='La flota: estado de cada camión, su chofer habitual y sus pedidos.' %}
     <a href="{% url 'createVehiculo' %}" class="btn btn-success fw-bold">
         <i class="bi bi-plus-circle me-1"></i> Registrar Vehículo
     </a>

@@ -7,6 +7,9 @@
 
 <!-- CONTENIDO PRINCIPAL -->
 <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6 space-y-6">
+<div class="encabezado-pagina">
+  {% include '_titulo_pagina.html' with icono='bi-people' color='gris' titulo='Usuarios' bajada='Las cuentas del personal y de los clientes: altas, bajas, correo, rol y clave.' %}
+</div>
 {% if recordatorio_finalizar %}
 <div class="aviso-atencion p-4 rounded-xl" role="region" aria-label="Mudanzas para finalizar">
   <p class="font-bold text-sm mb-2"><i class="fa-solid fa-bell mr-1"></i>{% if recordatorio_finalizar|length == 1 %}Hay 1 mudanza que ya tendría que haber terminado.{% else %}Hay {{ recordatorio_finalizar|length }} mudanzas que ya tendrían que haber terminado.{% endif %} Si el equipo terminó, tocá «Finalizar»:</p>
@@ -34,11 +37,8 @@
 
       <div class="p-4 sm:p-5 linea-b flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 class="text-lg font-bold flex items-center gap-2">
-            <i class="fa-solid fa-users-gear text-marca"></i>
-            Nómina de Usuarios del Sistema
-          </h2>
-          <p class="text-xs texto-suave">Administración de cuentas, roles y credenciales de acceso</p>
+          <h2 class="text-lg font-bold">Nómina de usuarios</h2>
+          <p class="text-xs texto-suave">Buscá por DNI, apellido o usuario</p>
         </div>
 
       <div class="flex flex-wrap items-center gap-3">

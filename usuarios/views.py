@@ -166,6 +166,7 @@ def usuario_portal(request):
         'permisos_rol': permisos,
         'vehiculos': vehiculos,
         'mudanzas': mudanzas,
+        'en_curso': sum(1 for p in mudanzas if p.en_curso),
     })
 
 # ---- MI CUENTA: cada persona ve sus datos y cambia su clave; el cliente, también su correo y teléfono ----
