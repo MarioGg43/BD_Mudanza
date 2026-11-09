@@ -28,7 +28,7 @@ class RolesTest(TestCase):
         self.assertContains(r, 'Administrador')
         self.assertContains(r, 'title="ROL_GESTIONAR"')        # el código, al pasar el mouse
         self.assertContains(r, 'Ver, crear y editar roles y sus permisos')  # lo que se lee
-        self.assertContains(r, '18 permisos')                     # el administrador (todos menos registrar pedidos), plegado
+        self.assertContains(r, '19 permisos')                     # el administrador (todos menos registrar pedidos), plegado
         self.assertContains(r, 'Registrar pedidos de mudanza')    # el cliente, a la vista
         self.assertContains(r, 'Nuevo rol')
 

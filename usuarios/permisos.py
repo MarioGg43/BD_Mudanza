@@ -28,13 +28,14 @@ CATALOGO = [
     ('Auditoría', 'AUD_CONSULTAR', 'Ver el log de auditoría (quién modificó o anuló qué)'),
     ('Reportes', 'REP_CONSULTAR', 'Ver los reportes del personal y de cambios y cancelaciones'),
     ('Reportes', 'REP_FINANZAS', 'Ver el reporte con montos (uso e ingresos de la flota)'),
+    ('Alertas', 'CFG_GESTIONAR', 'Cambiar los umbrales de las alertas y notificaciones'),
 ]
 
 # Permisos administrativos: quien no los tiene no puede crear, editar ni
 # restablecer a un usuario cuyo rol sí los tiene (evita la escalada de privilegios).
 PERMISOS_SENSIBLES = frozenset(
     [c for area, c, _ in CATALOGO
-     if area in ('Usuarios', 'Roles', 'Vehículos', 'Servicios', 'Objetos', 'Auditoría', 'Reportes')]
+     if area in ('Usuarios', 'Roles', 'Vehículos', 'Servicios', 'Objetos', 'Auditoría', 'Reportes', 'Alertas')]
     + ['PED_GESTIONAR', 'PED_ANULAR'])
 
 PERMISOS_INICIALES = {

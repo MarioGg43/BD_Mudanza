@@ -51,9 +51,34 @@ services:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
       ORS_API_KEY: ${ORS_API_KEY:-}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
+
+  # Parcial N° 2 (M3): la tarea programada de las alertas. Cada 15 minutos evalúa las reglas de
+  # pedidos sin confirmar y mudanzas atrasadas (la consigna pide al menos una vez por día).
+  alertas:
+    build: .
+    container_name: mudanzas_alertas
+    restart: always
+    working_dir: /opt/app
+    volumes:
+      - .:/opt/app
+    entrypoint: ["sh", "-c", "while true; do python manage.py evaluar_alertas; sleep ${ALERTAS_CADA_SEGUNDOS:-900}; done"]
+    environment:
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_HOST: db
+      DB_PORT: 3306
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+    depends_on:
+      web:
+        condition: service_started
 
   # Frontend en React (Vite). Reenvía /api a Django por la red de Docker.
   frontend:

@@ -1,0 +1,41 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Umbrales de las alertas{% endblock %}
+{% block content %}
+<a href="{% url 'notificaciones_bandeja' %}" class="small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Notificaciones</a>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mt-1 mb-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Umbrales de las alertas</h1>
+        <p class="text-muted mb-0">Cada regla de notificación usa estos valores. Se guardan en la tabla de configuración: no están escritos en el código.</p>
+    </div>
+    <form method="post" action="{% url 'notificaciones_evaluar' %}" class="text-md-end">{% csrf_token %}
+        <button class="btn btn-outline-secondary" aria-describedby="ayudaEvaluar"><i class="bi bi-play-circle me-1"></i>Evaluar las reglas ahora</button>
+        <div class="form-text" id="ayudaEvaluar">Las reglas 1 y 2 se evalúan solas cada 15 minutos.</div>
+    </form>
+</div>
+
+<form method="post" class="card-panel bg-white p-4" novalidate>
+    {% csrf_token %}
+    {% for p in parametros %}
+    <div class="row g-2 align-items-start mb-3 pb-3{% if not forloop.last %} border-bottom{% endif %}">
+        <div class="col-md-8">
+            <label for="p_{{ p.clave }}" class="form-label fw-semibold mb-1">{{ p.descripcion }}</label>
+            <div class="small text-muted"><code>{{ p.clave }}</code></div>
+        </div>
+        <div class="col-md-4">
+            {% if p.clave == 'correo_al_cliente' %}
+            <select id="p_{{ p.clave }}" name="{{ p.clave }}" class="form-select{% if p.clave in errores %} is-invalid{% endif %}">
+                <option value="1"{% if p.valor == '1' %} selected{% endif %}>Sí, mandar el correo</option>
+                <option value="0"{% if p.valor == '0' %} selected{% endif %}>No, solo el aviso en el sistema</option>
+            </select>
+            {% elif p.clave == 'correo_empresa' %}
+            <input type="email" id="p_{{ p.clave }}" name="{{ p.clave }}" value="{{ p.valor }}" class="form-control{% if p.clave in errores %} is-invalid{% endif %}" placeholder="Vacío: sin correo">
+            {% else %}
+            <input type="number" id="p_{{ p.clave }}" name="{{ p.clave }}" value="{{ p.valor }}" inputmode="numeric" class="form-control{% if p.clave in errores %} is-invalid{% endif %}">
+            {% endif %}
+            {% for clave, error in errores.items %}{% if clave == p.clave %}<div class="invalid-feedback d-block">{{ error }}</div>{% endif %}{% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    <button class="btn btn-primary fw-bold"><i class="bi bi-check2 me-1"></i>Guardar umbrales</button>
+</form>
+{% endblock %}

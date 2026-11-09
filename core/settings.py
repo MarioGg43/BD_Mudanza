@@ -17,6 +17,21 @@ ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').
 # Mapa del recorrido (OpenRouteService). Sin clave, las pantallas muestran solo el enlace «Cómo llegar».
 ORS_API_KEY = os.environ.get('ORS_API_KEY', '').strip()
 
+# Correo de las notificaciones (Parcial N° 2, M3). Con Gmail: EMAIL_HOST_USER = la cuenta y
+# EMAIL_HOST_PASSWORD = una «contraseña de aplicación» (no la clave común), en el .env.
+# Sin cuenta, los correos se muestran en la consola de Django en vez de mandarse.
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').replace(' ', '')
+EMAIL_TIMEOUT = 15
+EMAIL_BACKEND = ('django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
+                 else 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = f'Mudanzas y Fletes Salta <{EMAIL_HOST_USER or "no-responder@mudanzassalta.com.ar"}>'
+# Para armar los enlaces de los correos («Podés verlo en el sistema: ...»)
+SITIO_URL = os.environ.get('SITIO_URL', 'http://localhost:8002').rstrip('/')
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -29,6 +44,7 @@ INSTALLED_APPS = [
     'usuarios',
     'pedidos',
     'reportes',
+    'notificaciones',
     'api',
 ]
 
@@ -57,6 +73,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'usuarios.context_processors.seguridad',
+                'notificaciones.context_processors.sin_leer',  # el número de la campanita
             ],
         },
     },

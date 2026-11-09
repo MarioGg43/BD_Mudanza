@@ -359,6 +359,18 @@ def contar_avisos():
     return {nombre: Pedido.objects.filter(filtro()).count() for nombre, filtro in AVISOS.items()}
 
 
+def _avisar(regla, *args):
+    """Dispara una regla de notificación (Parcial N° 2, M3). Si el aviso falla, la operación del
+    pedido sigue igual: se registra el error y listo."""
+    from notificaciones import reglas as alertas  # notificaciones depende de pedidos, no al revés
+    try:
+        with transaction.atomic():
+            getattr(alertas, regla)(*args)
+    except Exception:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).exception('No se pudo generar la notificación %s', regla)
+
+
 def confirmar(id_pedido):
     """Un pedido vencido no se confirma: la fecha ya pasó, se anula."""
     with transaction.atomic():
@@ -369,6 +381,7 @@ def confirmar(id_pedido):
         if not pedido.personal.filter(Funcion=PersonalPedido.CHOFER).exists():
             raise ErrorPedido('Asigná el chofer antes de confirmar el pedido.')
         pedido.save(update_fields=['estado'])
+        _avisar('al_confirmar', pedido)  # regla 4: aviso y correo al cliente
     return pedido
 
 
@@ -449,6 +462,7 @@ def anular(id_pedido, usuario, motivo):
         pedido.motivo_anulacion = motivo
         pedido.usuario_anulacion = usuario
         pedido.save(update_fields=['estado', 'fecha_anulacion', 'motivo_anulacion', 'usuario_anulacion'])
+        _avisar('al_anular', pedido)  # regla 3: cliente con muchas cancelaciones
     return pedido
 
 
@@ -579,12 +593,13 @@ def reprogramar(id_pedido, usuario, fecha, hora, patente, motivo, observacion=''
             pedido.personal.filter(Q(Funcion=PersonalPedido.CHOFER) | Q(idUsuario=chofer_nuevo)).delete()
             PersonalPedido.objects.create(idPedido=pedido, idUsuario=chofer_nuevo, Funcion=PersonalPedido.CHOFER)
 
-        Reprogramacion.objects.create(
+        cambio = Reprogramacion.objects.create(
             idPedido=pedido, fecha_anterior=pedido.fecha_servicio, hora_anterior=pedido.hora_servicio,
             vehiculo_anterior_id=pedido.patente_vehiculo_id, fecha_nueva=fecha, hora_nueva=hora,
             vehiculo_nuevo=vehiculo, motivo=motivo, observacion=observacion or None, usuario=usuario)
         pedido.fecha_servicio, pedido.hora_servicio, pedido.patente_vehiculo = fecha, hora, vehiculo
         pedido.save(update_fields=['fecha_servicio', 'hora_servicio', 'patente_vehiculo'])
+        _avisar('al_reprogramar', pedido, cambio)  # regla 4: aviso y correo al cliente
     return pedido
 
 

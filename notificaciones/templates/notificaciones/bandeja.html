@@ -1,0 +1,56 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Notificaciones{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Notificaciones</h1>
+        <p class="text-muted mb-0">{% if sin_leer %}Tenés <b>{{ sin_leer }}</b> sin leer de {{ total }}.{% else %}Estás al día: no tenés notificaciones sin leer.{% endif %}</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% if sin_leer %}
+        <form method="post" action="{% url 'notificaciones_leer_todas' %}">{% csrf_token %}
+            <button class="btn btn-outline-secondary"><i class="bi bi-check2-all me-1"></i>Marcar todas como leídas</button>
+        </form>
+        {% endif %}
+        {% if 'CFG_GESTIONAR' in permisos %}
+        <a href="{% url 'notificaciones_configuracion' %}" class="btn btn-outline-primary"><i class="bi bi-sliders me-1"></i>Umbrales de las alertas</a>
+        {% endif %}
+    </div>
+</div>
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item"><a class="nav-link{% if ver == 'sin_leer' %} active{% endif %}" href="?ver=sin_leer">Sin leer ({{ sin_leer }})</a></li>
+    <li class="nav-item"><a class="nav-link{% if ver == 'todas' %} active{% endif %}" href="?ver=todas">Todas ({{ total }})</a></li>
+</ul>
+
+<ul class="list-unstyled mb-3">
+    {% for n in pagina %}
+    <li class="card-panel bg-white p-3 mb-2 notificacion{% if not n.leida %} sin-leer{% endif %}">
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div class="flex-grow-1" style="min-width: 0;">
+                <p class="mb-1 small"><span class="badge text-bg-light border me-1">{{ n.tipo }}</span>
+                    <span class="text-muted">{{ n.fecha|date:"d/m/Y H:i" }}</span>
+                    {% if n.correo %}<span class="text-muted ms-1" title="{{ n.correo }}"><i class="bi bi-envelope{% if 'No se pudo' in n.correo %}-exclamation text-danger{% else %}-check{% endif %} me-1"></i>{{ n.correo }}</span>{% endif %}
+                </p>
+                <p class="mb-0{% if not n.leida %} fw-semibold{% endif %}">{{ n.mensaje }}</p>
+                {% if n.leida %}<p class="small text-muted mb-0">Leída el {{ n.fecha_lectura|date:"d/m/Y H:i" }}</p>{% endif %}
+            </div>
+            <form method="post" action="{% url 'notificaciones_abrir' n.pk %}" class="d-flex gap-2 align-items-start">{% csrf_token %}
+                <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+                {% if n.enlace %}<button name="ir" value="1" class="btn btn-sm btn-primary">Ver</button>{% endif %}
+                {% if not n.leida %}<button class="btn btn-sm btn-outline-secondary" title="Marcar como leída" aria-label="Marcar como leída"><i class="bi bi-check2"></i></button>{% endif %}
+            </form>
+        </div>
+    </li>
+    {% empty %}
+    <li class="card-panel bg-white p-4 text-center text-muted"><i class="bi bi-bell-slash fs-3 d-block mb-2"></i>{% if ver == 'sin_leer' %}No tenés notificaciones sin leer.{% else %}Todavía no tenés notificaciones.{% endif %}</li>
+    {% endfor %}
+</ul>
+{% if pagina.paginator.num_pages > 1 %}
+<nav aria-label="Páginas"><ul class="pagination pagination-sm">
+    {% if pagina.has_previous %}<li class="page-item"><a class="page-link" href="?ver={{ ver }}&amp;pagina={{ pagina.previous_page_number }}">‹</a></li>{% endif %}
+    <li class="page-item disabled"><span class="page-link">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span></li>
+    {% if pagina.has_next %}<li class="page-item"><a class="page-link" href="?ver={{ ver }}&amp;pagina={{ pagina.next_page_number }}">›</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

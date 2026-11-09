@@ -503,3 +503,54 @@ class LogAuditoria(models.Model):
 
     def __str__(self):
         return f'{self.fecha_hora:%d/%m/%Y %H:%M} {self.accion} {self.tabla} {self.id_registro}'
+
+
+# ---------------------------------------------------------------- Parcial N° 2 (M3): alertas
+class Configuracion(models.Model):
+    """Los umbrales de las reglas de notificación: se cambian desde la pantalla de configuración,
+    no están escritos en el código (lo pide la consigna)."""
+    id_configuracion = models.AutoField(primary_key=True)
+    clave = models.CharField(max_length=60, unique=True, db_column='clave_conf', verbose_name='Clave')
+    valor = models.CharField(max_length=150, blank=True, default='', db_column='valor_conf', verbose_name='Valor')
+    descripcion = models.CharField(max_length=200, db_column='descripcion_conf', verbose_name='Descripción')
+
+    class Meta:
+        db_table = 'CONFIGURACION'
+        verbose_name = 'Parámetro de configuración'
+        verbose_name_plural = 'Configuración'
+        ordering = ['id_configuracion']
+
+    def __str__(self):
+        return f'{self.clave} = {self.valor}'
+
+
+class Notificacion(models.Model):
+    """Un aviso que generó una regla. Las columnas de la consigna (id, fecha, tipo, mensaje,
+    destino_perfil, leída, fecha_lectura) más tres: el usuario puntual (si es para un cliente),
+    el enlace a lo que avisa y una clave única que impide que la misma alerta se cree dos veces."""
+    id_notificacion = models.AutoField(primary_key=True)
+    fecha = models.DateTimeField(default=timezone.now, db_column='fecha_notif', verbose_name='Fecha')
+    tipo = models.CharField(max_length=40, db_column='tipo_notif', verbose_name='Tipo')
+    mensaje = models.CharField(max_length=300, db_column='mensaje_notif', verbose_name='Mensaje')
+    destino_perfil = models.ForeignKey(Rol, on_delete=models.PROTECT, db_column='id_rol_destino',
+                                       related_name='notificaciones', verbose_name='Perfil destino')
+    destino_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, blank=True, null=True,
+                                        db_column='id_usuario_destino', related_name='notificaciones',
+                                        verbose_name='Usuario destino')
+    leida = models.BooleanField(default=False, db_column='leida_notif', verbose_name='Leída')
+    fecha_lectura = models.DateTimeField(blank=True, null=True, db_column='fecha_lectura_notif',
+                                         verbose_name='Fecha de lectura')
+    enlace = models.CharField(max_length=200, blank=True, default='', db_column='enlace_notif')
+    clave = models.CharField(max_length=80, unique=True, db_column='clave_notif',
+                             verbose_name='Clave única (evita duplicados)')
+    correo = models.CharField(max_length=200, blank=True, default='', db_column='correo_notif',
+                              verbose_name='Correo enviado')  # a quién se mandó y si salió bien
+
+    class Meta:
+        db_table = 'NOTIFICACION'
+        verbose_name = 'Notificación'
+        verbose_name_plural = 'Notificaciones'
+        ordering = ['-fecha', '-id_notificacion']
+
+    def __str__(self):
+        return f'{self.fecha:%d/%m %H:%M} {self.tipo}: {self.mensaje[:40]}'
