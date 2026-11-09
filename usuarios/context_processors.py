@@ -6,14 +6,34 @@ def seguridad(request):
     pedidos, las mudanzas que ya tendrían que haber terminado y nadie finalizó."""
     usuario = getattr(request, 'usuario', None) or get_usuario_actual(request)
     permisos = permisos_de(usuario)
-    recordatorio, pendientes = [], 0
+    recordatorio, pendientes, en_curso = [], 0, 0
     if 'PED_GESTIONAR' in permisos:
         from pedidos.reglas import filtro_por_venir, recordatorio_finalizar
         from .models import Pedido
         recordatorio = recordatorio_finalizar()
         # el número al lado de «Pedidos» en el menú lateral: los que esperan que la empresa confirme
         pendientes = Pedido.objects.filter(filtro_por_venir(), estado=Pedido.PENDIENTE).count()
+        en_curso = Pedido.objects.filter(estado=Pedido.CONFIRMADO, inicio_real__isnull=False, fin_real__isnull=True).count()
     return {'usuario_sesion': usuario, 'permisos': permisos, 'recordatorio_finalizar': recordatorio,
             # el personal (quien no pide mudanzas) usa el menú lateral; el cliente, el de arriba
             'menu_lateral': bool(usuario) and 'PED_REGISTRAR' not in permisos,
-            'pedidos_pendientes': pendientes}
+            'pedidos_pendientes': pendientes, 'mudanzas_en_curso': en_curso,
+            'ubicacion': ubicacion(request.path)}
+
+
+# Dónde está la persona, para la barra de arriba del menú lateral: «Operación › Pedidos»
+UBICACIONES = [
+    ('/tablero/', 'Principal', 'Tablero'), ('/notificaciones/configuracion/', 'Seguridad', 'Umbrales de alertas'),
+    ('/notificaciones/', 'Principal', 'Notificaciones'), ('/pedidos/', 'Operación', 'Pedidos'),
+    ('/portal/', 'Operación', 'Portal del personal'), ('/vehiculos/', 'Catálogo', 'Vehículos'),
+    ('/servicios/', 'Catálogo', 'Servicios'), ('/objetos/', 'Catálogo', 'Objetos'),
+    ('/reportes/', 'Análisis', 'Reportes'), ('/auditoria/', 'Análisis', 'Auditoría'),
+    ('/panel/', 'Seguridad', 'Usuarios'), ('/roles/', 'Seguridad', 'Roles'), ('/mi-cuenta/', 'Cuenta', 'Mi cuenta'),
+]
+
+
+def ubicacion(ruta):
+    for prefijo, seccion, titulo in UBICACIONES:
+        if ruta.startswith(prefijo):
+            return {'seccion': seccion, 'titulo': titulo}
+    return {'seccion': 'Principal', 'titulo': 'Mudanzas y Fletes Salta'}

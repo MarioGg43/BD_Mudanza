@@ -705,3 +705,39 @@ body.con-lateral { padding-left: var(--ancho-lateral); }
   .tablero-saludo { grid-template-columns: 1fr; padding: 1.2rem; }
   .tarjeta-kpi > b { font-size: 1.45rem; }
 }
+
+/* ---- barra de arriba: dónde estoy y el estado en vivo ---- */
+.barra-titulo { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.barra-titulo b { font-size: 1.05rem; color: var(--tinta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barra-titulo small { font-size: .74rem; color: var(--tinta-2); }
+.barra-titulo small i { font-size: .6rem; margin: 0 .15rem; }
+.barra-estado { display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .75rem; border-radius: 999px;
+  border: 1px solid var(--linea); background: #fff; color: var(--tinta-2); font-size: .8rem; font-weight: 600; text-decoration: none; }
+.barra-estado.activo { color: #0f7a52; border-color: #bfe6d3; background: #f1fbf6; }
+.punto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #b9b7b0; }
+.barra-estado.activo .punto-vivo { background: #0ca30c; box-shadow: 0 0 0 0 rgba(12, 163, 12, .5); animation: latido 1.8s infinite; }
+@keyframes latido { 70% { box-shadow: 0 0 0 7px rgba(12, 163, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0); } }
+@media (max-width: 767.98px) { .barra-fecha, .barra-estado { display: none; } }
+
+/* ---- secciones del menú que se pliegan ---- */
+.lateral-grupo summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  border-radius: 8px; padding-right: .3rem; }
+.lateral-grupo summary::-webkit-details-marker { display: none; }
+.lateral-grupo summary i { font-size: .7rem; transition: transform .15s; color: rgba(255, 178, 122, .8); }
+.lateral-grupo:not([open]) summary i { transform: rotate(-90deg); }
+.lateral-grupo summary:hover { color: #ffd2ad; }
+.lateral-grupo summary:focus-visible { outline: 2px solid #ffb27a; outline-offset: 2px; }
+.lateral-grupo { display: flex; flex-direction: column; gap: 2px; }
+.lateral-grupo > a { display: flex; }
+
+/* ---- íconos de mudanza alrededor del camión del saludo ---- */
+.tablero-dibujo { position: relative; }
+.flotante { position: absolute; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+  background: #fff; color: var(--naranja-osc); font-size: 1.1rem; box-shadow: 0 10px 20px -12px rgba(120, 40, 0, .6);
+  animation: flotar 4s ease-in-out infinite; }
+.flotante.f1 { top: -6px; left: -18px; }
+.flotante.f2 { top: 14px; right: -26px; animation-delay: -1.3s; color: #e2551b; }
+.flotante.f3 { bottom: -4px; left: -10px; animation-delay: -2.6s; color: #b8263b; }
+.flotante.f4 { bottom: 18px; right: -22px; animation-delay: -.7s; }
+@keyframes flotar { 50% { transform: translateY(-7px) rotate(-4deg); } }
+@media (prefers-reduced-motion: reduce) { .flotante, .barra-estado.activo .punto-vivo { animation: none; } }
