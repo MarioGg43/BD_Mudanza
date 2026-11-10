@@ -544,7 +544,7 @@ input[data-calendario] + .form-control[readonly] { background-color: #fff; curso
 /* =====================================================================
  * Menú lateral del personal (_lateral.html) y barra de arriba
  * ===================================================================== */
-:root { --ancho-lateral: 264px; --lateral-fondo: #2a170e; --lateral-fondo-2: #1c0f09; }
+:root { --ancho-lateral: 264px; --lateral-fondo: #e8590c; --lateral-fondo-2: #b8360b; }
 body.con-lateral { padding-left: var(--ancho-lateral); }
 .lateral {
   position: fixed; inset: 0 auto 0 0; width: var(--ancho-lateral); z-index: 1040;
@@ -807,3 +807,20 @@ a.aviso-tarjeta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18
 .materiales-mudanza { list-style: none; padding: 0; margin: .25rem 0 0; display: flex; flex-wrap: wrap; gap: .35rem; }
 .materiales-mudanza li { padding: .15rem .55rem; border-radius: 99px; background: rgba(0,0,0,.04); }
 .materiales-mudanza li.falta { background: #fdecec; color: #c62f35; font-weight: 600; }
+
+/* ---- menú lateral naranja (color de la marca): lo que sobre el fondo oscuro era naranja pasa a blanco ---- */
+.lateral { color: rgba(255, 255, 255, .92); box-shadow: 6px 0 24px -16px rgba(120, 30, 0, .8); }
+.lateral-marca small, .lateral-usuario-datos small { color: rgba(255, 255, 255, .78); }
+.lateral-accion { background: #fff; color: #c2410c !important; box-shadow: 0 10px 22px -14px rgba(90, 20, 0, .9); }
+.lateral-accion b { background: #c2410c; color: #fff; }
+.lateral-seccion, .lateral-grupo summary i { color: rgba(255, 255, 255, .72); }
+.lateral-grupo summary:hover { color: #fff; }
+.lateral-grupo summary:focus-visible { outline-color: #fff; }
+.lateral-menu a:hover { background: rgba(255, 255, 255, .14); }
+.lateral-menu a.activo { background: rgba(255, 255, 255, .22); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); }
+.lateral-menu a.activo::before { background: #fff; }
+.lateral-numero { background: #fff; color: #c2410c; }
+.lateral-numero.rojo { background: #7f1d1d; color: #fff; }
+.lateral-usuario { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .22); }
+.lateral-avatar { background: #fff; color: #c2410c; }
+.lateral-salir:hover { background: rgba(255, 255, 255, .18); }
