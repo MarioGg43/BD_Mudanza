@@ -165,6 +165,9 @@ tabla(['Campo', 'Tipo', 'Descripción'], [
                                                                        '(se suma al total) y su motivo'],
     ['Inicio_real, Fin_real (nuevos)', 'DATETIME', 'Hora real en que el chofer marcó «Empezamos» y «Terminamos» '
                                                  'desde el portal (al terminar, el pedido queda Finalizado)'],
+    ['Lat_origen, Lon_origen, Lat_destino, Lon_destino (nuevos)', 'DECIMAL(9,6)',
+     'El punto exacto de cada dirección (latitud y longitud), si el cliente lo marcó en el mapa o confirmó el '
+     'que encontró el sistema («¿Es acá?»). Opcionales: sin punto, el mapa busca la dirección por el texto'],
 ], [140, 110, 210])
 parrafo('Estados posibles de Estado_pedido: Pendiente, Confirmado, Finalizado, Anulado. «Vencido», '
         '«Para finalizar» y «Atrasada» NO son estados guardados: el sistema los calcula con la fecha, la '
@@ -455,10 +458,16 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes', 'Flujos principales'], [
     ['Recuperar Clave', 'Cliente («¿Olvidaste tu contraseña?»)', 'Usuarios, Roles',
      'Hacia Usuarios: «DNI y correo» → «Datos del usuario». Guarda: «Clave nueva cifrada»'],
     ['Consultar Recorrido', 'Administrador, Cliente o Chofer (detalle del pedido)', 'Pedidos',
-     'Al Servicio de mapas: «Direcciones de origen y destino» → «Ruta, distancia y duración»'],
+     'Hacia Pedidos: «id_pedido» → «Direcciones y puntos del pedido». Al Servicio de mapas: «Puntos de origen y '
+     'destino» (o las direcciones, si no tienen punto) → «Ruta, distancia y duración»'],
     ['Obtener Dirección del Mapa', 'Cliente (al registrar el pedido)', '—',
      'Al Servicio de mapas: «Coordenadas del punto» → «Dirección del punto». Es parte de Registrar un Pedido'],
+    ['Ubicar Dirección Escrita', 'Cliente (al escribir la dirección a mano)', '—',
+     'Al Servicio de mapas: «Dirección escrita» → «Punto de la dirección». Al Cliente: «Punto propuesto» '
+     '(«¿Es acá?»). Es parte de Registrar un Pedido'],
 ], [105, 105, 100, 150])
+parrafo('Registrar un Pedido y Modificar Pedido guardan en Pedidos, además de las direcciones, los «Puntos de '
+        'origen y destino» cuando el cliente los marcó en el mapa.')
 parrafo('Los procesos que ya estaban y cambian: Confirmar Pedido y Reprogramar Pedido suman la salida hacia '
         '«Registrar Notificación al Cliente»; Anular Pedido y Cancelar Pedido, hacia «Registrar Notificación de '
         'Cancelaciones».')
