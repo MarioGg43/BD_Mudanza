@@ -9,7 +9,7 @@ en un solo proyecto:
   (app `usuarios`).
 - **Hito 3** — proceso completo del pedido de mudanza: registro por el cliente, consulta con filtros, confirmación, anulación y comprobante; ABM de servicios (app `pedidos`).
 - **App móvil** — prototipo navegable de 35 pantallas para Desarrollo Móvil
-  (carpeta `app-movil/`, independiente de Django).
+  (carpeta `documentacion/app-movil/`, independiente de Django).
 
 La base de datos sigue el DER del grupo: **13 tablas**, con los mismos nombres
 de tablas y columnas que el diagrama.
@@ -190,7 +190,7 @@ docker exec mudanzas_web python manage.py test
 Las de la app móvil, con Node:
 
 ```bash
-node --test app-movil/tests/logic.test.js app-movil/tests/store.test.js
+node --test documentacion/app-movil/tests/logic.test.js documentacion/app-movil/tests/store.test.js
 ```
 
 ## Arquitectura
@@ -216,18 +216,26 @@ mudanzas_django/
 ├── vehiculos/              # Hito 1: CRUD de vehículos
 │   ├── views.py, forms.py, urls.py
 │   └── templates/vehiculos/
-├── usuarios/               # Hito 2: las 13 tablas del DER y la seguridad
+├── usuarios/               # Hito 2: las tablas del DER (models.py) y la seguridad
 │   ├── models.py           # Roles, Permisos, Usuarios, Vehículos, Pedidos…
 │   ├── views.py, urls.py, utils.py, admin.py
 │   ├── management/commands/init_data.py
 │   ├── static/             # Logo y paleta de colores
 │   └── templates/
-├── pedidos/                # Hito 3: reglas.py, permisos.py, vistas y ABM de servicios
-├── app-movil/              # Prototipo de la app móvil (HTML + JS)
-└── docs/
-    ├── sql/                # Script del esquema para la entrega
+├── pedidos/                # Hito 3: reglas.py, mapa.py, materiales.py, vistas y ABM de servicios y materiales
+├── reportes/               # Parcial N° 2 (M2): reportes consolidados y tablero
+├── notificaciones/         # Parcial N° 2 (M3): reglas de alerta, bandeja y umbrales
+├── analitica/              # Parcial N° 2 (M1): script con pandas, numpy y matplotlib + gráficos
+├── api/                    # API JSON para el frontend de React (Desarrollo Web)
+├── frontend/               # React (Desarrollo Web), puerto 5173
+└── documentacion/          # Todo lo que no es código del sistema
+    ├── der_grupo5.drawio   # DER en draw.io (lo arma herramientas/der_drawio.py desde los modelos)
     ├── diagramas/          # DER y DFDs
-    └── superpowers/        # Especificaciones de diseño
+    ├── base_de_datos/, sql/  # Scripts SQL de las entregas
+    ├── herramientas/       # Scripts que generan el DER, el Word de cambios, capturas…
+    ├── app-movil/          # Prototipo de la app móvil (HTML + JS)
+    ├── entregas/           # Word y PDF entregados (no se suben a GitHub)
+    └── superpowers/        # Especificaciones y planes de diseño
 ```
 
 El modelo `Vehiculo` vive en la app `usuarios`, junto al resto del DER; la app

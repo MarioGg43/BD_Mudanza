@@ -4,7 +4,7 @@ Una página por diagrama: Nivel 1, Nivel 2, Nivel 3 Backend y Nivel 3 Frontend. 
 método de la cátedra (Análisis y Diseño II): 3 colores, login en los dos lados, sin personas
 en el nivel 3 y frontend y backend conectados por Cliente API <-> Controladores.
 
-Uso: python docs/herramientas/modelo_c4.py "<salida>.drawio" [carpeta para vistas previas SVG]
+Uso: python documentacion/herramientas/modelo_c4.py "<salida>.drawio" [carpeta para vistas previas SVG]
 """
 import sys
 from pathlib import Path

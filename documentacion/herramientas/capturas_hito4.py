@@ -2,7 +2,7 @@
 más la auditoría y los permisos.
 
 Requiere: pip install playwright (usa el Edge instalado, no descarga navegadores).
-Uso, con el sistema levantado: python docs/herramientas/capturas_hito4.py
+Uso, con el sistema levantado: python documentacion/herramientas/capturas_hito4.py
 
 Recorre el sistema en http://localhost:8002 con Edge sin ventana y guarda una captura de página
 completa por paso (y el comprobante en PDF) en Descargas\\Hito4_Mudanzas_Grupo5\\Capturas.

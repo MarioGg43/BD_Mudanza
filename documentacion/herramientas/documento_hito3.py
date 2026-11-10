@@ -1,6 +1,6 @@
 """Genera el documento que explica el Hito 3 punto por punto de la consigna.
 
-Uso: python docs/herramientas/documento_hito3.py
+Uso: python documentacion/herramientas/documento_hito3.py
 Necesita python-docx y las capturas en Descargas\\Capturas Hito3.
 """
 import pathlib
@@ -326,7 +326,7 @@ tabla(['La consigna pide entregar', 'Dónde está'], [
     ['DER (si cambió)', 'Cambió: PEDIDOS, DETALLE_PEDIDOS, INVENTARIO_DETALLES y SERVICIOS sumaron columnas, '
                         'e INVENTARIO_DETALLES perdió el peso. El detalle está en la página «Cambios DER y DFD del Hito 3»'],
     ['DFD del proceso desarrollado', 'DFD «Registrar un Pedido» rehecho con la notación del grupo, más los procesos de consulta y anulación'],
-    ['Scripts de base de datos actualizados', 'docs/sql/esquema_mudanzas.sql, en el repositorio'],
+    ['Scripts de base de datos actualizados', 'documentacion/sql/esquema_mudanzas.sql, en el repositorio'],
     ['Capturas del proceso completo', 'Carpeta «Capturas Hito3» (15 imágenes); las principales están en este documento'],
 ], [5.5, 10.5])
 

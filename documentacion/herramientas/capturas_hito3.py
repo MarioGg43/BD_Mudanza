@@ -1,7 +1,7 @@
 """Capturas del Hito 3: registración, consulta, anulación y comprobante.
 
 Requiere: pip install playwright (usa el Edge instalado, no descarga navegadores).
-Uso, con el sistema levantado: python docs/herramientas/capturas_hito3.py
+Uso, con el sistema levantado: python documentacion/herramientas/capturas_hito3.py
 
 Recorre el sistema en http://localhost:8002 con Edge sin ventana y guarda una
 captura de página completa por paso en Descargas\\Capturas Hito3.

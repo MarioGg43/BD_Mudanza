@@ -1,7 +1,7 @@
 """Borrador del DER en draw.io, armado desde los modelos reales (tablas, columnas, PK, FK y relaciones).
 
 Se corre dentro del contenedor, porque lee los modelos de Django:
-    docker exec mudanzas_web python docs/herramientas/der_drawio.py docs/der_borrador.drawio
+    docker exec mudanzas_web python documentacion/herramientas/der_drawio.py documentacion/der_grupo5.drawio
 
 Cada tabla es una caja con sus columnas (PK y FK marcadas) y cada clave foránea una relación 1 a N
 con la notación pata de gallo. La posición de las tablas está pensada para leerse de arriba abajo:

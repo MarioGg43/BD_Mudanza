@@ -1,6 +1,6 @@
 """Genera el Word con el estado del Hito 4 (Taller de Programación) y lo que se sumó del proyecto de José.
 
-Uso: python docs/herramientas/resumen_hito4.py "<ruta de salida>.docx"  (necesita python-docx)
+Uso: python documentacion/herramientas/resumen_hito4.py "<ruta de salida>.docx"  (necesita python-docx)
 """
 import sys
 
@@ -163,7 +163,7 @@ tabla(['Entregable', 'Estado', 'Dónde está o qué falta'], [
      'Revisarlo y darle el estilo del grupo. Los cambios explicados están en «Cambios_pendientes_DER_DFD_Grupo5.docx».'],
     ['DFD del proceso', 'Falta dibujar', 'Registrar un Pedido, Anular y Reprogramar; correcciones en el mismo Word.'],
     ['Scripts de base de datos actualizados', A,
-     'docs/base_de_datos/01_estructura.sql (todas las tablas) y 02_datos_maestros.sql (roles, permisos, '
+     'documentacion/base_de_datos/01_estructura.sql (todas las tablas) y 02_datos_maestros.sql (roles, permisos, '
      'servicios, objetos, vehículos). Probados en una base vacía.'],
     ['Capturas del proceso completo', 'Agregado ahora',
      'Carpeta «Capturas»: 28 pantallas numeradas en orden (registración con la ventana de objetos, consulta con '
@@ -211,7 +211,7 @@ titulo('4. Cómo probarlo y sacar las capturas')
 lista([('Administrador: ', 'DNI 35123456 (Admin123!). Pedidos, reprogramar, anular, auditoría.'),
        ('Cliente: ', 'DNI 29876543 (Cliente123!). Pedir mudanza, mis pedidos, comprobante.'),
        ('Chofer: ', 'DNI 40987654 (Usuario123!). Portal con sus mudanzas.')])
-lista(['Las capturas se pueden volver a sacar con: python docs/herramientas/capturas_hito4.py',
+lista(['Las capturas se pueden volver a sacar con: python documentacion/herramientas/capturas_hito4.py',
        'Registración: como cliente, «Pedir mudanza», elegir un camión mediano y un adicional y mirar el total.',
        'Consulta: como administrador, «Pedidos» con filtros de fecha, estado y cliente, y abrir el detalle.',
        'Anulación: desde el detalle, «Anular» con un motivo; después mirarlo en «Auditoría».',
