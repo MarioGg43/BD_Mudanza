@@ -8,3 +8,7 @@ venv/
 .idea/
 comandos.txt
 entregas/
+
+# herramientas locales (Claude Code), no son parte del sistema
+.claude/
+.superpowers/
