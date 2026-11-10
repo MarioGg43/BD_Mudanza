@@ -93,8 +93,8 @@ p.runs[0].italic = True
 parrafo('Este documento junta todo lo que hay que agregar o corregir en el DER de alto refinamiento '
         'y en los DFD del documento oficial para que coincidan con lo que ya hace el sistema y con '
         'las reglas de notación del grupo. Está dividido en: (1) cambios obligatorios porque el sistema '
-        'ya funciona así, (2) correcciones de notación en los DFD, (3) DFD que faltan y (4) mejoras '
-        'futuras que todavía no se decidieron.')
+        'ya funciona así, (2) correcciones de notación en los DFD, (3) DFD que faltan y (4) lo que quedó '
+        'fuera del alcance.')
 
 parrafo('Reglas de notación que se usan para revisar (las acordadas con el profesor):', None)
 lista([
@@ -241,7 +241,7 @@ tabla(['Campo', 'Tipo', 'Clave / descripción'], [
     ['id_notificacion', 'INT', 'PK'],
     ['fecha_notif', 'DATETIME', 'Cuándo se generó'],
     ['tipo_notif', 'VARCHAR(40)', 'Pedido sin confirmar, Mudanza atrasada, Cliente con cancelaciones, '
-                                  'Mudanza confirmada, Mudanza reprogramada'],
+                                  'Mudanza confirmada, Mudanza reprogramada, Stock bajo'],
     ['mensaje_notif', 'VARCHAR(300)', 'El texto del aviso'],
     ['id_rol_destino', 'INT', 'FK → ROLES (destino_perfil: a qué perfil le llega)'],
     ['leida_notif', 'BOOLEAN', 'Si ya se leyó'],
@@ -266,17 +266,68 @@ parrafo('Filas que se cargan: horas_sin_confirmar (48), correo_empresa (vacío),
         'cancelaciones_cliente (3), dias_cancelaciones (90) y correo_al_cliente (1 = sí). No tiene relaciones: '
         'las reglas la leen por la clave.')
 
-titulo('1.12 PERMISOS: tres permisos nuevos (son filas, no cambia la estructura)', 2)
+titulo('1.12 Tabla nueva: MATERIALES (control de materiales)', 2)
+parrafo('El catálogo de lo que se lleva a las mudanzas (mantas, correas, film, cajas…) con su stock. El stock no '
+        'se escribe a mano: cambia solo con un movimiento (1.14), así siempre queda quién lo cambió y por qué.')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_material', 'INT', 'PK'],
+    ['nom_material', 'VARCHAR(60)', 'Único. Ej.: «Mantas acolchadas»'],
+    ['unidad_material', 'VARCHAR(20)', 'unidades, rollos, kits…'],
+    ['stock_material', 'INT', 'Cuánto hay en el depósito'],
+    ['stock_min_material', 'INT', 'Si el stock baja de este número, avisa al administrador (regla 5)'],
+    ['reutilizable_material', 'BOOLEAN', 'Sí: sale con la mudanza y vuelve (mantas, correas). No: se gasta (film, cajas)'],
+    ['estado_material', 'BOOLEAN', 'Baja lógica: dado de baja ya no sale en las mudanzas'],
+], [150, 90, 220])
+
+titulo('1.13 RECURSOS_ASIGNADOS: el material deja de ser texto', 2)
+parrafo('Antes guardaba los materiales del servicio como texto libre («Mantas, film y cintas»). Ahora apunta a '
+        'MATERIALES y dice cuánto se sugiere llevar en cada mudanza con ese servicio.')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_recursos_asignados', 'INT', 'PK'],
+    ['id_servicio', 'INT', 'FK → SERVICIOS'],
+    ['id_material', 'INT', 'FK → MATERIALES (reemplaza la columna de texto «Materiales», que se saca)'],
+    ['cant_sugerida', 'SMALLINT', 'Cuánto se lleva por mudanza. Ej.: Mudanza local → 12 mantas'],
+], [150, 90, 220])
+parrafo('Un material aparece una sola vez por servicio (único id_servicio + id_material). Relaciones: '
+        'SERVICIOS 1 : N RECURSOS_ASIGNADOS y MATERIALES 1 : N RECURSOS_ASIGNADOS (es la tabla intermedia de la '
+        'relación N : M entre servicios y materiales).')
+
+titulo('1.14 Tabla nueva: MOVIMIENTOS_MATERIAL', 2)
+parrafo('Cada entrada o salida de stock. Es el historial del material y lo que permite saber qué se llevó y qué '
+        'volvió de cada mudanza.')
+tabla(['Campo', 'Tipo', 'Clave / descripción'], [
+    ['id_mov_material', 'INT', 'PK'],
+    ['id_material', 'INT', 'FK → MATERIALES'],
+    ['id_pedido', 'INT', 'FK → PEDIDOS (vacío en compras y ajustes)'],
+    ['id_usuario', 'INT', 'FK → USUARIOS (quién lo registró; vacío si fue el sistema)'],
+    ['tipo_mov', 'VARCHAR(15)', 'Ingreso, Salida, Devolución, Consumo, Pérdida, Ajuste'],
+    ['cant_mov', 'INT', 'Cantidad (en un Ajuste puede ser negativa)'],
+    ['fec_mov', 'DATETIME', 'Fecha y hora'],
+    ['observacion_mov', 'VARCHAR(200)', 'Ej.: «Stock inicial», «Faltaron 2», motivo del ajuste'],
+], [150, 90, 220])
+tabla(['Movimiento', 'Cuándo', 'Efecto en el stock'], [
+    ['Ingreso', 'El administrador carga una compra', 'Suma'],
+    ['Salida', 'El chofer toca «Empezamos»: sale lo sugerido por los servicios (si no alcanza, lo que hay)', 'Resta'],
+    ['Devolución', 'Al «Terminamos»: lo que vuelve (reutilizables) o sobra (consumibles); o se anula una mudanza en curso', 'Suma'],
+    ['Consumo', 'Al «Terminamos»: lo que se gastó de un consumible', 'No cambia (ya salió)'],
+    ['Pérdida', 'Al «Terminamos»: un reutilizable que no volvió', 'No cambia (ya salió)'],
+    ['Ajuste', 'El administrador corrige después de contar (con motivo)', 'Suma o resta'],
+], [80, 290, 90])
+parrafo('Relaciones: MATERIALES 1 : N MOVIMIENTOS_MATERIAL, PEDIDOS 1 : N MOVIMIENTOS_MATERIAL y '
+        'USUARIOS 1 : N MOVIMIENTOS_MATERIAL.')
+
+titulo('1.15 PERMISOS: cuatro permisos nuevos (son filas, no cambia la estructura)', 2)
 tabla(['Permiso', 'Para qué', 'Quién lo tiene'], [
     ['REP_CONSULTAR', 'Ver los reportes de desempeño del personal y de cambios y cancelaciones', 'Administrador'],
     ['REP_FINANZAS', 'Ver el reporte con montos (uso e ingresos de la flota). Es el «reporte sensible '
                      'restringido por perfil» que pide la consigna', 'Administrador'],
     ['CFG_GESTIONAR', 'Cambiar los umbrales de las alertas (CONFIGURACION)', 'Administrador'],
+    ['MAT_GESTIONAR', 'Gestionar los materiales, cargar compras y ajustes y ver los movimientos', 'Administrador'],
 ], [110, 260, 90])
 parrafo('Los reportes consolidados (M2) y la analítica (M1) no agregan tablas: leen PEDIDOS, DETALLE_PEDIDOS, '
         'SERVICIOS, PERSONAL_PEDIDO, REPROGRAMACIONES y VEHICULOS.')
 
-titulo('1.13 Diferencias entre el DER del documento y el sistema', 2)
+titulo('1.16 Diferencias entre el DER del documento y el sistema', 2)
 parrafo('El DER del documento tiene 16 tablas y el sistema trabaja con las del DER anterior. Estas tablas '
         'están en el DER pero el sistema todavía no las usa (hay que programarlas o explicarlo):')
 lista([('ESTADO_USUARIO: ', 'el sistema usa Estado_usuario (BOOLEAN) dentro de USUARIOS.'),
@@ -349,7 +400,8 @@ tabla(['Qué está', 'Problema', 'Cómo corregirlo'], [
 titulo('3. DFD que faltan (el sistema ya los tiene)')
 tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Registrar Cliente', 'Cliente (se crea la cuenta)', 'Usuarios, Roles'],
-    ['Gestionar Servicios', 'Administrador', 'Servicios, Recursos asignados'],
+    ['Gestionar Servicios', 'Administrador (con los materiales y la cantidad por mudanza)',
+     'Servicios, Recursos asignados, Materiales'],
     ['Gestionar Objetos', 'Administrador', 'Objetos'],
     ['Confirmar Pedido', 'Administrador', 'Pedidos'],
     ['Finalizar Pedido', 'Administrador (solo desde la fecha y hora de la mudanza)', 'Pedidos'],
@@ -360,7 +412,9 @@ tabla(['Proceso', 'Quién lo estimula', 'Almacenes'], [
     ['Modificar Pedido', 'Cliente hasta 24 h antes (vuelve a Pendiente)',
      'Pedidos, Detalle pedidos, Inventario detalles, Vehículos, Reprogramaciones'],
     ['Cancelar Pedido', 'Cliente hasta 24 h antes (queda Anulado con su motivo)', 'Pedidos'],
-    ['Registrar Inicio y Fin de la Mudanza', 'Chofer de esa mudanza (desde el portal; los ayudantes no)', 'Pedidos, Personal pedido'],
+    ['Registrar Inicio y Fin de la Mudanza', 'Chofer de esa mudanza (desde el portal; los ayudantes no). '
+                                             'Dispara la salida y el cierre de materiales (3.2)',
+     'Pedidos, Personal pedido'],
     ['Consultar Auditoría', 'Administrador (filtros por fecha, tabla, acción, usuario y registro)', 'Log auditoría'],
     ['Reprogramar Pedido', 'Administrador (con motivo de una lista). Sale hacia el Cliente: «Horario nuevo '
                            'de la mudanza» (no «Aviso de cambio de horario»: «aviso» es una acción)',
@@ -412,21 +466,38 @@ parrafo('Si el profesor de Análisis y Diseño pide el modelo C4, estos cambios 
         'externos nuevos (Servidor de correo, Servicio de mapas y la librería de gráficos Chart.js que se carga '
         'desde un CDN) y un contenedor nuevo: la tarea programada de alertas.')
 
-# ---------------------------------------------------------------- futuro
-titulo('4. Mejoras futuras (todavía no decididas)')
-titulo('4.1 Control de materiales', 2)
-tabla(['Tabla', 'Campos'], [
-    ['MATERIALES (nueva)', 'id_material PK, nom_material, unidad_material, stock_material, stock_min_material, '
-                           'reutilizable (BOOLEAN), estado_material'],
-    ['RECURSOS_ASIGNADOS (cambia)', 'id_recursos_asignados PK, id_servicio FK, id_material FK (reemplaza el texto '
-                                    '«Materiales»), cant_sugerida'],
-    ['MOVIMIENTOS_MATERIAL (nueva)', 'id_mov_material PK, id_material FK, id_pedido FK (vacío si es compra), '
-                                     'id_usuario FK, tipo_mov (Ingreso / Salida / Devolución), cant_mov, fec_mov'],
-], [140, 320])
-parrafo('DFD: cambiar «Asignar Recursos al Pedido» (registra la salida de materiales) y agregar '
-        '«Registrar Ingreso de Material».')
+titulo('3.2 DFD nuevos por el control de materiales', 2)
+parrafo('Almacenes nuevos: Materiales y Movimientos material. Recursos asignados ahora guarda «id_servicio, '
+        'id_material y cantidad sugerida» en vez del texto.')
+tabla(['Proceso', 'Quién lo estimula', 'Almacenes', 'Flujos principales'], [
+    ['Gestionar Materiales', 'Administrador', 'Materiales, Movimientos material',
+     'Del Administrador: «Datos del material» (y «Stock inicial»). Guarda en Materiales: «Datos del material»; '
+     'en Movimientos: «Ingreso inicial»'],
+    ['Registrar Ingreso de Material', 'Administrador (una compra)', 'Materiales, Movimientos material',
+     'Del Administrador: «id_material y cantidad comprada». Guarda: «Datos del ingreso» y «Stock nuevo»'],
+    ['Registrar Ajuste de Inventario', 'Administrador (después de contar)', 'Materiales, Movimientos material',
+     'Del Administrador: «id_material, diferencia y motivo». Hacia Materiales: «id_material» → «Stock actual». '
+     'Guarda: «Datos del ajuste» y «Stock nuevo»'],
+    ['Registrar Salida de Materiales', 'Se dispara cuando el chofer marca «Empezamos»',
+     'Detalle pedidos, Recursos asignados, Materiales, Movimientos material',
+     'Hacia Detalle pedidos: «id_pedido» → «Servicios del pedido». Hacia Recursos asignados: «id_servicio» → '
+     '«Materiales sugeridos». Guarda: «Datos de la salida» y «Stock nuevo». Al Chofer: «Materiales faltantes»'],
+    ['Registrar Cierre de Materiales', 'Chofer al marcar «Terminamos» (cuenta lo usado y lo que volvió)',
+     'Movimientos material, Materiales',
+     'Del Chofer: «Cantidades usadas y devueltas». Hacia Movimientos: «id_pedido» → «Materiales que salieron». '
+     'Guarda: «Datos del consumo, la devolución y la pérdida» y «Stock nuevo»'],
+    ['Registrar Notificación de Stock Bajo', 'Se dispara cuando un movimiento deja un material bajo su mínimo',
+     'Materiales, Configuración, Notificación',
+     'Hacia Materiales: «id_material» → «Stock y stock mínimo». Guarda: «Datos de la notificación». Al Servidor '
+     'de correo: «Correo de stock bajo»'],
+    ['Consultar Movimientos de Material', 'Administrador', 'Movimientos material, Materiales',
+     'Del Administrador: «id_material». Sale: «Historial del material»'],
+], [105, 105, 100, 150])
+parrafo('Procesos que ya estaban y cambian: Anular Pedido, si la mudanza ya había salido, guarda en Movimientos '
+        'material la «Devolución de lo que salió»; Asignar Recursos al Pedido sigue siendo solo el personal '
+        '(los materiales salen con «Empezamos», no al asignar).')
 
-titulo('5. Fuera del alcance: cobros (decidido el 09/11/2026)', 1)
+titulo('4. Fuera del alcance: cobros (decidido el 09/11/2026)', 1)
 parrafo('El grupo decidió que los cobros quedan totalmente fuera del alcance del sistema. Por eso:')
 lista([
     ('DER: ', 'sacar las tablas COBRANZAS y DETALLE_COBRANZAS y sus relaciones con PEDIDOS.'),
