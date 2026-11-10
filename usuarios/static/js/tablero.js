@@ -19,13 +19,14 @@
     y: { beginAtZero: true, grid: { color: GRILLA }, border: { display: false }, ticks: { precision: 0 }, ...extra.y },
   });
 
-  // 1. Mudanzas por día: las hechas y las que vienen (una sola escala: las dos son mudanzas)
+  // 1. Mudanzas por día: finalizadas, las de hoy o antes que nadie finalizó y las que vienen
   new Chart(document.getElementById('graficoDias'), {
     type: 'bar',
     data: {
       labels: datos.dias.etiquetas,
       datasets: [
-        { label: 'Hechas o del día', data: datos.dias.hechas, backgroundColor: AZUL, borderRadius: 4, maxBarThickness: 22 },
+        { label: 'Finalizadas', data: datos.dias.finalizadas, backgroundColor: AZUL, borderRadius: 4, maxBarThickness: 22 },
+        { label: 'Sin finalizar', data: datos.dias.sin_finalizar, backgroundColor: '#b9b7b0', borderRadius: 4, maxBarThickness: 22 },
         { label: 'Programadas (próximos 7 días)', data: datos.dias.programadas, backgroundColor: NARANJA, borderRadius: 4, maxBarThickness: 22 },
       ],
     },

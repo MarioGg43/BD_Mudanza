@@ -65,7 +65,9 @@ def tablero(request):
     pedidos = list(Pedido.objects.filter(fecha_servicio__range=(desde, hoy + timedelta(days=7)))
                    .exclude(estado=Pedido.ANULADO).prefetch_related('detalles__idServicio'))
     dias_lista = [desde + timedelta(days=i) for i in range(dias + 7)]
-    hechas = Counter(p.fecha_servicio for p in pedidos if p.fecha_servicio <= hoy)
+    # hasta hoy: las finalizadas y las que todavía nadie finalizó (así se ve cuando se cierra una)
+    finalizadas = Counter(p.fecha_servicio for p in pedidos if p.fecha_servicio <= hoy and p.estado == Pedido.FINALIZADO)
+    sin_finalizar = Counter(p.fecha_servicio for p in pedidos if p.fecha_servicio <= hoy and p.estado != Pedido.FINALIZADO)
     programadas = Counter(p.fecha_servicio for p in pedidos if p.fecha_servicio > hoy)
     del_periodo = [p for p in pedidos if p.fecha_servicio <= hoy]
 
@@ -87,7 +89,8 @@ def tablero(request):
     graficos = {
         'dias': {
             'etiquetas': [f'{DIAS_CORTOS[d.weekday()]} {d:%d/%m}' for d in dias_lista],
-            'hechas': [hechas.get(d, 0) for d in dias_lista],
+            'finalizadas': [finalizadas.get(d, 0) for d in dias_lista],
+            'sin_finalizar': [sin_finalizar.get(d, 0) for d in dias_lista],
             'programadas': [programadas.get(d, 0) for d in dias_lista],
         },
         'servicios': {'etiquetas': [s for s, _ in por_servicio], 'valores': [n for _, n in por_servicio],

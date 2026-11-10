@@ -74,7 +74,7 @@
                     </select>
                 </form>
             </div>
-            <div class="grafico-caja alto"><canvas id="graficoDias" role="img" aria-label="Mudanzas por día: hechas y programadas"></canvas></div>
+            <div class="grafico-caja alto"><canvas id="graficoDias" role="img" aria-label="Mudanzas por día: finalizadas, sin finalizar y programadas"></canvas></div>
         </section>
     </div>
     <div class="col-xxl-4">
@@ -131,5 +131,5 @@
 
 {{ graficos|json_script:"datos-tablero" }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-<script src="{% static 'js/tablero.js' %}?v=1" defer></script>
+<script src="{% static 'js/tablero.js' %}?v=2" defer></script>
 {% endblock %}

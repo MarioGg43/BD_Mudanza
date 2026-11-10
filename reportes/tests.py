@@ -184,6 +184,11 @@ class TableroYMenuLateralTest(BaseReportes):
         self.assertContains(r, f'href="/pedidos/{self.hecha.pk}/"', count=0)  # una mudanza pasada no es «próxima»
         datos = r.context['graficos']
         self.assertEqual(len(datos['dias']['etiquetas']), 30 + 7)     # 30 días + los próximos 7
+        # la finalizada cuenta como «Finalizadas» en su día, no como «Sin finalizar»
+        i = datos['dias']['etiquetas'].index(next(e for e in datos['dias']['etiquetas']
+                                                  if e.endswith(self.hecha.fecha_servicio.strftime('%d/%m'))))
+        self.assertGreaterEqual(datos['dias']['finalizadas'][i], 1)
+        self.assertEqual(len(datos['dias']['sin_finalizar']), 30 + 7)
         self.assertIn('Mudanza local', datos['servicios']['etiquetas'])
         self.assertEqual(len(self.client.get('/tablero/', {'periodo': '7'}).context['graficos']['dias']['etiquetas']), 14)
         self.assertEqual(len(self.client.get('/tablero/', {'periodo': 'raro'}).context['graficos']['dias']['etiquetas']), 37)
