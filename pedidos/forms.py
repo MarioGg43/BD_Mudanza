@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 
 from django import forms
@@ -6,7 +7,8 @@ from django.utils import timezone
 
 from django.db.models import Case, IntegerField, Q, Value, When
 
-from usuarios.models import Objeto, Pedido, RecursoAsignado, Reprogramacion, Rol, Servicio, Usuario, Vehiculo
+from usuarios.models import (Material, Objeto, Pedido, RecursoAsignado, Reprogramacion, Rol, Servicio, Usuario,
+                             Vehiculo)
 from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
 from . import reglas
 
@@ -277,8 +279,8 @@ class RegistroClienteForm(forms.Form):
 
 
 class ServicioForm(forms.ModelForm):
-    materiales = forms.CharField(required=False, label='Materiales que incluye',
-                                 help_text='Separados por coma. Ej.: Mantas, film, cintas')
+    """Los datos del servicio. Sus materiales van aparte: en la pantalla de Django con
+    MaterialesServicioFormSet; en la API de React, con ServicioTextoForm."""
 
     class Meta:
         model = Servicio
@@ -292,9 +294,6 @@ class ServicioForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.pk:
-            self.fields['materiales'].initial = ', '.join(
-                self.instance.recursos.values_list('Materiales', flat=True))
         self.fields['Precio_base'].required = False  # en los adicionales puede quedar en 0
         self.fields['Duracion_horas'].widget.attrs.update(min=reglas.MIN_HORAS, max=reglas.MAX_HORAS)
         con_bootstrap(self)
@@ -319,20 +318,159 @@ class ServicioForm(forms.ModelForm):
                                                  f'a {reglas.MAX_HORAS} horas.')
         return d
 
+
+
+class ServicioTextoForm(ServicioForm):
+    """La versión de la API de React: los materiales llegan como texto «Mantas ×12, Film ×2»."""
+    materiales = forms.CharField(required=False, label='Materiales que incluye',
+                                 help_text='Separados por coma, con la cantidad por mudanza. Ej.: Mantas ×12, Film ×2')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['materiales'].initial = materiales_texto(self.instance)
+
     def clean_materiales(self):
-        lista = [m.strip() for m in self.cleaned_data['materiales'].split(',') if m.strip()]
-        largos = [m for m in lista if len(m) > 50]
-        if largos:
-            raise forms.ValidationError(f'«{largos[0][:20]}…» supera los 50 caracteres.')
-        return lista
+        return leer_materiales_texto(self.cleaned_data['materiales'])
 
     def save(self, commit=True):
         with transaction.atomic():
             servicio = super().save()
-            servicio.recursos.all().delete()  # los materiales se reemplazan; el servicio no se borra
-            RecursoAsignado.objects.bulk_create(
-                [RecursoAsignado(idServicio=servicio, Materiales=m) for m in self.cleaned_data['materiales']])
+            guardar_materiales(servicio, self.cleaned_data['materiales'])
         return servicio
+
+
+# ---- los materiales de un servicio: qué lleva y cuánto se sugiere por mudanza ----
+class RecursoForm(forms.ModelForm):
+    class Meta:
+        model = RecursoAsignado
+        fields = ['idMaterial', 'cant_sugerida']
+        labels = {'idMaterial': 'Material', 'cant_sugerida': 'Cantidad por mudanza'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        activos = Material.objects.filter(Activo=True)
+        if self.instance.pk:  # si el material se dio de baja, sigue apareciendo en el servicio que ya lo tenía
+            activos = Material.objects.filter(Q(Activo=True) | Q(pk=self.instance.idMaterial_id))
+        self.fields['idMaterial'].queryset = activos.order_by('nom_material')
+        self.fields['idMaterial'].label_from_instance = lambda m: f'{m.nom_material} ({m.unidad_material})'
+        self.fields['idMaterial'].empty_label = 'Elegí un material'
+        self.fields['cant_sugerida'].widget.attrs.update(min=1, max=500)
+        con_bootstrap(self)
+
+    def clean_cant_sugerida(self):
+        n = self.cleaned_data['cant_sugerida']
+        if not 1 <= n <= 500:
+            raise forms.ValidationError('De 1 a 500.')
+        return n
+
+
+class _BaseMateriales(forms.BaseInlineFormSet):
+    def clean(self):
+        # primero el aviso propio (más claro que el genérico de Django para valores repetidos)
+        vistos = set()
+        for f in self.forms:
+            if not hasattr(f, 'cleaned_data') or f.cleaned_data.get('DELETE') or not f.cleaned_data.get('idMaterial'):
+                continue
+            m = f.cleaned_data['idMaterial']
+            if m.pk in vistos:
+                raise forms.ValidationError(f'{m.nom_material} está dos veces. Dejalo una sola vez con la cantidad total.')
+            vistos.add(m.pk)
+        super().clean()
+
+
+MaterialesServicioFormSet = forms.inlineformset_factory(
+    Servicio, RecursoAsignado, form=RecursoForm, formset=_BaseMateriales, extra=2, can_delete=True,
+    max_num=12, validate_max=True)
+
+
+def materiales_texto(servicio):
+    """«Mantas acolchadas ×12, Film stretch ×2»: así los muestra y los recibe la API de React."""
+    return ', '.join(f'{r.idMaterial.nom_material} ×{r.cant_sugerida}'
+                     for r in servicio.recursos.select_related('idMaterial').order_by('idMaterial__nom_material'))
+
+
+def _unico(qs):
+    lista = list(qs[:2])
+    return lista[0] if len(lista) == 1 else None
+
+
+def leer_materiales_texto(texto):
+    """Lee «Mantas ×12, film x2, Cinta de embalar» → [(material, cantidad)]. Cada nombre tiene que
+    ser un material activo del catálogo (o el comienzo de uno solo); sin cantidad, es 1."""
+    resultado, vistos = [], set()
+    activos = Material.objects.filter(Activo=True)
+    for parte in [p.strip() for p in (texto or '').split(',') if p.strip()]:
+        m = re.match(r'^(.*?)\s*(?:[×xX*]\s*(\d+))?$', parte)
+        nombre, cantidad = m.group(1).strip(), int(m.group(2) or 1)
+        material = (_unico(activos.filter(nom_material__iexact=nombre))
+                    or _unico(activos.filter(nom_material__istartswith=nombre))
+                    or _unico(activos.filter(nom_material__icontains=nombre)))
+        if material is None:
+            raise forms.ValidationError(f'No hay un material «{nombre[:30]}» en el catálogo. Cargalo en Materiales.')
+        if not 1 <= cantidad <= 500:
+            raise forms.ValidationError(f'{material.nom_material}: la cantidad tiene que ser de 1 a 500.')
+        if material.pk in vistos:
+            raise forms.ValidationError(f'{material.nom_material} está repetido.')
+        vistos.add(material.pk)
+        resultado.append((material, cantidad))
+    return resultado
+
+
+def guardar_materiales(servicio, lista):
+    with transaction.atomic():
+        servicio.recursos.all().delete()  # los materiales se reemplazan; el servicio no se borra
+        for material, cantidad in lista:
+            RecursoAsignado.objects.create(idServicio=servicio, idMaterial=material, cant_sugerida=cantidad)
+
+
+class MaterialForm(forms.ModelForm):
+    """Alta y edición de un material. El stock no se edita acá: cambia con ingresos, salidas y
+    ajustes (así queda registrado). Al crear uno se puede cargar el stock inicial."""
+    stock_inicial = forms.IntegerField(required=False, min_value=0, max_value=100000, label='Stock inicial',
+                                       help_text='Lo que hay hoy. Se registra como un ingreso.')
+
+    class Meta:
+        model = Material
+        fields = ['nom_material', 'unidad_material', 'reutilizable', 'stock_min_material', 'Activo']
+        labels = {'nom_material': 'Nombre', 'unidad_material': 'Unidad (unidades, rollos, kits…)',
+                  'reutilizable': 'Es reutilizable (sale con la mudanza y vuelve)', 'stock_min_material': 'Stock mínimo',
+                  'Activo': 'Activo (se puede usar en los servicios)'}
+        help_texts = {'stock_min_material': 'Si el stock baja de este número, el administrador recibe un aviso.'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            del self.fields['stock_inicial']
+        con_bootstrap(self)
+        for campo in ('reutilizable', 'Activo'):
+            self.fields[campo].widget.attrs['class'] = 'form-check-input'
+
+    def clean_nom_material(self):
+        nombre = ' '.join(self.cleaned_data['nom_material'].split())
+        if len(nombre) < 2:
+            raise forms.ValidationError('Escribí el nombre del material.')
+        if Material.objects.filter(nom_material__iexact=nombre).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Ya hay un material con ese nombre.')
+        return nombre[:1].upper() + nombre[1:]
+
+    def clean_unidad_material(self):
+        return ' '.join(self.cleaned_data['unidad_material'].split()).lower() or 'unidades'
+
+
+class MovimientoMaterialForm(forms.Form):
+    """Lo que carga el administrador a mano: una compra (ingreso) o un ajuste del inventario."""
+    tipo = forms.ChoiceField(label='Tipo', choices=[('Ingreso', 'Ingreso (compra o reposición)'),
+                                                     ('Ajuste', 'Ajuste del inventario (después de contar)')])
+    cantidad = forms.IntegerField(label='Cantidad', min_value=-100000, max_value=100000,
+                                  help_text='En un ajuste: positiva si hay más de lo que dice el sistema, '
+                                            'negativa si hay menos.')
+    observacion = forms.CharField(label='Observación', max_length=200, required=False,
+                                  help_text='En un ajuste es obligatoria: contá el motivo.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        con_bootstrap(self)
 
 
 class ObjetoForm(forms.ModelForm):

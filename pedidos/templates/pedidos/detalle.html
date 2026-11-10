@@ -166,6 +166,33 @@
         </table>
     </div>
 
+    {% if materiales and materiales.sugeridos or materiales.movimientos %}
+    <div class="card-panel bg-white p-3 mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-0"><i class="bi bi-boxes me-1"></i>Materiales</h2>
+            {% if 'MAT_GESTIONAR' in permisos %}<a href="{% url 'materiales_lista' %}" class="small">Ver el stock</a>{% endif %}
+        </div>
+        {% if materiales.movimientos %}
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Fecha</th><th>Material</th><th>Movimiento</th><th class="text-end">Stock</th><th>Quién</th></tr></thead>
+            <tbody>
+            {% for mv in materiales.movimientos %}
+            <tr><td class="small text-nowrap">{{ mv.fec_mov|date:"d/m H:i" }}</td><td>{{ mv.idMaterial.nom_material }}</td>
+                <td><span class="mov mov-{{ mv.tipo_mov|slugify }}">{{ mv.tipo_mov }}</span>{% if mv.observacion_mov %} <span class="small text-muted">· {{ mv.observacion_mov }}</span>{% endif %}</td>
+                <td class="text-end fw-semibold">{% if mv.efecto %}{{ mv.efecto_texto }}{% else %}<span class="text-muted">{{ mv.cant_mov }}</span>{% endif %}</td>
+                <td class="small">{% if mv.idUsuario %}{{ mv.idUsuario.Nombre }} {{ mv.idUsuario.Apellido }}{% else %}Sistema{% endif %}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="small text-muted mb-2">Salen del depósito cuando el chofer toca «Empezamos». Lo que sugieren los servicios:</p>
+        <ul class="materiales-mudanza mb-0">
+            {% for m in materiales.sugeridos %}<li{% if m.falta and pedido.estado in 'Pendiente Confirmado' %} class="falta" title="Hoy hay {{ m.material.stock_material }}"{% endif %}>{{ m.material.nom_material }} <b>×{{ m.cantidad }}</b>{% if m.falta and pedido.estado in 'Pendiente Confirmado' %} · faltan {{ m.falta }}{% endif %}</li>{% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="card-panel bg-white p-3">
         <h2 class="h6 fw-bold text-uppercase text-muted">Inventario</h2>
         <table class="table mb-0">

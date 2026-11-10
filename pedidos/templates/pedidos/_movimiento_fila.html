@@ -1,0 +1,11 @@
+{% comment %}
+  Una fila de movimiento de material. El signo dice qué le hizo al stock: + suma, − resta;
+  Consumo y Pérdida no lo cambian (lo que se gastó o se perdió ya había salido con la Salida).
+{% endcomment %}<tr>
+    <td class="small text-nowrap">{{ mv.fec_mov|date:"d/m/Y H:i" }}</td>
+    {% if mostrar_material %}<td><a href="{% url 'materiales_detalle' mv.idMaterial_id %}" class="link-dark">{{ mv.idMaterial.nom_material }}</a></td>{% endif %}
+    <td><span class="mov mov-{{ mv.tipo_mov|slugify }}">{{ mv.tipo_mov }}</span>{% if mv.observacion_mov %} <span class="small text-muted">· {{ mv.observacion_mov }}</span>{% endif %}</td>
+    <td class="text-end fw-semibold text-nowrap">{% if mv.efecto %}{{ mv.efecto_texto }}{% else %}<span class="text-muted" title="No cambia el stock">{{ mv.cant_mov }}</span>{% endif %}</td>
+    <td>{% if mv.idPedido_id %}<a href="{% url 'pedidos_detalle' mv.idPedido_id %}">N° {{ mv.idPedido_id }}</a>{% else %}—{% endif %}</td>
+    <td class="small">{% if mv.idUsuario %}{{ mv.idUsuario.Nombre }} {{ mv.idUsuario.Apellido }}{% else %}<span class="text-muted">Sistema</span>{% endif %}</td>
+</tr>

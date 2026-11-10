@@ -1,0 +1,95 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}{{ material.nom_material }}{% endblock %}
+{% block content %}
+<p class="mb-2"><a href="{% url 'materiales_lista' %}" class="small"><i class="bi bi-arrow-left me-1"></i>Materiales</a></p>
+<div class="encabezado-pagina">
+    {% if material.reutilizable %}
+    {% include '_titulo_pagina.html' with icono='bi-arrow-repeat' color='azul' titulo=material.nom_material bajada='Reutilizable: sale con la mudanza y vuelve al «Terminamos». Lo que no vuelve queda como pérdida.' %}
+    {% else %}
+    {% include '_titulo_pagina.html' with icono='bi-box2' color='naranja' titulo=material.nom_material bajada='Se gasta: sale con la mudanza y al «Terminamos» se descuenta lo usado; lo que sobra vuelve al stock.' %}
+    {% endif %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'materiales_editar' material.id_material %}" class="btn btn-warning">Editar</a>
+        {% if material.Activo %}
+        <form method="post" action="{% url 'materiales_baja' material.id_material %}" onsubmit="return confirm('¿Dar de baja «{{ material.nom_material|escapejs }}»? Deja de salir en las mudanzas; el historial queda.')">
+            {% csrf_token %}<button class="btn btn-outline-danger">Dar de baja</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="avisos-pedidos mb-4" role="list" aria-label="Stock de {{ material.nom_material }}">
+    <div class="aviso-tarjeta {% if material.bajo_minimo %}rojo{% else %}verde{% endif %}" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-box-seam"></i></span>
+        <span class="aviso-texto"><b>{{ material.stock_material }}</b><span>En stock ({{ material.unidad_material }})</span><small>{% if material.bajo_minimo %}Por debajo del mínimo: conviene reponer{% else %}Por encima del mínimo{% endif %}</small></span>
+    </div>
+    <div class="aviso-tarjeta gris" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-speedometer2"></i></span>
+        <span class="aviso-texto"><b>{{ material.stock_min_material }}</b><span>Stock mínimo</span><small>Debajo de esto, avisa al administrador</small></span>
+    </div>
+    {% if material.reutilizable %}
+    <div class="aviso-tarjeta {% if en_uso %}violeta{% else %}apagada{% endif %}" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-truck"></i></span>
+        <span class="aviso-texto"><b>{{ en_uso }}</b><span>Afuera ahora</span><small>En mudanzas que todavía no terminaron</small></span>
+    </div>
+    {% endif %}
+    <div class="aviso-tarjeta azul" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-tags"></i></span>
+        <span class="aviso-texto"><b>{{ servicios|length }}</b><span>Servicio{{ servicios|length|pluralize }}</span><small>{% for r in servicios %}{{ r.idServicio.Tipo_servicio }} ×{{ r.cant_sugerida }}{% if not forloop.last %}, {% endif %}{% empty %}No lo usa ningún servicio{% endfor %}</small></span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <form method="post" class="card-panel bg-white p-4" id="cargar" novalidate>
+            {% csrf_token %}
+            <h2 class="h6 fw-bold mb-3"><i class="bi bi-plus-slash-minus me-1"></i>Cargar un movimiento</h2>
+            {% if form.non_field_errors %}<div class="alert alert-danger py-2 small">{{ form.non_field_errors.as_text }}</div>{% endif %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            <button class="btn btn-success fw-bold w-100">Registrar</button>
+            <p class="form-text mb-0 mt-2">Las salidas y devoluciones de las mudanzas se registran solas con «Empezamos» y «Terminamos».</p>
+        </form>
+    </div>
+    <div class="col-lg-8">
+        <h2 class="h6 fw-bold mb-2"><i class="bi bi-clock-history me-1"></i>Movimientos</h2>
+        <div class="card-panel bg-white p-0 overflow-auto">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light"><tr><th>Fecha</th><th>Movimiento</th><th class="text-end">Stock</th><th>Mudanza</th><th>Quién</th></tr></thead>
+                <tbody>
+                    {% for mv in pagina %}{% include 'pedidos/_movimiento_fila.html' %}
+                    {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos todavía.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pagina.paginator.num_pages > 1 %}
+        <nav class="d-flex justify-content-between align-items-center mt-2 small" aria-label="Páginas de movimientos">
+            {% if pagina.has_previous %}<a href="?pagina={{ pagina.previous_page_number }}">← Más nuevos</a>{% else %}<span></span>{% endif %}
+            <span class="text-muted">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+            {% if pagina.has_next %}<a href="?pagina={{ pagina.next_page_number }}">Más viejos →</a>{% else %}<span></span>{% endif %}
+        </nav>
+        {% endif %}
+    </div>
+</div>
+<script>
+// En un ingreso la cantidad es positiva; en un ajuste puede ser negativa y el motivo es obligatorio
+(function () {
+  const tipo = document.getElementById('id_tipo'), cant = document.getElementById('id_cantidad');
+  const obs = document.getElementById('id_observacion');
+  const poner = () => {
+    const ajuste = tipo.value === 'Ajuste';
+    cant.min = ajuste ? -100000 : 1;
+    obs.required = ajuste;
+    obs.placeholder = ajuste ? 'Ej.: conteo del viernes, había 3 menos' : 'Ej.: compra a proveedor (opcional)';
+  };
+  tipo.addEventListener('change', poner);
+  poner();
+})();
+</script>
+{% endblock %}

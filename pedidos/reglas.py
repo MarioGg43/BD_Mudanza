@@ -394,6 +394,8 @@ def finalizar(id_pedido):
             raise ErrorPedido(f'La mudanza todavía no empezó: se puede finalizar desde el '
                               f'{inicio:%d/%m/%Y} a las {inicio:%H:%M}.')
         pedido.save(update_fields=['estado'])
+        from . import materiales
+        materiales.registrar_cierre(pedido, None)  # si salieron materiales: todo gastado y todo devuelto
     return pedido
 
 
@@ -434,16 +436,27 @@ def marcar_inicio(id_pedido, usuario):
                               'Si la hicieron, avisale al administrador para que la finalice.')
         pedido.inicio_real = timezone.now()
         pedido.save(update_fields=['inicio_real'])
+        from . import materiales
+        # salen los materiales sugeridos por los servicios (si no alcanza, lo que hay)
+        pedido.faltantes = [(m, sugerido, llevado) for m, sugerido, llevado in materiales.registrar_salida(pedido, usuario)
+                            if llevado < sugerido]
     return pedido
 
 
-def marcar_fin(id_pedido, usuario):
+def marcar_fin(id_pedido, usuario, usados=None):
     """«Terminamos»: el chofer guarda la hora real de fin y el pedido queda Finalizado
-    (el chofer actúa como encargado de la mudanza)."""
+    (el chofer actúa como encargado de la mudanza). `usados` es lo que informa de los materiales:
+    {id_material: cantidad gastada (consumibles) o devuelta (reutilizables)}; sin datos, todo
+    gastado y todo devuelto."""
+    from . import materiales
     with transaction.atomic():
         pedido = _del_chofer(id_pedido, usuario)
         if not pedido.inicio_real:
             raise ErrorPedido('Primero marcá «Empezamos».')
+        try:
+            materiales.registrar_cierre(pedido, usuario, usados)
+        except materiales.ErrorMaterial as e:
+            raise ErrorPedido(str(e))
         pedido.fin_real = timezone.now()
         pedido.estado = Pedido.FINALIZADO
         pedido.save(update_fields=['fin_real', 'estado'])
@@ -462,6 +475,8 @@ def anular(id_pedido, usuario, motivo):
         pedido.motivo_anulacion = motivo
         pedido.usuario_anulacion = usuario
         pedido.save(update_fields=['estado', 'fecha_anulacion', 'motivo_anulacion', 'usuario_anulacion'])
+        from . import materiales
+        materiales.devolver_todo(pedido, usuario)  # si la mudanza ya había salido, vuelve todo
         _avisar('al_anular', pedido)  # regla 3: cliente con muchas cancelaciones
     return pedido
 

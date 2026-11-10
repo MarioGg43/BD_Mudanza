@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_objetos, views_servicios
+from . import views, views_materiales, views_objetos, views_servicios
 
 urlpatterns = [
     path('registro/', views.registro, name='registro_cliente'),
@@ -32,4 +32,9 @@ urlpatterns = [
     path('objetos/nuevo/', views_objetos.crear, name='objetos_crear'),
     path('objetos/<int:id_objeto>/editar/', views_objetos.editar, name='objetos_editar'),
     path('objetos/<int:id_objeto>/baja/', views_objetos.baja, name='objetos_baja'),
+    path('materiales/', views_materiales.lista, name='materiales_lista'),
+    path('materiales/nuevo/', views_materiales.crear, name='materiales_crear'),
+    path('materiales/<int:id_material>/', views_materiales.detalle, name='materiales_detalle'),
+    path('materiales/<int:id_material>/editar/', views_materiales.editar, name='materiales_editar'),
+    path('materiales/<int:id_material>/baja/', views_materiales.baja, name='materiales_baja'),
 ]

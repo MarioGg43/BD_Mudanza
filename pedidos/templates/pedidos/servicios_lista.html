@@ -15,7 +15,7 @@
                 <td>{{ s.Categoria }}</td>
                 <td class="text-end">{% if s.Precio_base > 0 %}${{ s.Precio_base|floatformat:"2g" }}{% else %}<span class="text-muted">Sin precio</span>{% endif %}</td>
                 <td class="text-end">{% if s.Categoria == 'Adicional' %}<span class="text-muted">—</span>{% else %}{{ s.Duracion_horas }} h{% endif %}</td>
-                <td class="small">{% for r in s.recursos.all %}{{ r.Materiales }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                <td class="small">{% for r in s.recursos.all %}{{ r.idMaterial.nom_material }} ×{{ r.cant_sugerida }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
                 <td class="text-end">{% if s.cant_pedidos and 'PED_GESTIONAR' in permisos %}<a href="{% url 'pedidos_lista' %}?servicio={{ s.id_servicio }}">{{ s.cant_pedidos }}</a>{% else %}{{ s.cant_pedidos }}{% endif %}</td>
                 <td>{% if s.Activo %}<span class="estado estado-activo">Activo</span>{% else %}<span class="estado estado-baja">Dado de baja</span>{% endif %}</td>
                 <td class="text-end text-nowrap">

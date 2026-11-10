@@ -27,8 +27,9 @@ from usuarios.models import Configuracion, Notificacion, Pedido, Rol
 
 log = logging.getLogger(__name__)
 
-SIN_CONFIRMAR, ATRASADA, CANCELACIONES, CONFIRMADO, REPROGRAMADO = (
-    'Pedido sin confirmar', 'Mudanza atrasada', 'Cliente con cancelaciones', 'Mudanza confirmada', 'Mudanza reprogramada')
+SIN_CONFIRMAR, ATRASADA, CANCELACIONES, CONFIRMADO, REPROGRAMADO, STOCK_BAJO = (
+    'Pedido sin confirmar', 'Mudanza atrasada', 'Cliente con cancelaciones', 'Mudanza confirmada',
+    'Mudanza reprogramada', 'Stock bajo')
 
 
 # ------------------------------------------------------------------ configuración
@@ -175,6 +176,26 @@ def al_reprogramar(pedido, reprogramacion):
     return _al_cliente(pedido, f'reprogramado:{reprogramacion.pk}', REPROGRAMADO,
                        f'Hola {pedido.idUsuario.Nombre}: tu mudanza N° {pedido.pk} cambió de horario. Ahora es el '
                        f'{_cuando(pedido)}. Motivo: {reprogramacion.motivo_completo}.')
+
+
+# ------------------------------------------------------------------ regla 5 (tiempo real)
+def al_bajar_stock(material):
+    """Cuando un material queda por debajo de su stock mínimo (MATERIALES.stock_min_material),
+    avisa al administrador y manda un correo a la empresa. No se repite hasta que se reponga: la
+    clave lleva el último ingreso, así que después de una compra puede volver a avisar."""
+    from usuarios.models import MovimientoMaterial
+    material.refresh_from_db(fields=['stock_material', 'stock_min_material', 'Activo'])
+    if not material.Activo or not material.bajo_minimo:
+        return None
+    ultimo = (MovimientoMaterial.objects.filter(idMaterial=material, tipo_mov=MovimientoMaterial.INGRESO)
+              .order_by('-pk').values_list('pk', flat=True).first() or 0)
+    notif, _ = notificar(
+        f'stock_bajo:{material.pk}:{ultimo}', STOCK_BAJO,
+        f'Quedan {material.stock_material} {material.unidad_material} de {material.nom_material} y el mínimo es '
+        f'{material.stock_min_material}. Conviene reponer.',
+        'Administrador', enlace=reverse('materiales_lista'), correo_a=parametro('correo_empresa') or None,
+        asunto=f'Stock bajo de {material.nom_material}')
+    return notif
 
 
 # ------------------------------------------------------------------ bandeja

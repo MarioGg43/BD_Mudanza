@@ -143,6 +143,7 @@ def usuario_portal(request):
     from datetime import timedelta
     from pedidos.reglas import filtro_por_venir, se_puede_empezar  # pedidos depende de usuarios
     from pedidos.mapa import como_llegar
+    from pedidos import materiales
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
     # sus mudanzas por venir y las confirmadas de los últimos días que todavía no se finalizaron
@@ -161,6 +162,13 @@ def usuario_portal(request):
         p.empieza_tarde = p.puede_empezar and ahora > p.inicio               # ya pasó la hora y no empezaron
         p.ya_paso = sin_empezar and timezone.localtime(ahora).date() > p.fecha_servicio
         p.como_llegar = como_llegar(p.origen, p.destino)  # abre Google Maps con el recorrido
+        # los materiales: si ya salieron, lo que llevaron; si no, lo que sugieren los servicios y si alcanza
+        if p.inicio_real:
+            p.materiales = [{'material': m, 'cantidad': c} for m, c in materiales.enviados(p).items()]
+        else:
+            p.materiales = [{'material': m, 'cantidad': c, 'hay': m.stock_material, 'falta': max(c - m.stock_material, 0)}
+                            for m, c in materiales.sugeridos(p).items()]
+        p.falta_algo = any(m.get('falta') for m in p.materiales)
     return render(request, 'usuario_portal.html', {
         'usuario_actual': usuario_actual,
         'permisos_rol': permisos,

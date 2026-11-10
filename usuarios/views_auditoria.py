@@ -24,7 +24,8 @@ TABLAS = {
     'PEDIDOS': 'Pedidos', 'DETALLE_PEDIDOS': 'Detalle de pedidos', 'INVENTARIO_DETALLES': 'Inventario de pedidos',
     'PERSONAL_PEDIDO': 'Personal de pedidos', 'REPROGRAMACIONES': 'Reprogramaciones', 'USUARIOS': 'Usuarios',
     'ROLES': 'Roles', 'PERMISOS_ROLES': 'Permisos de roles', 'VEHICULOS': 'Vehículos', 'SERVICIOS': 'Servicios',
-    'RECURSOS_ASIGNADOS': 'Materiales de servicios', 'OBJETOS': 'Objetos',
+    'RECURSOS_ASIGNADOS': 'Materiales de servicios', 'OBJETOS': 'Objetos', 'MATERIALES': 'Materiales',
+    'MOVIMIENTOS_MATERIAL': 'Movimientos de materiales',
 }
 
 
@@ -151,7 +152,10 @@ def _que_registro(log, antes, nombres):
     if t == 'ROLES':
         return f'el rol «{obj or pk}»', reverse('roles_editar', args=[pk]) if obj else None
     if t == 'RECURSOS_ASIGNADOS':
-        return f'el material «{antes.get("Materiales", pk)}»', None
+        material = MODELOS['MATERIALES'].objects.filter(pk=antes.get('idMaterial')).first()
+        return f'el material «{material or antes.get("idMaterial", pk)}» de un servicio', None
+    if t == 'MATERIALES':
+        return f'el material «{obj or pk}»', reverse('materiales_detalle', args=[pk]) if obj else None
     if t == 'PERMISOS_ROLES':
         return 'un permiso de un rol', None
     return f'el registro {pk} de {TABLAS.get(t, t).lower()}', None

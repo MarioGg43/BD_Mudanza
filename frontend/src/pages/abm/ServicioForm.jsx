@@ -47,7 +47,7 @@ function Formulario({ id, cargado }) {
                    min={cargado.min_horas} max={cargado.max_horas}
                    ayuda={`Cuánto ocupa el vehículo y el personal: de ${cargado.min_horas} a ${cargado.max_horas} horas. Un día de trabajo son unas 10.`} />
           )}
-          <Campo label="Materiales que incluye" {...campo('materiales')} ayuda="Separados por coma. Ej.: Mantas, film, cintas" />
+          <Campo label="Materiales que incluye" {...campo('materiales')} ayuda="Separados por coma, con la cantidad por mudanza. Ej.: Mantas ×12, Film ×2" />
           <div className="col-12">
             <div className="form-check">
               <input id="Activo" name="Activo" type="checkbox" className="form-check-input" checked={datos.Activo} onChange={cambiar} />

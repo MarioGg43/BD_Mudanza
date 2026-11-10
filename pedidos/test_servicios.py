@@ -7,9 +7,25 @@ from django.test import TestCase
 from django.utils import timezone
 
 from pedidos import reglas
-from usuarios.models import Objeto, Servicio, Usuario
+from usuarios.models import Material, Objeto, Servicio, Usuario
 
 ADMIN, CLIENTE = 35123456, 29876543
+# el formulario de materiales del servicio, vacío (la pantalla lo manda siempre)
+SIN_MATERIALES = {'materiales-TOTAL_FORMS': '0', 'materiales-INITIAL_FORMS': '0'}
+
+
+def con_materiales(*filas, iniciales=0):
+    """Los datos del formulario de materiales: filas = (material, cantidad[, id del recurso, quitar])."""
+    datos = {'materiales-TOTAL_FORMS': str(len(filas)), 'materiales-INITIAL_FORMS': str(iniciales)}
+    for i, fila in enumerate(filas):
+        material, cantidad = fila[0], fila[1]
+        datos[f'materiales-{i}-idMaterial'] = str(material.pk) if material else ''
+        datos[f'materiales-{i}-cant_sugerida'] = str(cantidad)
+        if len(fila) > 2:
+            datos[f'materiales-{i}-id_recursos_asignados'] = str(fila[2])
+        if len(fila) > 3 and fila[3]:
+            datos[f'materiales-{i}-DELETE'] = 'on'
+    return datos
 
 
 class ServiciosTest(TestCase):
@@ -27,38 +43,49 @@ class ServiciosTest(TestCase):
         self.entrar(ADMIN)
         r = self.client.get('/servicios/')
         self.assertContains(r, 'Mudanza nacional')
-        self.assertContains(r, 'Mantas, film y cintas')
+        self.assertContains(r, 'Mantas acolchadas ×12')
 
     def test_alta_con_materiales(self):
         self.entrar(ADMIN)
+        cajas, cinta = Material.objects.get(nom_material='Cajas de cartón'), Material.objects.get(nom_material='Cinta de embalar')
         r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Guardamuebles', 'Categoria': 'Adicional',
                                                    'Precio_base': '', 'Activo': 'on',
-                                                   'materiales': 'Cajas, burbujas ,  cinta'})
+                                                   **con_materiales((cajas, 30), (cinta, 4), (None, 1))})
         self.assertRedirects(r, '/servicios/')
         s = Servicio.objects.get(Tipo_servicio='Guardamuebles')
         self.assertEqual((s.Categoria, s.Precio_base), (Servicio.ADICIONAL, 0))
-        self.assertEqual(sorted(s.recursos.values_list('Materiales', flat=True)), ['Cajas', 'burbujas', 'cinta'])
+        self.assertEqual(sorted(s.recursos.values_list('idMaterial__nom_material', 'cant_sugerida')),
+                         [('Cajas de cartón', 30), ('Cinta de embalar', 4)])  # la fila vacía no cuenta
 
     def test_precio_tiene_que_ser_positivo(self):
         self.entrar(ADMIN)
         r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Gratis', 'Categoria': 'Principal',
-                                                   'Precio_base': '0', 'materiales': ''})
+                                                   'Precio_base': '0', **SIN_MATERIALES})
         self.assertEqual(r.status_code, 200)
         self.assertIn('Precio_base', r.context['form'].errors)
 
-    def test_material_demasiado_largo(self):
+    def test_material_repetido_o_cantidad_invalida(self):
         self.entrar(ADMIN)
-        r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'X', 'Precio_base': '1', 'materiales': 'a' * 51})
-        self.assertIn('materiales', r.context['form'].errors)
+        film = Material.objects.get(nom_material='Film stretch')
+        datos = {'Tipo_servicio': 'X', 'Categoria': 'Adicional', 'Precio_base': '1'}
+        r = self.client.post('/servicios/nuevo/', {**datos, **con_materiales((film, 2), (film, 3))})
+        self.assertIn('dos veces', r.context['materiales'].non_form_errors()[0])
+        r = self.client.post('/servicios/nuevo/', {**datos, **con_materiales((film, 0))})
+        self.assertIn('cant_sugerida', r.context['materiales'].errors[0])
+        self.assertFalse(Servicio.objects.filter(Tipo_servicio='X').exists())
 
     def test_editar_reemplaza_los_materiales(self):
         self.entrar(ADMIN)
         s = Servicio.objects.get(Tipo_servicio='Flete urbano')
-        self.client.post(f'/servicios/{s.pk}/editar/', {'Tipo_servicio': 'Flete urbano', 'Categoria': 'Principal', 'Precio_base': '80000',
-                                                        'Duracion_horas': '6', 'Activo': 'on', 'materiales': 'Correas'})
+        correas, mantas = [s.recursos.get(idMaterial__nom_material=n) for n in ('Correas', 'Mantas acolchadas')]
+        r = self.client.post(f'/servicios/{s.pk}/editar/', {
+            'Tipo_servicio': 'Flete urbano', 'Categoria': 'Principal', 'Precio_base': '80000', 'Duracion_horas': '6',
+            'Activo': 'on', **con_materiales((correas.idMaterial, 8, correas.pk), (mantas.idMaterial, 6, mantas.pk, True),
+                                             iniciales=2)})
+        self.assertRedirects(r, '/servicios/')
         s.refresh_from_db()
         self.assertEqual((s.Precio_base, s.Duracion_horas), (80000, 6))
-        self.assertEqual(list(s.recursos.values_list('Materiales', flat=True)), ['Correas'])
+        self.assertEqual(list(s.recursos.values_list('idMaterial__nom_material', 'cant_sugerida')), [('Correas', 8)])
 
     def test_baja_logica_conserva_los_pedidos_viejos(self):
         self.entrar(ADMIN)
@@ -74,24 +101,24 @@ class ServiciosTest(TestCase):
 
     def test_la_categoria_es_obligatoria(self):
         self.entrar(ADMIN)
-        r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'X', 'Precio_base': '1', 'materiales': ''})
+        r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'X', 'Precio_base': '1', **SIN_MATERIALES})
         self.assertIn('Categoria', r.context['form'].errors)
 
     def test_un_adicional_guarda_su_precio_o_queda_gratis(self):
         self.entrar(ADMIN)
         self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Seguro', 'Categoria': 'Adicional',
-                                               'Precio_base': '9999', 'Activo': 'on', 'materiales': ''})
+                                               'Precio_base': '9999', 'Activo': 'on', **SIN_MATERIALES})
         self.assertEqual(Servicio.objects.get(Tipo_servicio='Seguro').Precio_base, 9999)
         self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Regalo', 'Categoria': 'Adicional',
-                                               'Precio_base': '', 'Activo': 'on', 'materiales': ''})
+                                               'Precio_base': '', 'Activo': 'on', **SIN_MATERIALES})
         self.assertEqual(Servicio.objects.get(Tipo_servicio='Regalo').Precio_base, 0)
         r = self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Mal', 'Categoria': 'Adicional',
-                                                   'Precio_base': '-5', 'Activo': 'on', 'materiales': ''})
+                                                   'Precio_base': '-5', 'Activo': 'on', **SIN_MATERIALES})
         self.assertIn('Precio_base', r.context['form'].errors)
 
     def test_un_principal_necesita_duracion_de_5_a_120_horas(self):
         self.entrar(ADMIN)
-        datos = {'Tipo_servicio': 'Flete corto', 'Categoria': 'Principal', 'Precio_base': '50000', 'materiales': ''}
+        datos = {'Tipo_servicio': 'Flete corto', 'Categoria': 'Principal', 'Precio_base': '50000', **SIN_MATERIALES}
         for horas, error in [('', 'Indicá cuántas horas dura el servicio.'),
                              ('4', 'La duración tiene que ser de 5 a 120 horas.'),
                              ('121', 'La duración tiene que ser de 5 a 120 horas.')]:
@@ -103,7 +130,7 @@ class ServiciosTest(TestCase):
     def test_un_adicional_no_guarda_duracion(self):
         self.entrar(ADMIN)
         self.client.post('/servicios/nuevo/', {'Tipo_servicio': 'Seguro', 'Categoria': 'Adicional', 'Precio_base': '',
-                                               'Duracion_horas': '30', 'Activo': 'on', 'materiales': ''})
+                                               'Duracion_horas': '30', 'Activo': 'on', **SIN_MATERIALES})
         self.assertIsNone(Servicio.objects.get(Tipo_servicio='Seguro').Duracion_horas)
 
     def test_la_lista_muestra_la_categoria(self):

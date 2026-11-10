@@ -42,9 +42,12 @@ class ApiAbmTest(ApiBase):
 
     def test_servicio_alta_con_materiales_y_baja(self):
         r = self.mandar('post', '/api/servicios', {'Tipo_servicio': 'Guardamuebles', 'Categoria': 'Adicional',
-                                                  'Precio_base': 15000, 'Activo': True, 'materiales': 'Film, cintas'})
+                                                  'Precio_base': 15000, 'Activo': True, 'materiales': 'film x2, Cinta ×3'})
         self.assertEqual(r.status_code, 201, r.content)
-        self.assertEqual(r.json()['materiales'], 'Film, cintas')
+        self.assertEqual(r.json()['materiales'], 'Cinta de embalar ×3, Film stretch ×2')
+        r = self.mandar('post', '/api/servicios', {'Tipo_servicio': 'Otro', 'Categoria': 'Adicional',
+                                                  'Precio_base': 1, 'Activo': True, 'materiales': 'Piano de cola'})
+        self.assertIn('materiales', r.json()['errores'])
         r = self.mandar('post', '/api/servicios', {'Tipo_servicio': 'Mal', 'Categoria': 'Principal',
                                                   'Precio_base': 0, 'Duracion_horas': 2, 'Activo': True})
         self.assertEqual(set(r.json()['errores']), {'Precio_base', 'Duracion_horas'})

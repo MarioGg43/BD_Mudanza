@@ -14,7 +14,7 @@ from django.views.decorators.http import require_GET, require_POST
 from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio
 from usuarios.permisos import pantalla_inicio, requiere_permiso_api
 from usuarios.views import get_usuario_actual
-from . import mapa, reglas
+from . import mapa, materiales, reglas
 from .pdf import respuesta_pdf
 from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
                     RegistroClienteForm, ReprogramarForm, ServiciosPedidoForm, objetos_para_elegir)
@@ -132,7 +132,16 @@ def detalle(request, id_pedido):
         'horas_limite': reglas.HORAS_LIMITE_CLIENTE,
         'puede_anular': tiene_permiso(request.usuario, 'PED_ANULAR'),
         'puede_comprobante': tiene_permiso(request.usuario, 'PED_COMPROBANTE'),
+        'materiales': _materiales_del_pedido(pedido) if tiene_permiso(request.usuario, 'PED_GESTIONAR') else None,
     })
+
+
+def _materiales_del_pedido(pedido):
+    """Para el detalle: qué sugieren los servicios y, si la mudanza salió, los movimientos."""
+    movs = list(pedido.movimientos_material.select_related('idMaterial', 'idUsuario').order_by('fec_mov', 'pk'))
+    return {'sugeridos': [{'material': m, 'cantidad': c, 'falta': max(c - m.stock_material, 0)}
+                          for m, c in materiales.sugeridos(pedido).items()],
+            'movimientos': movs}
 
 
 @requiere_permiso('PED_REGISTRAR')
@@ -379,24 +388,53 @@ def empezar(request, id_pedido):
     """«Empezamos» desde el portal: solo el chofer de la mudanza."""
     get_object_or_404(Pedido, pk=id_pedido)
     try:
-        reglas.marcar_inicio(id_pedido, request.usuario)
+        pedido = reglas.marcar_inicio(id_pedido, request.usuario)
         messages.success(request, f'Mudanza N° {id_pedido} en curso. Cuando terminen, tocá «Terminamos».')
+        if pedido.faltantes:  # salió lo que había: que el chofer sepa qué le falta
+            messages.warning(request, 'No alcanzó el stock de: ' + ', '.join(
+                f'{m.nom_material} (llevan {llevado} de {sugerido})' for m, sugerido, llevado in pedido.faltantes)
+                + '. Ya le avisamos al administrador.')
     except reglas.ErrorPedido as e:
         messages.error(request, str(e))
     return redirect('usuario_portal')
 
 
 @requiere_permiso('MUDANZAS_OPERAR')
-@require_POST
 def terminar(request, id_pedido):
-    """«Terminamos» desde el portal: guarda la hora real y finaliza el pedido."""
-    get_object_or_404(Pedido, pk=id_pedido)
-    try:
-        reglas.marcar_fin(id_pedido, request.usuario)
-        messages.success(request, f'Mudanza N° {id_pedido} terminada y finalizada. ¡Buen trabajo!')
-    except reglas.ErrorPedido as e:
-        messages.error(request, str(e))
-    return redirect('usuario_portal')
+    """«Terminamos» desde el portal: el chofer cuenta qué se gastó y qué volvió de los materiales,
+    y con eso se guarda la hora real y el pedido queda finalizado."""
+    pedido = get_object_or_404(Pedido.objects.select_related('idUsuario'), pk=id_pedido)
+    es_chofer = pedido.personal.filter(Funcion=PersonalPedido.CHOFER, idUsuario=request.usuario).exists()
+    if not (es_chofer and pedido.estado == Pedido.CONFIRMADO and pedido.inicio_real):
+        messages.error(request, 'Solo el chofer puede terminar una mudanza que esté en curso.')
+        return redirect('usuario_portal')
+    salieron = list(materiales.enviados(pedido).items())
+    filas = [{'material': m, 'salio': c, 'campo': f'mat_{m.pk}',
+              'valor': request.POST.get(f'mat_{m.pk}', c)} for m, c in salieron]
+    error = ''
+    if request.method == 'POST':
+        usados = {}
+        for f in filas:
+            try:
+                usados[f['material'].pk] = int(f['valor'])
+            except (TypeError, ValueError):
+                error = f'{f["material"].nom_material}: escribí un número de 0 a {f["salio"]}.'
+        if not error:
+            try:
+                reglas.marcar_fin(id_pedido, request.usuario, usados)
+            except reglas.ErrorPedido as e:
+                error = str(e)
+            else:
+                perdidos = [f'{f["salio"] - usados[f["material"].pk]} {f["material"].nom_material.lower()}'
+                            for f in filas if f['material'].reutilizable and usados[f['material'].pk] < f['salio']]
+                messages.success(request, f'Mudanza N° {id_pedido} terminada y finalizada. ¡Buen trabajo!')
+                if perdidos:
+                    messages.warning(request, f'Quedó registrado que no volvieron: {", ".join(perdidos)}.')
+                return redirect('usuario_portal')
+        if not filas and error:  # sin materiales no hay formulario que mostrar
+            messages.error(request, error)
+            return redirect('usuario_portal')
+    return render(request, 'pedidos/terminar.html', {'pedido': pedido, 'filas': filas, 'error': error})
 
 
 @requiere_permiso('PED_GESTIONAR')

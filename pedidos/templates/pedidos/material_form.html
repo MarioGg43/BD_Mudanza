@@ -1,0 +1,33 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 600px;">
+    <h1 class="h3 fw-bold mb-4">{{ titulo }}</h1>
+    <form method="post" class="card-panel bg-white p-4" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        {% if field.name == 'reutilizable' or field.name == 'Activo' %}
+        <div class="mb-3 form-check">
+            {{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+        </div>
+        {% else %}
+        <div class="mb-3">
+            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% if material %}
+        <p class="form-text">El stock ({{ material.stock_material }} {{ material.unidad_material }}) no se edita acá: cargá un
+            <a href="{% url 'materiales_detalle' material.id_material %}#cargar">ingreso o un ajuste</a>, así queda registrado quién y por qué.</p>
+        {% endif %}
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% if material %}{% url 'materiales_detalle' material.id_material %}{% else %}{% url 'materiales_lista' %}{% endif %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+            <button class="btn btn-success fw-bold px-4">Guardar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

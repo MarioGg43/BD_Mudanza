@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 from usuarios.models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Sueldo, Servicio,
-    RecursoAsignado, Pedido, DetallePedido, InventarioDetalle, Objeto,
+    RecursoAsignado, Material, Pedido, DetallePedido, InventarioDetalle, Objeto,
     Cobranza, DetalleCobranza,
 )
 from usuarios.permisos import CATALOGO, PERMISOS_INICIALES
@@ -91,19 +91,23 @@ class Command(BaseCommand):
         # 6. Servicios y sus materiales: los principales (uno por pedido) y los adicionales
         P, A = Servicio.PRINCIPAL, Servicio.ADICIONAL
         servicios_data = [
-            ('Mudanza local', P, 185000, 10, 'Mantas, film y cintas'),
-            ('Mudanza nacional', P, 640000, 48, 'Mantas, film, cintas y zunchos'),
-            ('Flete urbano', P, 75000, 5, 'Correas y mantas'),
-            ('Embalaje', A, 25000, None, 'Cajas, papel burbuja y cinta'),
-            ('Desarmado y armado de muebles', A, 35000, None, 'Herramientas'),
-            ('Ayudante extra', A, 20000, None, None),
+            ('Mudanza local', P, 185000, 10, [('Mantas acolchadas', 12), ('Film stretch', 2), ('Cinta de embalar', 3)]),
+            ('Mudanza nacional', P, 640000, 48, [('Mantas acolchadas', 20), ('Film stretch', 4), ('Cinta de embalar', 5),
+                                                 ('Zunchos', 2)]),
+            ('Flete urbano', P, 75000, 5, [('Correas', 6), ('Mantas acolchadas', 6)]),
+            ('Embalaje', A, 25000, None, [('Cajas de cartón', 20), ('Papel burbuja', 2), ('Cinta de embalar', 3)]),
+            ('Desarmado y armado de muebles', A, 35000, None, [('Kit de herramientas', 1)]),
+            ('Ayudante extra', A, 20000, None, []),
         ]
         for tipo, categoria, precio, horas, materiales in servicios_data:
             serv, creado = Servicio.objects.get_or_create(
                 Tipo_servicio=tipo, defaults={'Precio_base': precio, 'Categoria': categoria, 'Duracion_horas': horas})
             if creado:
-                if materiales:
-                    RecursoAsignado.objects.create(idServicio=serv, Materiales=materiales)
+                # los materiales los carga la migración 0022 con su stock; si faltara alguno, se crea en 0
+                for nombre, cantidad in materiales:
+                    material, _ = Material.objects.get_or_create(nom_material=nombre)
+                    RecursoAsignado.objects.get_or_create(idServicio=serv, idMaterial=material,
+                                                          defaults={'cant_sugerida': cantidad})
                 self.stdout.write(self.style.SUCCESS(f'Servicio "{tipo}" creado.'))
 
         # 7. Un pedido de ejemplo de la clienta, ya finalizado, con detalle, inventario y cobranza

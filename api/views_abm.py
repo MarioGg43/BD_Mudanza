@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from pedidos import reglas
-from pedidos.forms import ObjetoForm, ServicioForm
+from pedidos.forms import ObjetoForm, ServicioTextoForm as ServicioForm, materiales_texto
 from usuarios.models import Objeto, Pedido, Servicio, Usuario, Vehiculo
 from usuarios.permisos import tiene_permiso
 from vehiculos.forms import VehiculoForm
@@ -103,7 +103,7 @@ def baja_vehiculo(request, patente):
 def _servicio_abm(s):
     return {'id': s.id_servicio, 'Tipo_servicio': s.Tipo_servicio, 'Categoria': s.Categoria,
             'Precio_base': _numero(s.Precio_base), 'Duracion_horas': s.Duracion_horas, 'Activo': s.Activo,
-            'materiales': ', '.join(s.recursos.values_list('Materiales', flat=True))}
+            'materiales': materiales_texto(s)}
 
 
 def _limites_servicio():
@@ -116,7 +116,7 @@ def servicios(request):
     if request.method == 'POST':
         servicio, respuesta = _guardar(ServicioForm(leer_json(request)))
         return respuesta or JsonResponse(_servicio_abm(servicio), status=201)
-    lista = (Servicio.objects.prefetch_related('recursos')
+    lista = (Servicio.objects.prefetch_related('recursos__idMaterial')
              .annotate(cant_pedidos=Count('detalles__idPedido', distinct=True))
              .order_by('-Activo', '-Categoria', 'Tipo_servicio'))
     return JsonResponse({'servicios': [{**_servicio_abm(s), 'cant_pedidos': s.cant_pedidos} for s in lista],

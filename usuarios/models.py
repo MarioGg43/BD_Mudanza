@@ -200,19 +200,51 @@ class Servicio(models.Model):
         return self.Tipo_servicio
 
 
+class Material(models.Model):
+    """Lo que lleva el camión a una mudanza. Los consumibles se gastan (cajas, film, cinta); los
+    reutilizables salen y vuelven (mantas, correas, herramientas). El stock solo cambia con un
+    movimiento (MOVIMIENTOS_MATERIAL), así queda registrado por qué cambió."""
+    id_material = models.AutoField(primary_key=True)
+    nom_material = models.CharField(max_length=60, unique=True, db_column='nom_material', verbose_name='Material')
+    unidad_material = models.CharField(max_length=20, default='unidades', db_column='unidad_material',
+                                       verbose_name='Unidad')
+    stock_material = models.IntegerField(default=0, db_column='stock_material', verbose_name='Stock')
+    stock_min_material = models.PositiveIntegerField(default=0, db_column='stock_min_material',
+                                                     verbose_name='Stock mínimo')
+    reutilizable = models.BooleanField(default=False, db_column='reutilizable_material', verbose_name='Reutilizable')
+    Activo = models.BooleanField(default=True, db_column='estado_material', verbose_name='Activo')
+
+    class Meta:
+        db_table = 'MATERIALES'
+        verbose_name = 'Material'
+        verbose_name_plural = 'Materiales'
+        ordering = ['nom_material']
+
+    def __str__(self):
+        return self.nom_material
+
+    @property
+    def bajo_minimo(self):
+        return self.stock_material < self.stock_min_material
+
+
 class RecursoAsignado(models.Model):
+    """Qué materiales lleva cada servicio y cuántos se sugieren por mudanza."""
     id_recursos_asignados = models.AutoField(primary_key=True)
     idServicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, db_column='id_servicios',
                                    related_name='recursos', verbose_name='Servicio')
-    Materiales = models.CharField(max_length=50)
+    idMaterial = models.ForeignKey(Material, on_delete=models.PROTECT, db_column='id_material',
+                                   related_name='servicios', verbose_name='Material')
+    cant_sugerida = models.PositiveSmallIntegerField(default=1, db_column='cant_sugerida', verbose_name='Cantidad sugerida')
 
     class Meta:
         db_table = 'RECURSOS_ASIGNADOS'
+        constraints = [models.UniqueConstraint(fields=['idServicio', 'idMaterial'], name='material_una_vez_por_servicio')]
         verbose_name = 'Recurso asignado'
         verbose_name_plural = 'Recursos asignados'
 
     def __str__(self):
-        return f'{self.idServicio} - {self.Materiales}'
+        return f'{self.idServicio} - {self.cant_sugerida} {self.idMaterial}'
 
 
 class Pedido(models.Model):
@@ -554,3 +586,45 @@ class Notificacion(models.Model):
 
     def __str__(self):
         return f'{self.fecha:%d/%m %H:%M} {self.tipo}: {self.mensaje[:40]}'
+
+
+class MovimientoMaterial(models.Model):
+    """Cada entrada o salida de un material. Ingreso (compra) y Devolución suman al stock; Salida
+    (a una mudanza) resta; Consumo (lo que se gastó) y Pérdida (un reutilizable que no volvió) no
+    cambian el stock, porque ya había salido; Ajuste corrige el inventario con su motivo."""
+    INGRESO, SALIDA, DEVOLUCION, CONSUMO, PERDIDA, AJUSTE = (
+        'Ingreso', 'Salida', 'Devolución', 'Consumo', 'Pérdida', 'Ajuste')
+    TIPOS = [(t, t) for t in (INGRESO, SALIDA, DEVOLUCION, CONSUMO, PERDIDA, AJUSTE)]
+    EFECTO = {INGRESO: 1, SALIDA: -1, DEVOLUCION: 1, CONSUMO: 0, PERDIDA: 0, AJUSTE: 1}  # Ajuste lleva signo
+
+    id_mov_material = models.AutoField(primary_key=True)
+    idMaterial = models.ForeignKey(Material, on_delete=models.PROTECT, db_column='id_material',
+                                   related_name='movimientos', verbose_name='Material')
+    idPedido = models.ForeignKey(Pedido, on_delete=models.PROTECT, null=True, blank=True, db_column='id_pedido',
+                                 related_name='movimientos_material', verbose_name='Pedido')
+    idUsuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_usuario',
+                                  related_name='movimientos_material', verbose_name='Usuario')
+    tipo_mov = models.CharField(max_length=12, choices=TIPOS, db_column='tipo_mov', verbose_name='Tipo')
+    cant_mov = models.IntegerField(db_column='cant_mov', verbose_name='Cantidad')
+    fec_mov = models.DateTimeField(default=timezone.now, db_column='fec_mov', verbose_name='Fecha')
+    observacion_mov = models.CharField(max_length=200, blank=True, default='', db_column='observacion_mov',
+                                       verbose_name='Observación')
+
+    class Meta:
+        db_table = 'MOVIMIENTOS_MATERIAL'
+        verbose_name = 'Movimiento de material'
+        verbose_name_plural = 'Movimientos de materiales'
+        ordering = ['-fec_mov', '-id_mov_material']
+
+    def __str__(self):
+        return f'{self.tipo_mov} {self.cant_mov} {self.idMaterial}'
+
+    @property
+    def efecto(self):
+        """Cuánto cambió el stock: positivo suma, negativo resta, 0 no lo tocó."""
+        return self.EFECTO.get(self.tipo_mov, 0) * self.cant_mov
+
+    @property
+    def efecto_texto(self):
+        e = self.efecto
+        return f'+{e}' if e > 0 else f'−{-e}' if e < 0 else ''

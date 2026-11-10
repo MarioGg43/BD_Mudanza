@@ -41,11 +41,12 @@
         </details>
         {% endif %}
 
-        {% if 'VEH_GESTIONAR' in permisos or 'SRV_GESTIONAR' in permisos or 'OBJ_GESTIONAR' in permisos %}
+        {% if 'VEH_GESTIONAR' in permisos or 'SRV_GESTIONAR' in permisos or 'OBJ_GESTIONAR' in permisos or 'MAT_GESTIONAR' in permisos %}
         <details class="lateral-grupo" open data-grupo="catalogo"><summary class="lateral-seccion">Catálogo<i class="bi bi-chevron-down"></i></summary>
         {% if 'VEH_GESTIONAR' in permisos %}<a href="{% url 'lista_vehiculos' %}"{% if '/vehiculos/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-truck"></i>Vehículos</a>{% endif %}
         {% if 'SRV_GESTIONAR' in permisos %}<a href="{% url 'servicios_lista' %}"{% if '/servicios/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-tags"></i>Servicios</a>{% endif %}
         {% if 'OBJ_GESTIONAR' in permisos %}<a href="{% url 'objetos_lista' %}"{% if '/objetos/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-archive"></i>Objetos</a>{% endif %}
+        {% if 'MAT_GESTIONAR' in permisos %}<a href="{% url 'materiales_lista' %}"{% if '/materiales/' in ruta %} class="activo" aria-current="page"{% endif %}><i class="bi bi-boxes"></i>Materiales{% if materiales_bajos %}<span class="lateral-numero" title="Materiales por debajo del mínimo">{{ materiales_bajos }}</span>{% endif %}</a>{% endif %}
         </details>
         {% endif %}
 

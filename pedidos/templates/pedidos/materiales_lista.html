@@ -1,0 +1,73 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Materiales{% endblock %}
+{% block content %}
+<div class="encabezado-pagina">
+    {% include '_titulo_pagina.html' with icono='bi-boxes' color='azul' titulo='Materiales' bajada='Lo que se lleva a las mudanzas: mantas, film, cajas… Sale del stock cuando el chofer toca «Empezamos» y vuelve (o se descuenta lo gastado) al «Terminamos».' %}
+    <a href="{% url 'materiales_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo material</a>
+</div>
+
+<div class="avisos-pedidos mb-4" role="list" aria-label="Resumen de materiales">
+    <div class="aviso-tarjeta azul" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-boxes"></i></span>
+        <span class="aviso-texto"><b>{{ cant_activos }}</b><span>Materiales activos</span><small>Los que se pueden usar en los servicios</small></span>
+    </div>
+    {% if cant_bajo %}<a href="?ver=bajo" class="aviso-tarjeta rojo" role="listitem">{% else %}<div class="aviso-tarjeta apagada" role="listitem">{% endif %}
+        <span class="aviso-icono"><i class="bi bi-exclamation-octagon"></i></span>
+        <span class="aviso-texto"><b>{{ cant_bajo }}</b><span>Bajo el mínimo</span><small>Conviene reponerlos</small></span>
+    {% if cant_bajo %}</a>{% else %}</div>{% endif %}
+    <div class="aviso-tarjeta {% if cant_en_uso %}violeta{% else %}apagada{% endif %}" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-truck"></i></span>
+        <span class="aviso-texto"><b>{{ cant_en_uso }}</b><span>Afuera ahora</span><small>Reutilizables en mudanzas en curso</small></span>
+    </div>
+    <div class="aviso-tarjeta verde" role="listitem">
+        <span class="aviso-icono"><i class="bi bi-arrow-left-right"></i></span>
+        <span class="aviso-texto"><b>{{ movs_mes }}</b><span>Movimientos del mes</span><small>Ingresos, salidas, devoluciones…</small></span>
+    </div>
+</div>
+
+{% if ver == 'bajo' %}
+<p class="small mb-2"><i class="bi bi-funnel me-1"></i>Mostrando solo los que están bajo el mínimo · <a href="{% url 'materiales_lista' %}">Ver todos</a></p>
+{% endif %}
+
+<div class="card-panel bg-white p-0 overflow-auto mb-4">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Material</th><th>Tipo</th><th style="min-width:180px">Stock</th><th class="text-end">Afuera</th><th class="text-end">Mínimo</th><th class="text-end">Servicios</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+            {% for m in materiales %}
+            <tr class="{% if not m.Activo %}text-muted{% endif %}">
+                <td class="fw-semibold"><a href="{% url 'materiales_detalle' m.id_material %}" class="link-dark">{{ m.nom_material }}</a></td>
+                <td class="small">{% if m.reutilizable %}<i class="bi bi-arrow-repeat me-1"></i>Reutilizable{% else %}<i class="bi bi-box2 me-1"></i>Se gasta{% endif %}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <b class="{% if m.Activo and m.bajo_minimo %}text-danger{% endif %}">{{ m.stock_material }}</b>
+                        <span class="small text-muted">{{ m.unidad_material }}</span>
+                    </div>
+                    <div class="barra-stock {% if m.Activo and m.bajo_minimo %}baja{% endif %}" role="presentation"><span style="width: {{ m.porcentaje }}%"></span></div>
+                </td>
+                <td class="text-end">{% if m.reutilizable %}{{ m.en_uso }}{% else %}—{% endif %}</td>
+                <td class="text-end">{{ m.stock_min_material }}</td>
+                <td class="text-end">{{ m.cant_servicios }}</td>
+                <td>{% if not m.Activo %}<span class="estado estado-baja">Dado de baja</span>{% elif m.bajo_minimo %}<span class="estado estado-inactivo">Reponer</span>{% else %}<span class="estado estado-activo">Bien</span>{% endif %}</td>
+                <td class="text-end text-nowrap">
+                    <a href="{% url 'materiales_detalle' m.id_material %}?tipo=Ingreso#cargar" class="btn btn-sm btn-success" title="Cargar una compra"><i class="bi bi-plus-lg"></i> Ingreso</a>
+                    <a href="{% url 'materiales_editar' m.id_material %}" class="btn btn-sm btn-warning">Editar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center text-muted py-4">{% if ver == 'bajo' %}Ningún material está bajo el mínimo. 👌{% else %}Todavía no hay materiales cargados.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h6 fw-bold mb-2"><i class="bi bi-clock-history me-1"></i>Últimos movimientos</h2>
+<div class="card-panel bg-white p-0 overflow-auto">
+    <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Fecha</th><th>Material</th><th>Movimiento</th><th class="text-end">Cantidad</th><th>Mudanza</th><th>Quién</th></tr></thead>
+        <tbody>
+            {% for mv in ultimos %}{% include 'pedidos/_movimiento_fila.html' with mostrar_material=True %}
+            {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Sin movimientos todavía.</td></tr>{% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

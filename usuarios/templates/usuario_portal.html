@@ -53,9 +53,7 @@
       {% if p.soy_chofer and p.estado == 'Confirmado' %}
       <div class="flex flex-wrap items-center gap-2 pt-1">
         {% if p.en_curso %}
-        <form method="post" action="{% url 'pedidos_terminar' p.id_pedido %}" onsubmit="return confirm('¿Terminaron la mudanza? El pedido queda finalizado.')">{% csrf_token %}
-          <button class="btn-primary px-4 py-2 rounded-lg font-bold text-sm cursor-pointer"><i class="fa-solid fa-flag-checkered mr-1"></i>Terminamos</button>
-        </form>
+        <a href="{% url 'pedidos_terminar' p.id_pedido %}" class="btn-primary px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-flag-checkered mr-1"></i>Terminamos</a>
         <a href="{% url 'pedidos_relevamiento' p.id_pedido %}" class="btn-secundario px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-clipboard-list mr-1"></i>Relevamiento</a>
         <span class="texto-suave">Empezaron a las {{ p.inicio_real|time:"H:i" }}. Fin estimado: {{ p.fin_esperado|time:"H:i" }}. Si hay más cosas de las declaradas, cargalo en «Relevamiento».</span>
         {% elif p.puede_empezar %}
@@ -81,6 +79,15 @@
          &nbsp;·&nbsp; <span class="texto-suave">Servicios:</span> {% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
       <p><span class="texto-suave">Equipo:</span> {% for x in p.personal.all %}{{ x.idUsuario.Nombre }} {{ x.idUsuario.Apellido }} ({{ x.get_Funcion_display|lower }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
       <p><span class="texto-suave">Cliente:</span> {{ p.idUsuario.Nombre }} {{ p.idUsuario.Apellido }}{% if p.idUsuario.Telefono %} · Tel. {{ p.idUsuario.Telefono }}{% endif %}</p>
+      {% if p.materiales %}
+      <div>
+        <span class="texto-suave">{% if p.en_curso %}Materiales que llevaron:{% else %}Materiales del depósito:{% endif %}</span>
+        <ul class="materiales-mudanza">
+          {% for m in p.materiales %}<li{% if m.falta %} class="falta" title="En el depósito hay {{ m.hay }}"{% endif %}>{{ m.material.nom_material }} <b>×{{ m.cantidad }}</b>{% if m.falta %} · faltan {{ m.falta }}{% endif %}</li>{% endfor %}
+        </ul>
+        {% if p.falta_algo %}<p class="text-xs mt-1" style="color:#c62f35"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hoy no alcanza el stock para todo: avisale al administrador.</p>{% endif %}
+      </div>
+      {% endif %}
       <div>
         <span class="texto-suave">Qué hay que llevar:</span>
         <ul class="list-disc ml-5 mt-1">

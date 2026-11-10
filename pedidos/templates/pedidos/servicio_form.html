@@ -17,6 +17,44 @@
             {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
         </div>
         {% endfor %}
+
+        <h2 class="h6 fw-bold mt-4 mb-1"><i class="bi bi-box-seam me-1 text-marca"></i>Materiales que lleva</h2>
+        <p class="form-text mt-0 mb-2">Lo que se sugiere llevar en cada mudanza con este servicio. Sale del stock cuando el
+            chofer toca «Empezamos». Si falta un material, cargalo en <a href="{% url 'materiales_lista' %}">Materiales</a>.</p>
+        {{ materiales.management_form }}
+        {% if materiales.non_form_errors %}<div class="alert alert-danger py-2 small">{{ materiales.non_form_errors.as_text }}</div>{% endif %}
+        <div id="filas-materiales">
+        {% for f in materiales %}
+        <div class="row g-2 align-items-start mb-2 fila-material">
+            {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+            <div class="col-7">
+                <label class="visually-hidden" for="{{ f.idMaterial.id_for_label }}">Material</label>
+                {{ f.idMaterial }}
+                {% if f.idMaterial.errors %}<div class="invalid-feedback d-block">{{ f.idMaterial.errors.as_text }}</div>{% endif %}
+            </div>
+            <div class="col-3">
+                <label class="visually-hidden" for="{{ f.cant_sugerida.id_for_label }}">Cantidad por mudanza</label>
+                {{ f.cant_sugerida }}
+                {% if f.cant_sugerida.errors %}<div class="invalid-feedback d-block">{{ f.cant_sugerida.errors.as_text }}</div>{% endif %}
+            </div>
+            <div class="col-2 pt-2 small">
+                {% if f.instance.pk %}<label class="form-check-label">{{ f.DELETE }} Quitar</label>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+        <template id="fila-material-vacia">
+            {% with f=materiales.empty_form %}
+            <div class="row g-2 align-items-start mb-2 fila-material">
+                {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+                <div class="col-7">{{ f.idMaterial }}</div>
+                <div class="col-3">{{ f.cant_sugerida }}</div>
+                <div class="col-2"></div>
+            </div>
+            {% endwith %}
+        </template>
+        <button type="button" class="btn btn-sm btn-outline-secondary mb-4" id="otro-material"><i class="bi bi-plus-lg"></i> Otro material</button>
+
         <div class="d-flex justify-content-end gap-3">
             <a href="{% url 'servicios_lista' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
             <button class="btn btn-success fw-bold px-4">Guardar</button>
@@ -31,6 +69,18 @@
   const mostrar = () => campos.forEach((c) => c.classList.toggle('d-none', categoria.value === 'Adicional'));
   categoria.addEventListener('change', mostrar);
   mostrar();
+
+  // «Otro material»: agrega una fila vacía (hasta 12)
+  const total = document.getElementById('id_materiales-TOTAL_FORMS');
+  const boton = document.getElementById('otro-material');
+  boton.addEventListener('click', () => {
+    const n = Number(total.value);
+    if (n >= 12) return;
+    const html = document.getElementById('fila-material-vacia').innerHTML.replace(/__prefix__/g, n);
+    document.getElementById('filas-materiales').insertAdjacentHTML('beforeend', html);
+    total.value = n + 1;
+    if (n + 1 >= 12) boton.disabled = true;
+  });
 })();
 </script>
 {% endblock %}

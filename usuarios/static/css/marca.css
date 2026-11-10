@@ -793,3 +793,17 @@ a.aviso-tarjeta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18
 .saludo-numeros { display: flex; flex-wrap: wrap; gap: .5rem; }
 @media (max-width: 767.98px) { .saludo-dibujo { display: none !important; } }
 @media (min-width: 768px) { .saludo-dibujo { display: grid; } }
+
+/* ---- control de materiales: barra de stock y tipos de movimiento ---- */
+.barra-stock { height: 5px; border-radius: 99px; background: var(--linea); margin-top: .3rem; overflow: hidden; max-width: 160px; }
+.barra-stock span { display: block; height: 100%; border-radius: inherit; background: #138a5d; }
+.barra-stock.baja span { background: #c62f35; }
+.mov { display: inline-block; font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 99px; background: #f1ece8; color: #5e524b; }
+.mov-ingreso, .mov-devolucion { background: #e5f6ee; color: #138a5d; }
+.mov-salida { background: #e8f1fc; color: #2465bd; }
+.mov-consumo { background: #fff0e2; color: #b14a12; }
+.mov-perdida { background: #fdecec; color: #c62f35; }
+.mov-ajuste { background: #efedff; color: #5143c9; }
+.materiales-mudanza { list-style: none; padding: 0; margin: .25rem 0 0; display: flex; flex-wrap: wrap; gap: .35rem; }
+.materiales-mudanza li { padding: .15rem .55rem; border-radius: 99px; background: rgba(0,0,0,.04); }
+.materiales-mudanza li.falta { background: #fdecec; color: #c62f35; font-weight: 600; }

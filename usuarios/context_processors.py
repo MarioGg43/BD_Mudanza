@@ -18,7 +18,14 @@ def seguridad(request):
             # el personal (quien no pide mudanzas) usa el menú lateral; el cliente, el de arriba
             'menu_lateral': bool(usuario) and 'PED_REGISTRAR' not in permisos,
             'pedidos_pendientes': pendientes, 'mudanzas_en_curso': en_curso,
-            'ubicacion': ubicacion(request.path)}
+            'ubicacion': ubicacion(request.path),
+            # el número al lado de «Materiales»: los que quedaron por debajo del mínimo
+            'materiales_bajos': _materiales_bajos() if 'MAT_GESTIONAR' in permisos else 0}
+
+
+def _materiales_bajos():
+    from pedidos.materiales import bajo_minimo
+    return bajo_minimo().count()
 
 
 # Dónde está la persona, para la barra de arriba del menú lateral: «Operación › Pedidos»
@@ -27,6 +34,7 @@ UBICACIONES = [
     ('/notificaciones/', 'Principal', 'Notificaciones'), ('/pedidos/', 'Operación', 'Pedidos'),
     ('/portal/', 'Operación', 'Portal del personal'), ('/vehiculos/', 'Catálogo', 'Vehículos'),
     ('/servicios/', 'Catálogo', 'Servicios'), ('/objetos/', 'Catálogo', 'Objetos'),
+    ('/materiales/', 'Catálogo', 'Materiales'),
     ('/reportes/', 'Análisis', 'Reportes'), ('/auditoria/', 'Análisis', 'Auditoría'),
     ('/panel/', 'Seguridad', 'Usuarios'), ('/roles/', 'Seguridad', 'Roles'), ('/mi-cuenta/', 'Cuenta', 'Mi cuenta'),
 ]
