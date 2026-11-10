@@ -212,10 +212,15 @@ class BuscarEnSaltaTest(BaseVistas):
         with self.responder(salta, misiones):
             self.assertEqual(mapa.geocodificar('entre 20 de febrero y 25 de mayo')[2], '20 de Febrero, SA, Argentina')
 
-    def test_si_en_salta_no_hay_nada_busca_en_el_pais(self):
-        jujuy = _lugar(-65.30, -24.18, 'Belgrano 10, San Salvador de Jujuy', 'JY')
+    def test_fuera_de_salta_solo_si_se_escribio_la_ciudad(self):
+        jujuy = _lugar(-65.30, -24.18, 'Belgrano 10, San Salvador de Jujuy', 'JY',
+                       locality='San Salvador de Jujuy', region='Jujuy')
         with self.responder(None, jujuy):
-            self.assertEqual(mapa.geocodificar('Belgrano 10')[2], 'Belgrano 10, San Salvador de Jujuy')
+            self.assertEqual(mapa.geocodificar('Belgrano 10, Jujuy')[2], 'Belgrano 10, San Salvador de Jujuy')
+            # sin la ciudad, no se toma lo primero que haya en el país (antes iba a parar a Misiones)
+            with self.assertRaises(mapa.ErrorMapa) as ctx:
+                mapa.geocodificar('Belgrano 10')
+            self.assertIn('agregá la ciudad', str(ctx.exception))
         with self.responder(None, None), self.assertRaises(mapa.ErrorMapa):
             mapa.geocodificar('Calle Inventada 999')
 

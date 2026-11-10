@@ -107,14 +107,16 @@ def geocodificar(direccion):
     Santiago del Estero). Solo sale de Salta si no encuentra nada adentro o si la persona escribió
     la ciudad o la provincia de afuera (mudanzas nacionales)."""
     en_salta = _buscar(direccion, **SALTA_PROVINCIA)
-    # en todo el país solo si hace falta (cada búsqueda gasta cuota): no encontró nada en Salta, o
-    # después de la coma hay una ciudad que no es Salta
-    if en_salta is None or (',' in direccion and not _menciona_salta(direccion.split(',', 1)[1])):
+    # en todo el país solo si después de la coma hay una ciudad que no es Salta («Mitre 50, Córdoba»).
+    # Si no se nombró otra ciudad y en Salta no aparece, no se usa lo primero que haya en el país:
+    # «entre 20 de febrero y 25 de mayo» terminaba en un pueblo de Misiones, a más de 1.000 km
+    if ',' in direccion and not _menciona_salta(direccion.split(',', 1)[1]):
         en_pais = _buscar(direccion)
-        if en_pais is not None and (en_salta is None or _nombra_otro_lugar(direccion, en_pais)):
+        if en_pais is not None and _nombra_otro_lugar(direccion, en_pais):
             en_salta = en_pais
     if en_salta is None:
-        raise ErrorMapa(f'No encontramos «{direccion}» en el mapa.')
+        raise ErrorMapa(f'No encontramos «{direccion}» en Salta. Si es en otra provincia, agregá la ciudad '
+                        'después de una coma (por ejemplo «Mitre 50, Córdoba»), o marcala en el mapa.')
     lon, lat = en_salta['geometry']['coordinates'][:2]
     return lon, lat, en_salta.get('properties', {}).get('label', direccion)
 
