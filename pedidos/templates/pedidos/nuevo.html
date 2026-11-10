@@ -34,9 +34,25 @@
                     {{ field }}
                     {% endif %}
                     {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+                    {% if mapa_activo and field.name == 'origen' or mapa_activo and field.name == 'destino' %}
+                    {# dónde quedó la dirección: el punto marcado o, si se escribió a mano, «¿Es acá?» #}
+                    <div class="ubicacion-previa" data-previa-de="{{ field.id_for_label }}" data-lado="{{ field.name }}" hidden>
+                        <div class="mapa-mini" data-mapa-mini aria-hidden="true"></div>
+                        <div class="ubicacion-texto">
+                            <p class="small mb-1" data-previa-mensaje role="status"></p>
+                            <div data-previa-botones hidden>{# hidden va acá y no junto a d-flex: d-flex le gana #}
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-sm btn-success" data-es-aca><i class="bi bi-check-lg me-1"></i>Sí, es acá</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-no-es-aca><i class="bi bi-geo-alt me-1"></i>No, lo marco en el mapa</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}{% endfor %}
             </div>
+            {% for h in form.hidden_fields %}{{ h }}{% endfor %}
         </div>
 
         <div class="card-panel bg-white p-4 mb-3">
@@ -164,7 +180,7 @@
 {% if mapa_activo %}
 {# «Elegir en el mapa»: se toca el lugar y la dirección se completa sola (elegir_direccion.js) #}
 <div class="modal fade" id="modalMapa" tabindex="-1" aria-labelledby="tituloModalMapa" aria-hidden="true"
-     data-url-direccion="{% url 'pedidos_direccion' %}">
+     data-url-direccion="{% url 'pedidos_direccion' %}" data-url-ubicar="{% url 'pedidos_ubicar' %}">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -190,7 +206,7 @@
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
-<script src="{% static 'js/elegir_direccion.js' %}?v=1" defer></script>
+<script src="{% static 'js/elegir_direccion.js' %}?v=2" defer></script>
 {% endif %}
 {% include 'pedidos/_fecha_hora.html' %}
 {{ catalogo|json_script:"catalogo" }}

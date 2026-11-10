@@ -268,6 +268,12 @@ class Pedido(models.Model):
                                                       verbose_name='Duración estimada (horas)')
     origen =models.CharField(max_length=200, default='', db_column='Direccion_origen', verbose_name='Desde')
     destino = models.CharField(max_length=200, default='', db_column='Direccion_destino', verbose_name='Hasta')
+    # el punto exacto de cada dirección (latitud y longitud), si el cliente lo marcó en el mapa o
+    # confirmó el que encontró el sistema. Sin punto, el mapa busca la dirección por el texto
+    lat_origen = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, db_column='Lat_origen')
+    lon_origen = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, db_column='Lon_origen')
+    lat_destino = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, db_column='Lat_destino')
+    lon_destino = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, db_column='Lon_destino')
     estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE, db_column='Estado_pedido')
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0, db_column='Total_pedido')
     # Lo carga el chofer en el relevamiento si encuentra más cosas de las declaradas; suma al total

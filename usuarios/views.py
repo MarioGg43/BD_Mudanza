@@ -142,7 +142,7 @@ def usuario_portal(request):
     from django.db.models import Q
     from datetime import timedelta
     from pedidos.reglas import filtro_por_venir, se_puede_empezar  # pedidos depende de usuarios
-    from pedidos.mapa import como_llegar
+    from pedidos.mapa import como_llegar, puntos
     from pedidos import materiales
     permisos = usuario_actual.idRol.permisos.all()
     vehiculos = Vehiculo.objects.filter(chofer_asignado=usuario_actual)
@@ -161,7 +161,7 @@ def usuario_portal(request):
         p.puede_empezar = sin_empezar and se_puede_empezar(p, ahora)
         p.empieza_tarde = p.puede_empezar and ahora > p.inicio               # ya pasó la hora y no empezaron
         p.ya_paso = sin_empezar and timezone.localtime(ahora).date() > p.fecha_servicio
-        p.como_llegar = como_llegar(p.origen, p.destino)  # abre Google Maps con el recorrido
+        p.como_llegar = como_llegar(p.origen, p.destino, *puntos(p))  # Google Maps, al punto exacto si lo hay
         # los materiales: si ya salieron, lo que llevaron; si no, lo que sugieren los servicios y si alcanza
         if p.inicio_real:
             p.materiales = [{'material': m, 'cantidad': c} for m, c in materiales.enviados(p).items()]

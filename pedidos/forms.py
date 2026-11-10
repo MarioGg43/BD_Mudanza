@@ -143,6 +143,19 @@ class PedidoForm(forms.Form):
                                                  label='Adicionales', widget=forms.CheckboxSelectMultiple)
     vehiculo = VehiculoField(queryset=Vehiculo.objects.none(), label='Vehículo',
                              empty_label='Elegí primero la fecha, la hora y el servicio')
+    # el punto exacto de cada dirección: lo completa el mapa (elegir_direccion.js) y se borra si la
+    # persona vuelve a escribir la dirección a mano
+    lat_origen = forms.FloatField(required=False, widget=forms.HiddenInput)
+    lon_origen = forms.FloatField(required=False, widget=forms.HiddenInput)
+    lat_destino = forms.FloatField(required=False, widget=forms.HiddenInput)
+    lon_destino = forms.FloatField(required=False, widget=forms.HiddenInput)
+
+    def puntos(self):
+        """{'origen': (lat, lon) o None, 'destino': ...} para las reglas."""
+        d = self.cleaned_data
+        return {lado: (d[f'lat_{lado}'], d[f'lon_{lado}'])
+                if d.get(f'lat_{lado}') is not None and d.get(f'lon_{lado}') is not None else None
+                for lado in ('origen', 'destino')}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

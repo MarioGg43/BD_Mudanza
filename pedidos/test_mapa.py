@@ -1,11 +1,14 @@
 """Pruebas del mapa del recorrido. OpenRouteService se simula: no hace falta internet ni clave."""
+from datetime import time, timedelta
 from unittest import mock
 
 from django.core.cache import cache
 from django.test import override_settings
+from django.utils import timezone
 
-from pedidos import mapa
+from pedidos import mapa, reglas
 from pedidos.test_vistas import ADMIN, CHOFER, BaseVistas
+from usuarios.models import Objeto
 
 AYUDANTE = 38999888
 
@@ -223,3 +226,57 @@ class BuscarEnSaltaTest(BaseVistas):
         with mock.patch.object(mapa, 'urlopen', side_effect=error), self.assertRaises(mapa.ErrorMapa) as ctx:
             mapa._pedir(mapa.URL_ORS + '/geocode/search?text=x')
         self.assertIn('límite de consultas', str(ctx.exception))
+
+
+@override_settings(ORS_API_KEY='clave-de-prueba')
+class PuntoExactoTest(BaseVistas):
+    """El punto que el cliente marcó en el mapa se guarda en el pedido y el mapa lo usa directo."""
+
+    def setUp(self):
+        cache.clear()
+
+    def registrar(self, puntos, origen='Origen 1', destino='Destino 2'):
+        return reglas.registrar_pedido(
+            self.cliente, timezone.localdate() + timedelta(days=4), time(9, 0), origen, destino,
+            self.local.id_servicio, 'AD-321-JK',
+            [{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 2, 'fragil': False}], puntos=puntos)
+
+    def test_se_guarda_el_punto_y_se_descarta_uno_fuera_de_la_argentina(self):
+        p = self.registrar({'origen': (-24.789123, -65.410456), 'destino': (40.4, -3.7)})  # destino: Madrid
+        self.assertEqual((float(p.lat_origen), float(p.lon_origen)), (-24.789123, -65.410456))
+        self.assertIsNone(p.lat_destino)
+
+    def test_el_recorrido_usa_el_punto_y_no_busca_esa_direccion(self):
+        p = self.con_chofer(self.registrar({'origen': (-24.79, -65.41), 'destino': None}))
+        self.entrar(self.cliente.DNI)
+        with mock.patch.object(mapa, '_pedir', side_effect=ors_simulado) as ors:
+            datos = self.client.get(f'/pedidos/{p.pk}/recorrido/').json()
+        self.assertTrue(datos['ok'])
+        self.assertEqual((datos['origen']['lat'], datos['origen']['lon']), (-24.79, -65.41))
+        self.assertEqual(ors.call_count, 2)  # solo el destino (sin punto) y la ruta
+        self.assertIn('origin=-24.790000%2C-65.410000', datos['como_llegar'])  # Google va al punto exacto
+        self.assertIn('destination=Destino+2', datos['como_llegar'])
+
+    def test_si_cambia_la_direccion_el_punto_viejo_se_descarta(self):
+        p = self.registrar({'origen': (-24.79, -65.41), 'destino': (-24.80, -65.39)})
+        datos = dict(fecha_servicio=timezone.localdate() + timedelta(days=4), hora_servicio=time(9, 0),
+                     id_servicio=self.local.id_servicio, patente='AD-321-JK',
+                     items=[{'objeto': Objeto.objects.get(nom_objeto='Cajas'), 'cantidad': 2, 'fragil': False}])
+        reglas.modificar_pedido(p.pk, self.cliente, origen='Otra calle 5', destino='Destino 2',
+                                puntos={'origen': (-24.79, -65.41), 'destino': (-24.80, -65.39)}, **datos)
+        p.refresh_from_db()
+        self.assertIsNone(p.lat_origen)               # cambió el texto con el mismo punto: no corresponde
+        self.assertEqual(float(p.lat_destino), -24.8)  # el destino no cambió: queda
+
+    def test_es_aca_devuelve_donde_cae_la_direccion(self):
+        self.entrar(self.cliente.DNI)
+        with mock.patch.object(mapa, '_pedir', side_effect=ors_simulado):
+            datos = self.client.get('/pedidos/ubicar/', {'direccion': 'Origen 1'}).json()
+        self.assertEqual(datos, {'ok': True, 'lat': -24.78, 'lon': -65.41, 'etiqueta': 'Origen 1, Salta'})
+        self.assertEqual(self.client.get('/pedidos/ubicar/', {'direccion': 'ab'}).status_code, 400)
+
+    def test_el_formulario_manda_el_punto(self):
+        from pedidos.forms import PedidoForm
+        form = PedidoForm({'lat_origen': '-24.79', 'lon_origen': '-65.41', 'lat_destino': '', 'lon_destino': ''})
+        form.is_valid()
+        self.assertEqual(form.puntos(), {'origen': (-24.79, -65.41), 'destino': None})

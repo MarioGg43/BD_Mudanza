@@ -7,7 +7,7 @@ escribe corre en una transacción: o se guarda todo, o no se guarda nada.
 import re
 import unicodedata
 from datetime import datetime, time, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.db.models import Q
@@ -185,8 +185,24 @@ def precio_principal(principal, vehiculo):
     return (principal.Precio_base * (100 + vehiculo.recargo) / 100).quantize(Decimal('0.01'))
 
 
+def _puntos_validos(puntos):
+    """Los puntos del mapa que se guardan: (lat, lon) dentro de la Argentina; lo demás se descarta
+    (sin punto, el mapa busca la dirección por el texto, como antes)."""
+    limpios = {}
+    for lado in ('origen', 'destino'):
+        punto = (puntos or {}).get(lado)
+        try:
+            lat, lon = (Decimal(str(round(float(x), 6))) for x in punto)
+        except (TypeError, ValueError, InvalidOperation):
+            lat = lon = None
+        if lat is not None and not (-56 <= lat <= -21 and -74 <= lon <= -53):
+            lat = lon = None
+        limpios[f'lat_{lado}'], limpios[f'lon_{lado}'] = lat, lon
+    return limpios
+
+
 def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente, items,
-                     ids_adicionales=()):
+                     ids_adicionales=(), puntos=None):
     """Registra el pedido completo (cabecera, servicios e inventario) en una sola
     transacción y lo deja Pendiente. Total = principal según el camión + adicionales a su
     precio. Si algo no es válido lanza ErrorPedido."""
@@ -218,7 +234,7 @@ def registrar_pedido(cliente, fecha_servicio, hora_servicio, origen, destino, id
         pedido = Pedido.objects.create(
             patente_vehiculo=vehiculo, idUsuario=cliente, Fecha_pedido=timezone.localdate(),
             fecha_servicio=fecha_servicio, hora_servicio=hora_servicio, duracion_horas=horas,
-            origen=origen, destino=destino, estado=Pedido.PENDIENTE, total=total)
+            origen=origen, destino=destino, estado=Pedido.PENDIENTE, total=total, **_puntos_validos(puntos))
         # Una fila por servicio, con el precio del día: si después cambia, el pedido no cambia
         DetallePedido.objects.bulk_create(
             [DetallePedido(idPedido=pedido, idServicio=principal, precio_unitario=precio, subtotal=precio)]
@@ -791,7 +807,7 @@ def cancelar_por_cliente(id_pedido, cliente, motivo):
 
 
 def modificar_pedido(id_pedido, cliente, fecha_servicio, hora_servicio, origen, destino, id_servicio, patente,
-                     items, ids_adicionales=()):
+                     items, ids_adicionales=(), puntos=None):
     """El cliente cambia su pedido hasta 24 h antes: fecha y hora, direcciones, servicios, objetos y
     vehículo, con las mismas reglas que al pedir y a los precios de hoy. Si estaba confirmado vuelve a
     Pendiente para que la empresa lo revise; el personal que no esté libre en el horario nuevo se saca."""
@@ -826,7 +842,16 @@ def modificar_pedido(id_pedido, cliente, fecha_servicio, hora_servicio, origen, 
             idPedido__in=[p.pk for p in pedidos_que_se_cruzan(inicio, horas, excluir=pedido)]).values('idUsuario')
         pedido.personal.filter(idUsuario__in=ocupado).delete()
         pedido.fecha_servicio, pedido.hora_servicio, pedido.duracion_horas = fecha_servicio, hora_servicio, horas
+        nuevos = _puntos_validos(puntos)
+        for lado, texto_nuevo in (('origen', origen), ('destino', destino)):
+            # si cambió la dirección pero llegó el mismo punto de antes, ese punto ya no corresponde
+            viejo = (getattr(pedido, f'lat_{lado}'), getattr(pedido, f'lon_{lado}'))
+            if texto_nuevo != getattr(pedido, lado) and viejo[0] is not None \
+                    and (nuevos[f'lat_{lado}'], nuevos[f'lon_{lado}']) == viejo:
+                nuevos[f'lat_{lado}'] = nuevos[f'lon_{lado}'] = None
         pedido.origen, pedido.destino, pedido.patente_vehiculo = origen, destino, vehiculo
+        for campo, valor in nuevos.items():
+            setattr(pedido, campo, valor)
         pedido.estado = Pedido.PENDIENTE
         pedido.save()
         # servicios e inventario como un pedido nuevo, a los precios de hoy

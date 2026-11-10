@@ -34,11 +34,22 @@ class ErrorMapa(Exception):
     """Algo que se le puede mostrar a la persona (dirección no encontrada, servicio caído...)."""
 
 
-def como_llegar(origen, destino):
+def puntos(pedido):
+    """(punto de origen, punto de destino) del pedido: (lat, lon) o None si no se marcó en el mapa."""
+    def punto(lat, lon):
+        return (float(lat), float(lon)) if lat is not None and lon is not None else None
+    return punto(pedido.lat_origen, pedido.lon_origen), punto(pedido.lat_destino, pedido.lon_destino)
+
+
+def como_llegar(origen, destino, punto_origen=None, punto_destino=None):
     """Enlace de Google Maps con el recorrido cargado. En el celular abre la app de Maps.
-    No necesita clave: es la forma pública de armar un enlace de indicaciones."""
+    No necesita clave: es la forma pública de armar un enlace de indicaciones. Si hay punto exacto,
+    va el punto (Google lleva a la puerta); si no, el texto de la dirección."""
+    def lugar(texto, punto):
+        return f'{punto[0]:.6f},{punto[1]:.6f}' if punto else texto
     return 'https://www.google.com/maps/dir/?' + urlencode(
-        {'api': 1, 'origin': origen, 'destination': destino, 'travelmode': 'driving'})
+        {'api': 1, 'origin': lugar(origen, punto_origen), 'destination': lugar(destino, punto_destino),
+         'travelmode': 'driving'})
 
 
 def _pedir(url, cuerpo=None):
@@ -112,20 +123,38 @@ def _menciona_salta(direccion):
     return 'salta' in _sin_acentos(direccion)
 
 
-def recorrido(origen, destino):
+def ubicar(direccion):
+    """Dónde cae una dirección escrita a mano, para que el cliente lo confirme («¿Es acá?»):
+    {'lat', 'lon', 'etiqueta'}. Se guarda un día en la caché."""
+    if not settings.ORS_API_KEY:
+        raise ErrorMapa('El mapa todavía no está configurado (falta la clave de OpenRouteService).')
+    clave_cache = 'ubicar:' + hashlib.sha256(direccion.strip().lower().encode()).hexdigest()
+    guardado = cache.get(clave_cache)
+    if guardado:
+        return guardado
+    lon, lat, etiqueta = geocodificar(direccion)
+    resultado = {'lat': lat, 'lon': lon, 'etiqueta': etiqueta.removesuffix(', Argentina')}
+    cache.set(clave_cache, resultado, UN_DIA)
+    return resultado
+
+
+def recorrido(origen, destino, punto_origen=None, punto_destino=None):
     """El recorrido en camión entre las dos direcciones, listo para la pantalla:
     {'origen': {...}, 'destino': {...}, 'ruta': <GeoJSON LineString>, 'km': 12.3, 'minutos': 25}.
+    Si viene el punto exacto de una dirección (lat, lon), se usa ese y no se busca el texto.
     Lanza ErrorMapa si falta la clave, no encuentra una dirección o el servicio falla."""
     if not settings.ORS_API_KEY:
         raise ErrorMapa('El mapa todavía no está configurado (falta la clave de OpenRouteService).')
     # «recorrido2»: los guardados con la búsqueda vieja (que se iba a otras provincias) no se usan más
-    clave_cache = 'recorrido2:' + hashlib.sha256(f'{origen}|{destino}'.encode()).hexdigest()
+    clave_cache = 'recorrido2:' + hashlib.sha256(f'{origen}|{destino}|{punto_origen}|{punto_destino}'.encode()).hexdigest()
     guardado = cache.get(clave_cache)
     if guardado:
         return guardado
 
-    lon_o, lat_o, etiqueta_o = geocodificar(origen)
-    lon_d, lat_d, etiqueta_d = geocodificar(destino)
+    def ubicado(texto, punto):
+        return (punto[1], punto[0], texto) if punto else geocodificar(texto)
+    lon_o, lat_o, etiqueta_o = ubicado(origen, punto_origen)
+    lon_d, lat_d, etiqueta_d = ubicado(destino, punto_destino)
     if abs(lon_o - lon_d) < 0.0005 and abs(lat_o - lat_d) < 0.0005:  # unos 50 metros
         # pasa con direcciones vagas («zona norte», «zona este»): el servicio las ubica en el mismo
         # punto y el recorrido daría 0 km, que confunde más de lo que ayuda

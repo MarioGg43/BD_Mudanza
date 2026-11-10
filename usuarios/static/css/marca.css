@@ -824,3 +824,10 @@ a.aviso-tarjeta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18
 .lateral-usuario { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .22); }
 .lateral-avatar { background: #fff; color: #c2410c; }
 .lateral-salir:hover { background: rgba(255, 255, 255, .18); }
+
+/* ---- «¿Es acá?»: dónde quedó cada dirección del pedido (elegir_direccion.js) ---- */
+.ubicacion-previa:not([hidden]) { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; padding: .5rem;
+  border: 1px solid var(--linea); border-radius: 12px; background: #fffaf6; }
+.mapa-mini { flex: 0 0 120px; height: 90px; border-radius: 9px; overflow: hidden; background: #eee; }
+.ubicacion-texto { min-width: 0; }
+@media (max-width: 400px) { .mapa-mini { flex-basis: 90px; height: 72px; } }

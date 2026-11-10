@@ -120,7 +120,7 @@ def detalle(request, id_pedido):
     return render(request, 'pedidos/detalle.html', {
         'pedido': pedido, 'reprogramaciones': reprogramaciones, 'ultima': ultima, 'cambio_nuevo': cambio_nuevo,
         'whatsapp': whatsapp,
-        'como_llegar': mapa.como_llegar(pedido.origen, pedido.destino),
+        'como_llegar': mapa.como_llegar(pedido.origen, pedido.destino, *mapa.puntos(pedido)),
         'siguiente': siguiente, 'comparte_siguiente': siguiente and reglas.que_comparten(pedido, siguiente),
         'anterior': anterior, 'comparte_anterior': anterior and reglas.que_comparten(anterior, pedido),
         'chofer': next((x.idUsuario for x in personal if x.Funcion == PersonalPedido.CHOFER), None),
@@ -191,13 +191,14 @@ def _formulario_pedido(request, pedido=None):
             d = form.cleaned_data
             datos = (d['fecha_servicio'], d['hora_servicio'], d['origen'], d['destino'], d['servicio'].id_servicio,
                      d['vehiculo'].patente, [f.cleaned_data for f in items.forms if f.cleaned_data])
+            puntos = form.puntos()
             hecho = 'modificado' if pedido else 'registrado'
             try:
                 if pedido:
-                    pedido = reglas.modificar_pedido(pedido.pk, request.usuario, *datos,
+                    pedido = reglas.modificar_pedido(pedido.pk, request.usuario, *datos, puntos=puntos,
                                                      ids_adicionales=[s.id_servicio for s in d['adicionales']])
                 else:
-                    pedido = reglas.registrar_pedido(request.usuario, *datos,
+                    pedido = reglas.registrar_pedido(request.usuario, *datos, puntos=puntos,
                                                      ids_adicionales=[s.id_servicio for s in d['adicionales']])
             except reglas.ErrorPedido as e:
                 for campo, mensaje in e.errores.items():
@@ -212,6 +213,8 @@ def _formulario_pedido(request, pedido=None):
         form = PedidoForm(initial={
             'fecha_servicio': pedido.fecha_servicio, 'hora_servicio': pedido.hora_servicio,
             'origen': pedido.origen, 'destino': pedido.destino, 'vehiculo': pedido.patente_vehiculo_id,
+            'lat_origen': pedido.lat_origen, 'lon_origen': pedido.lon_origen,
+            'lat_destino': pedido.lat_destino, 'lon_destino': pedido.lon_destino,
             'servicio': next((d.idServicio_id for d in detalles if d.idServicio.Categoria == Servicio.PRINCIPAL), None),
             'adicionales': [d.idServicio_id for d in detalles if d.idServicio.Categoria == Servicio.ADICIONAL]})
         items = InventarioFormSet(prefix='inv')
@@ -530,12 +533,25 @@ def recorrido(request, id_pedido):
     lo_hace = tiene_permiso(usuario, 'MUDANZAS_OPERAR') and pedido.personal.filter(idUsuario=usuario).exists()
     if not (es_suyo or lo_hace):
         raise Http404('Pedido inexistente')  # como en el detalle: no se revela que existe
-    respuesta = {'como_llegar': mapa.como_llegar(pedido.origen, pedido.destino)}
+    respuesta = {'como_llegar': mapa.como_llegar(pedido.origen, pedido.destino, *mapa.puntos(pedido))}
     try:
-        respuesta.update(ok=True, **mapa.recorrido(pedido.origen, pedido.destino))
+        respuesta.update(ok=True, **mapa.recorrido(pedido.origen, pedido.destino, *mapa.puntos(pedido)))
     except mapa.ErrorMapa as e:
         respuesta.update(ok=False, error=str(e))
     return JsonResponse(respuesta)
+
+
+@requiere_permiso_api('PED_REGISTRAR')
+@require_GET
+def ubicar_direccion(request):
+    """Dónde cae una dirección escrita a mano (JSON), para que el cliente confirme «¿Es acá?»."""
+    direccion = ' '.join((request.GET.get('direccion') or '').split())
+    if len(direccion) < 5:
+        return JsonResponse({'ok': False, 'error': 'Escribí la dirección completa.'}, status=400)
+    try:
+        return JsonResponse({'ok': True, **mapa.ubicar(direccion[:200])})
+    except mapa.ErrorMapa as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
 
 
 @requiere_permiso_api('PED_REGISTRAR')
