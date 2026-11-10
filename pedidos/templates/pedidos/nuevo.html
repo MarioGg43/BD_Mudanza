@@ -63,6 +63,7 @@
                        id="srv{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}" data-horas="{{ s.Duracion_horas|default:5 }}"
                        {% if s.id_servicio|stringformat:'s' == elegido %}checked{% endif %}>
                 <label class="form-check-label" for="srv{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }}</label>
+                {% with r=s.recursos.all %}{% if r %}<div class="small text-muted incluye-materiales">Incluye: {% for x in r %}{{ x.idMaterial.nom_material|lower }} ×{{ x.cant_sugerida }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}{% endwith %}
             </div>
             {% endfor %}
             {% if form.servicio.errors %}<div class="invalid-feedback d-block">{{ form.servicio.errors.as_text }}</div>{% endif %}
@@ -76,6 +77,7 @@
                            id="adi{{ s.id_servicio }}"
                            {% if s.id_servicio|stringformat:'s' in adicionales_elegidos %}checked{% endif %}>
                     <label class="form-check-label" for="adi{{ s.id_servicio }}">{{ s.Tipo_servicio }}{% if s.Precio_base > 0 %} — ${{ s.Precio_base|floatformat:"0g" }}{% endif %}</label>
+                    {% with r=s.recursos.all %}{% if r %}<div class="small text-muted incluye-materiales">Incluye: {% for x in r %}{{ x.idMaterial.nom_material|lower }} ×{{ x.cant_sugerida }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}{% endwith %}
                 </div>
                 {% endfor %}
                 {% if form.adicionales.errors %}<div class="invalid-feedback d-block">{{ form.adicionales.errors.as_text }}</div>{% endif %}

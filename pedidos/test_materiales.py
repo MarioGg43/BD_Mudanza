@@ -186,3 +186,15 @@ class PrepararDemoTest(BaseReglas):
             self.assertEqual(papel.stock_material, papel.stock_min_material + 1)
             reglas.marcar_inicio(p.pk, Usuario.objects.get(DNI=CHOFER))
         self.assertTrue(Notificacion.objects.filter(tipo=alertas.STOCK_BAJO, mensaje__contains='Papel burbuja').exists())
+
+
+class ClienteVeLosMaterialesTest(BaseReglas):
+    def test_cada_servicio_muestra_lo_que_incluye(self):
+        s = self.client.session
+        s['usuario_dni'], s['usuario_rol'] = 29876543, 'Cliente'
+        s.save()
+        r = self.client.get('/pedidos/nuevo/')
+        self.assertContains(r, 'Incluye: correas ×6, mantas acolchadas ×6')                       # Flete urbano
+        self.assertContains(r, 'Incluye: cajas de cartón ×20, cinta de embalar ×3, papel burbuja ×2')  # Embalaje
+        Material.objects.filter(nom_material='Correas').update(Activo=False)  # dado de baja: no se muestra
+        self.assertContains(self.client.get('/pedidos/nuevo/'), 'Incluye: mantas acolchadas ×6')

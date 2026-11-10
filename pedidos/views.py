@@ -182,6 +182,15 @@ def cancelar(request, id_pedido):
     return render(request, 'pedidos/cancelar.html', {'pedido': pedido, 'form': form})
 
 
+def _con_materiales(servicios):
+    """Los servicios con los materiales activos que lleva cada uno («Incluye: mantas ×6…»)."""
+    from django.db.models import Prefetch
+    from usuarios.models import RecursoAsignado
+    return servicios.prefetch_related(Prefetch(
+        'recursos', queryset=RecursoAsignado.objects.filter(idMaterial__Activo=True)
+        .select_related('idMaterial').order_by('idMaterial__nom_material')))
+
+
 def _formulario_pedido(request, pedido=None):
     """Pedir una mudanza o, con `pedido`, modificarla (las reglas: registrar_pedido / modificar_pedido)."""
     if request.method == 'POST':
@@ -236,8 +245,9 @@ def _formulario_pedido(request, pedido=None):
         'horas_limite': reglas.HORAS_LIMITE_CLIENTE,
         'mapa_activo': bool(settings.ORS_API_KEY),  # «Elegir en el mapa» solo si hay clave
         'max_cantidad': reglas.MAX_CANTIDAD,
-        'servicios': form.fields['servicio'].queryset,
-        'adicionales': form.fields['adicionales'].queryset,
+        # con sus materiales, para mostrarle al cliente qué incluye cada servicio
+        'servicios': _con_materiales(form.fields['servicio'].queryset),
+        'adicionales': _con_materiales(form.fields['adicionales'].queryset),
         'elegido': str(form['servicio'].value() or ''),
         'adicionales_elegidos': [str(i) for i in form['adicionales'].value() or []],
     })
