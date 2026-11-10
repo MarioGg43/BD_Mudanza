@@ -5,7 +5,6 @@ from django.core.management.base import BaseCommand
 from usuarios.models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Sueldo, Servicio,
     RecursoAsignado, Material, Pedido, DetallePedido, InventarioDetalle, Objeto,
-    Cobranza, DetalleCobranza,
 )
 from usuarios.permisos import CATALOGO, PERMISOS_INICIALES
 from usuarios.utils import hash_password, nombre_usuario_libre
@@ -110,7 +109,7 @@ class Command(BaseCommand):
                                                           defaults={'cant_sugerida': cantidad})
                 self.stdout.write(self.style.SUCCESS(f'Servicio "{tipo}" creado.'))
 
-        # 7. Un pedido de ejemplo de la clienta, ya finalizado, con detalle, inventario y cobranza
+        # 7. Un pedido de ejemplo de la clienta, ya finalizado, con detalle e inventario
         cliente = Usuario.objects.filter(DNI=29876543).first()
         vehiculo = Vehiculo.objects.filter(patente='AE-123-CD').first()
         if cliente and vehiculo and not Pedido.objects.exists():
@@ -125,9 +124,6 @@ class Command(BaseCommand):
                                          subtotal=servicio.Precio_base)
             InventarioDetalle.objects.create(idPedido=pedido, idObjeto=Objeto.objects.get(nom_objeto='Cajas'),
                                              Cantidad=42, Fragil=True)
-            cobranza = Cobranza.objects.create(Monto_cob=185000, Met_pag_cob='Transferencia')
-            DetalleCobranza.objects.create(idPedido=pedido, idCobranza=cobranza)
-            self.stdout.write(self.style.SUCCESS(
-                'Pedido de ejemplo creado con detalle, inventario y cobranza.'))
+            self.stdout.write(self.style.SUCCESS('Pedido de ejemplo creado con detalle e inventario.'))
 
         self.stdout.write(self.style.SUCCESS('Datos iniciales cargados correctamente.'))

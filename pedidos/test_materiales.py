@@ -168,3 +168,21 @@ class MaterialesTest(BaseReglas):
         from pedidos.forms import leer_materiales_texto
         self.assertEqual([(m.nom_material, c) for m, c in leer_materiales_texto('mantas ×3, papel')],
                          [('Mantas acolchadas', 3), ('Papel burbuja', 1)])
+
+
+class PrepararDemoTest(BaseReglas):
+    def test_deja_una_mudanza_lista_y_el_papel_al_borde_del_minimo(self):
+        import io
+        from django.core.management import call_command
+        dia = self.dia()
+        manana = timezone.make_aware(datetime.combine(dia, time(8, 0)))
+        with mock.patch('django.utils.timezone.now', return_value=manana):
+            salida = io.StringIO()
+            call_command('preparar_demo_materiales', stdout=salida)
+            p = Pedido.objects.latest('pk')
+            self.assertEqual((p.estado, p.hora_servicio, p.fecha_servicio), (Pedido.CONFIRMADO, time(9, 0), dia))
+            self.assertIn('Empezamos', salida.getvalue())
+            papel = Material.objects.get(nom_material='Papel burbuja')
+            self.assertEqual(papel.stock_material, papel.stock_min_material + 1)
+            reglas.marcar_inicio(p.pk, Usuario.objects.get(DNI=CHOFER))
+        self.assertTrue(Notificacion.objects.filter(tipo=alertas.STOCK_BAJO, mensaje__contains='Papel burbuja').exists())

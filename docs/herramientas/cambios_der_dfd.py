@@ -513,8 +513,8 @@ lista([
     ('DFD: ', 'no hace falta ningún DFD de cobros; si algún diagrama menciona un almacén «Cobranzas», sacarlo.'),
     ('Documento y presentación: ', 'sacar la cobranza de los objetivos, el alcance y los requerimientos, y '
                                    'agregarla en «Fuera del alcance».'),
-    ('Sistema: ', 'las dos tablas todavía existen en la base (vacías, ninguna pantalla las usa). Se pueden quitar '
-                  'con una migración cuando el grupo lo confirme.'),
+    ('Sistema: ', 'ya se sacaron de la base (migración 0025, 10/11/2026). Solo tenían la fila del pedido de '
+                  'ejemplo y ninguna pantalla las usaba.'),
 ])
 
 doc.save(SALIDA)

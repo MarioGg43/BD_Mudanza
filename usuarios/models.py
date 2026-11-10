@@ -485,34 +485,7 @@ class InventarioDetalle(models.Model):
         return f'{self.Cantidad} x {self.idObjeto}'
 
 
-class Cobranza(models.Model):
-    id_cobranza = models.AutoField(primary_key=True)
-    Monto_cob = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Monto')
-    Met_pag_cob = models.CharField(max_length=100, verbose_name='Método de pago')
-
-    class Meta:
-        db_table = 'COBRANZAS'
-        verbose_name = 'Cobranza'
-        verbose_name_plural = 'Cobranzas'
-
-    def __str__(self):
-        return f'${self.Monto_cob} ({self.Met_pag_cob})'
-
-
-class DetalleCobranza(models.Model):
-    id_det_cob = models.AutoField(primary_key=True)
-    idPedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, db_column='id_ped',
-                                 related_name='cobranzas', verbose_name='Pedido')
-    idCobranza = models.ForeignKey(Cobranza, on_delete=models.CASCADE, db_column='id_cob',
-                                   related_name='detalles', verbose_name='Cobranza')
-
-    class Meta:
-        db_table = 'DETALLE_COBRANZAS'
-        verbose_name = 'Detalle de cobranza'
-        verbose_name_plural = 'Detalles de cobranzas'
-
-    def __str__(self):
-        return f'Pedido {self.idPedido_id} - Cobranza {self.idCobranza_id}'
+# COBRANZAS y DETALLE_COBRANZAS se sacaron (migración 0025): los cobros quedaron fuera del alcance.
 
 
 class LogAuditoria(models.Model):

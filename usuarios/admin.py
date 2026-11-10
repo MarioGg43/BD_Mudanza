@@ -2,7 +2,6 @@ from django.contrib import admin
 from .models import (
     Permiso, Rol, PermisoRol, Sueldo, Usuario, Vehiculo, Servicio, Objeto,
     RecursoAsignado, Pedido, DetallePedido, InventarioDetalle,
-    Cobranza, DetalleCobranza,
 )
 
 
@@ -62,4 +61,4 @@ class PedidoAdmin(admin.ModelAdmin):
 
 
 admin.site.register([Sueldo, RecursoAsignado, DetallePedido,
-                     InventarioDetalle, Cobranza, DetalleCobranza])
+                     InventarioDetalle])

@@ -14,7 +14,7 @@ from django.test import TestCase, TransactionTestCase
 
 from .models import (
     Rol, Permiso, PermisoRol, Usuario, Vehiculo, Pedido,
-    DetallePedido, InventarioDetalle, Cobranza, DetalleCobranza, Servicio, Objeto,
+    DetallePedido, InventarioDetalle, Servicio, Objeto,
 )
 from .utils import generate_username, validate_strong_password, hash_password
 
@@ -42,12 +42,15 @@ class BaseHito2(TestCase):
 
 
 class EstructuraDERTest(BaseHito2):
-    def test_las_13_tablas_del_der_existen(self):
+    def test_las_tablas_del_der_existen(self):
         tablas = {t.upper() for t in connection.introspection.table_names()}
         der = {'PERMISOS', 'PERMISOS_ROLES', 'ROLES', 'USUARIOS', 'SUELDOS', 'VEHICULOS',
-               'SERVICIOS', 'RECURSOS_ASIGNADOS', 'PEDIDOS', 'DETALLE_PEDIDOS',
-               'INVENTARIO_DETALLES', 'DETALLE_COBRANZAS', 'COBRANZAS'}
+               'SERVICIOS', 'RECURSOS_ASIGNADOS', 'PEDIDOS', 'DETALLE_PEDIDOS', 'INVENTARIO_DETALLES',
+               'OBJETOS', 'PERSONAL_PEDIDO', 'REPROGRAMACIONES', 'LOG_AUDITORIA', 'NOTIFICACION',
+               'CONFIGURACION', 'MATERIALES', 'MOVIMIENTOS_MATERIAL'}
         self.assertEqual(der - tablas, set())
+        # los cobros quedaron fuera del alcance: sus tablas ya no están
+        self.assertEqual({'COBRANZAS', 'DETALLE_COBRANZAS'} & tablas, set())
 
     def test_datos_iniciales(self):
         self.assertEqual(Rol.objects.count(), 4)
@@ -63,8 +66,6 @@ class EstructuraDERTest(BaseHito2):
         self.assertEqual(pedido.patente_vehiculo.patente, 'AE-123-CD')
         self.assertTrue(DetallePedido.objects.filter(idPedido=pedido).exists())
         self.assertTrue(InventarioDetalle.objects.filter(idPedido=pedido).exists())
-        self.assertTrue(DetalleCobranza.objects.filter(idPedido=pedido).exists())
-        self.assertEqual(Cobranza.objects.count(), 1)
 
     def test_init_data_se_puede_correr_dos_veces(self):
         call_command('init_data', stdout=io.StringIO())
