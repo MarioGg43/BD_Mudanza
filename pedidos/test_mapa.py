@@ -174,3 +174,52 @@ class ElegirEnElMapaTest(BaseVistas):
         r = self.client.get('/pedidos/nuevo/')
         self.assertNotContains(r, 'data-elegir-en-mapa')
         self.assertNotContains(r, 'id="modalMapa"')
+
+
+def _lugar(lon, lat, label, region_a, **props):
+    return {'features': [{'geometry': {'coordinates': [lon, lat]},
+                          'properties': {'label': label, 'region_a': region_a, **props}}]}
+
+
+class BuscarEnSaltaTest(BaseVistas):
+    """La dirección se busca primero en la provincia de Salta. Antes «Av. Belgrano 100, Salta» caía en
+    Santiago del Estero porque el servicio prefería la calle con el número exacto de otra provincia."""
+
+    def responder(self, en_salta, en_pais):
+        def ors(url, cuerpo=None):
+            return (en_salta if 'boundary.rect' in url else en_pais) or {'features': []}
+        return mock.patch.object(mapa, '_pedir', side_effect=ors)
+
+    def test_se_queda_en_salta_aunque_afuera_haya_una_coincidencia_exacta(self):
+        salta = _lugar(-65.41, -24.78, 'Balcarce, SA, Argentina', 'SA')
+        tucuman = _lugar(-65.19, -26.82, '500 Balcarce, San Miguel de Tucumán, TM', 'TM',
+                         locality='San Miguel de Tucumán', region='Tucumán')
+        with self.responder(salta, tucuman):
+            self.assertEqual(mapa.geocodificar('Balcarce 500')[2], 'Balcarce, SA, Argentina')
+
+    def test_si_escribio_otra_ciudad_va_afuera(self):
+        salta = _lugar(-65.41, -24.78, 'Bartolomé Mitre, SA, Argentina', 'SA')
+        cordoba = _lugar(-64.19, -31.41, '50 Mitre, Córdoba, Argentina', 'CD', locality='Córdoba', region='Córdoba')
+        with self.responder(salta, cordoba):
+            self.assertEqual(mapa.geocodificar('Mitre 50, cordoba')[2], '50 Mitre, Córdoba, Argentina')
+
+    def test_un_nombre_de_calle_no_cuenta_como_otra_ciudad(self):
+        salta = _lugar(-65.41, -24.78, '20 de Febrero, SA, Argentina', 'SA')
+        misiones = _lugar(-54.75, -27.37, 'Entre Ríos y 25 de Mayo, MN', 'MN', locality='25 de Mayo', region='Misiones')
+        with self.responder(salta, misiones):
+            self.assertEqual(mapa.geocodificar('entre 20 de febrero y 25 de mayo')[2], '20 de Febrero, SA, Argentina')
+
+    def test_si_en_salta_no_hay_nada_busca_en_el_pais(self):
+        jujuy = _lugar(-65.30, -24.18, 'Belgrano 10, San Salvador de Jujuy', 'JY')
+        with self.responder(None, jujuy):
+            self.assertEqual(mapa.geocodificar('Belgrano 10')[2], 'Belgrano 10, San Salvador de Jujuy')
+        with self.responder(None, None), self.assertRaises(mapa.ErrorMapa):
+            mapa.geocodificar('Calle Inventada 999')
+
+    def test_cuota_agotada_no_dice_que_la_clave_es_mala(self):
+        from io import BytesIO
+        from urllib.error import HTTPError
+        error = HTTPError(mapa.URL_ORS, 403, 'Forbidden', {}, BytesIO(b'{"error": "Quota exceeded"}'))
+        with mock.patch.object(mapa, 'urlopen', side_effect=error), self.assertRaises(mapa.ErrorMapa) as ctx:
+            mapa._pedir(mapa.URL_ORS + '/geocode/search?text=x')
+        self.assertIn('límite de consultas', str(ctx.exception))

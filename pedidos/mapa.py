@@ -11,6 +11,7 @@ Los resultados se guardan un día en la caché de Django: el mismo pedido no vue
 import hashlib
 import json
 import logging
+import unicodedata
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -22,6 +23,9 @@ log = logging.getLogger(__name__)
 
 URL_ORS = 'https://api.openrouteservice.org'
 SALTA = (-65.4117, -24.7821)  # lon, lat: la búsqueda prefiere direcciones cerca de Salta
+# el rectángulo que contiene a la provincia de Salta: las direcciones se buscan primero acá
+SALTA_PROVINCIA = {'boundary.rect.min_lon': -68.6, 'boundary.rect.max_lon': -62.3,
+                   'boundary.rect.min_lat': -26.4, 'boundary.rect.max_lat': -22.0}
 UN_DIA = 60 * 60 * 24
 ESPERA = 10  # segundos máximos por consulta
 
@@ -47,26 +51,65 @@ def _pedir(url, cuerpo=None):
             return json.loads(r.read().decode())
     except HTTPError as e:
         log.warning('OpenRouteService respondió %s en %s', e.code, url.split('?')[0])
+        try:
+            detalle = e.read().decode(errors='ignore')
+        except Exception:  # noqa: BLE001 - sin cuerpo, se decide solo por el código
+            detalle = ''
+        if e.code == 429 or 'quota' in detalle.lower():  # OpenRouteService avisa la cuota agotada con 403
+            raise ErrorMapa('Se alcanzó el límite de consultas del mapa. Probá en un rato.') from e
         if e.code in (401, 403):
             raise ErrorMapa('La clave de OpenRouteService no es válida.') from e
-        if e.code == 429:
-            raise ErrorMapa('Se alcanzó el límite diario de consultas del mapa. Probá más tarde.') from e
         raise ErrorMapa('El servicio de mapas no pudo armar el recorrido.') from e
     except (URLError, TimeoutError, ValueError) as e:
         log.warning('Sin respuesta de OpenRouteService: %s', e)
         raise ErrorMapa('No hay conexión con el servicio de mapas.') from e
 
 
-def geocodificar(direccion):
-    """(lon, lat, etiqueta) de la dirección, buscando en Argentina y cerca de Salta."""
+def _sin_acentos(texto):
+    return ''.join(c for c in unicodedata.normalize('NFD', texto.lower()) if unicodedata.category(c) != 'Mn')
+
+
+def _buscar(direccion, **limites):
     datos = _pedir(f'{URL_ORS}/geocode/search?' + urlencode({
         'text': direccion, 'boundary.country': 'AR', 'size': 1,
-        'focus.point.lon': SALTA[0], 'focus.point.lat': SALTA[1]}))
+        'focus.point.lon': SALTA[0], 'focus.point.lat': SALTA[1], **limites}))
     lugares = datos.get('features') or []
-    if not lugares:
+    return lugares[0] if lugares else None
+
+
+def _nombra_otro_lugar(direccion, lugar):
+    """Si la persona escribió, después de la coma, la ciudad o la provincia del resultado de afuera de
+    Salta («Mitre 50, Córdoba»), es una mudanza a otra provincia y vale ese resultado. Solo cuenta lo
+    que va después de la coma: «entre 20 de febrero y 25 de mayo» nombra calles, no el pueblo
+    25 de Mayo de Misiones."""
+    p = lugar.get('properties', {})
+    if p.get('region_a') == 'SA' or (p.get('region') or '').lower() == 'salta' or ',' not in direccion:
+        return False
+    texto = _sin_acentos(direccion.split(',', 1)[1])
+    return any(n and len(n) > 3 and _sin_acentos(n) in texto
+               for n in (p.get('locality'), p.get('localadmin'), p.get('county'), p.get('region')))
+
+
+def geocodificar(direccion):
+    """(lon, lat, etiqueta) de la dirección. Primero busca dentro de la provincia de Salta: sin ese
+    límite, el servicio elegía calles con el mismo nombre en otras provincias («Belgrano 100» en
+    Santiago del Estero). Solo sale de Salta si no encuentra nada adentro o si la persona escribió
+    la ciudad o la provincia de afuera (mudanzas nacionales)."""
+    en_salta = _buscar(direccion, **SALTA_PROVINCIA)
+    # en todo el país solo si hace falta (cada búsqueda gasta cuota): no encontró nada en Salta, o
+    # después de la coma hay una ciudad que no es Salta
+    if en_salta is None or (',' in direccion and not _menciona_salta(direccion.split(',', 1)[1])):
+        en_pais = _buscar(direccion)
+        if en_pais is not None and (en_salta is None or _nombra_otro_lugar(direccion, en_pais)):
+            en_salta = en_pais
+    if en_salta is None:
         raise ErrorMapa(f'No encontramos «{direccion}» en el mapa.')
-    lon, lat = lugares[0]['geometry']['coordinates'][:2]
-    return lon, lat, lugares[0].get('properties', {}).get('label', direccion)
+    lon, lat = en_salta['geometry']['coordinates'][:2]
+    return lon, lat, en_salta.get('properties', {}).get('label', direccion)
+
+
+def _menciona_salta(direccion):
+    return 'salta' in _sin_acentos(direccion)
 
 
 def recorrido(origen, destino):
@@ -75,7 +118,8 @@ def recorrido(origen, destino):
     Lanza ErrorMapa si falta la clave, no encuentra una dirección o el servicio falla."""
     if not settings.ORS_API_KEY:
         raise ErrorMapa('El mapa todavía no está configurado (falta la clave de OpenRouteService).')
-    clave_cache = 'recorrido:' + hashlib.sha256(f'{origen}|{destino}'.encode()).hexdigest()
+    # «recorrido2»: los guardados con la búsqueda vieja (que se iba a otras provincias) no se usan más
+    clave_cache = 'recorrido2:' + hashlib.sha256(f'{origen}|{destino}'.encode()).hexdigest()
     guardado = cache.get(clave_cache)
     if guardado:
         return guardado
