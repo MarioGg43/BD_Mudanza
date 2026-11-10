@@ -62,7 +62,7 @@
                 <input class="form-check-input servicio" type="radio" name="servicio" value="{{ s.id_servicio }}"
                        id="srv{{ s.id_servicio }}" data-precio="{{ s.Precio_base|stringformat:'s' }}" data-horas="{{ s.Duracion_horas|default:5 }}"
                        {% if s.id_servicio|stringformat:'s' == elegido %}checked{% endif %}>
-                <label class="form-check-label" for="srv{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }} <span class="text-muted small">· unas {{ s.Duracion_horas|default:5 }} h</span></label>
+                <label class="form-check-label" for="srv{{ s.id_servicio }}">{{ s.Tipo_servicio }} — ${{ s.Precio_base|floatformat:"0g" }}</label>
             </div>
             {% endfor %}
             {% if form.servicio.errors %}<div class="invalid-feedback d-block">{{ form.servicio.errors.as_text }}</div>{% endif %}
