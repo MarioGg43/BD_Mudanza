@@ -23,13 +23,16 @@ from django.db import connection  # noqa: E402
 ANCHO = 230
 # (tabla, columna, fila) de la grilla; las tablas nuevas respecto del DER del documento van en otro color
 POSICIONES = {
-    'ROLES': (0, 0), 'PERMISOS_ROLES': (1, 0), 'PERMISOS': (2, 0), 'SERVICIOS': (5, 0), 'RECURSOS_ASIGNADOS': (6, 0),
-    'SUELDOS': (0, 1), 'USUARIOS': (1, 1), 'VEHICULOS': (3, 1),
+    'ROLES': (0, 0), 'PERMISOS_ROLES': (1, 0), 'PERMISOS': (2, 0), 'SERVICIOS': (4, 0), 'RECURSOS_ASIGNADOS': (5, 0),
+    'MATERIALES': (6, 0),
+    'SUELDOS': (0, 1), 'USUARIOS': (1, 1), 'VEHICULOS': (3, 1), 'CONFIGURACION': (6, 1),
     'LOG_AUDITORIA': (0, 2), 'PERSONAL_PEDIDO': (1, 2), 'PEDIDOS': (3, 2), 'DETALLE_PEDIDOS': (5, 2),
-    'REPROGRAMACIONES': (2, 3), 'INVENTARIO_DETALLES': (3, 3), 'OBJETOS': (4, 3),
-    'DETALLE_COBRANZAS': (5, 3), 'COBRANZAS': (6, 3),
+    'MOVIMIENTOS_MATERIAL': (6, 2),
+    'NOTIFICACION': (0, 3), 'REPROGRAMACIONES': (2, 3), 'INVENTARIO_DETALLES': (3, 3), 'OBJETOS': (4, 3),
 }
-NUEVAS = {'OBJETOS', 'PERSONAL_PEDIDO', 'REPROGRAMACIONES', 'LOG_AUDITORIA'}
+# COBRANZAS y DETALLE_COBRANZAS no van: los cobros quedaron fuera del alcance (09/11/2026)
+NUEVAS = {'OBJETOS', 'PERSONAL_PEDIDO', 'REPROGRAMACIONES', 'LOG_AUDITORIA', 'NOTIFICACION', 'CONFIGURACION',
+          'MATERIALES', 'MOVIMIENTOS_MATERIAL', 'RECURSOS_ASIGNADOS'}
 X0, Y0, DX, FILAS_Y = 40, 60, 290, [70, 360, 800, 1240]
 
 
@@ -75,10 +78,11 @@ def main(salida):
                           f'parent="1" source="{ids[padre]}" target="{ids[tabla]}"><mxGeometry relative="1" as="geometry"/>'
                           f'</mxCell>')
     nota = ('<b>DER — Mudanzas y Fletes Salta (Grupo 5)</b><br>Borrador generado desde la base real. '
-            'En marrón oscuro, las tablas nuevas respecto del DER del documento. PK = clave primaria, FK = foránea. '
-            'Las relaciones son 1 a N (pata de gallo del lado N).')
+            'En marrón oscuro, las tablas nuevas o cambiadas respecto del DER del documento. PK = clave primaria, '
+            'FK = foránea. Las relaciones son 1 a N (pata de gallo del lado N). CONFIGURACION no tiene relaciones: '
+            'las reglas la leen por la clave. Sin COBRANZAS ni DETALLE_COBRANZAS (fuera del alcance).')
     celdas.append(f'<mxCell id="99" value={quoteattr(nota)} style="text;html=1;whiteSpace=wrap;fontSize=12;" vertex="1" '
-                  f'parent="1"><mxGeometry x="{X0}" y="10" width="900" height="40" as="geometry"/></mxCell>')
+                  f'parent="1"><mxGeometry x="{X0}" y="10" width="1400" height="40" as="geometry"/></mxCell>')
     xml = ('<mxfile host="app.diagrams.net" type="device"><diagram name="DER" id="der">'
            '<mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" page="1" pageWidth="2100" '
            'pageHeight="2100"><root><mxCell id="0"/><mxCell id="1" parent="0"/>' + ''.join(celdas) +
