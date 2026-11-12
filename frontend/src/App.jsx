@@ -30,6 +30,11 @@ import { RolForm } from './pages/abm/RolForm';
 import { Auditoria } from './pages/abm/Auditoria';
 import { Portal } from './pages/portal/Portal';
 import { Relevamiento } from './pages/portal/Relevamiento';
+import { Tablero } from './pages/analisis/Tablero';
+import { Reportes } from './pages/analisis/Reportes';
+import { Reporte } from './pages/analisis/Reporte';
+import { Bandeja } from './pages/notificaciones/Bandeja';
+import { Umbrales } from './pages/notificaciones/Umbrales';
 
 // /pedidos: el administrador ve todos con avisos y filtros; el cliente, los suyos
 function Pedidos() {
@@ -51,6 +56,10 @@ export default function App() {
             <Route path="/pedidos" element={<Pedidos />} />
             <Route path="/pedidos/:id" element={<PedidoDetalle />} />
             <Route path="/pedidos/:id/cancelar" element={<CancelarPedido />} />
+          </Route>
+          {/* la bandeja de notificaciones: cualquiera que haya entrado */}
+          <Route element={<RutaPrivada />}>
+            <Route path="/notificaciones" element={<Bandeja />} />
           </Route>
           <Route element={<RutaPrivada permiso="PED_REGISTRAR" />}>
             <Route path="/pedidos/nuevo" element={<PedidoForm />} />
@@ -93,6 +102,17 @@ export default function App() {
           </Route>
           <Route element={<RutaPrivada permiso="AUD_CONSULTAR" />}>
             <Route path="/auditoria" element={<Auditoria />} />
+          </Route>
+          {/* Parcial N° 2: tablero, reportes (M2) y umbrales de las alertas (M3) */}
+          <Route element={<RutaPrivada permiso="PED_GESTIONAR" />}>
+            <Route path="/tablero" element={<Tablero />} />
+          </Route>
+          <Route element={<RutaPrivada permiso={['REP_CONSULTAR', 'REP_FINANZAS']} />}>
+            <Route path="/reportes" element={<Reportes />} />
+            <Route path="/reportes/:clave" element={<Reporte />} />
+          </Route>
+          <Route element={<RutaPrivada permiso="CFG_GESTIONAR" />}>
+            <Route path="/notificaciones/umbrales" element={<Umbrales />} />
           </Route>
           <Route element={<RutaPrivada permiso="MUDANZAS_OPERAR" />}>
             <Route path="/portal" element={<Portal />} />

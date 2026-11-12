@@ -6,6 +6,7 @@ import { MOSTRAR_ADMINISTRACION } from '../config';
 const AuthContext = createContext(null);
 
 const PANTALLAS = [
+  ['PED_GESTIONAR', '/tablero'],
   ['PED_CONSULTAR', '/pedidos'],
   ['MUDANZAS_OPERAR', '/portal'],
   ['VEH_GESTIONAR', '/vehiculos'],

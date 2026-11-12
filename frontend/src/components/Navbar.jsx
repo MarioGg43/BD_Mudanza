@@ -2,9 +2,13 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Dropdown } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { MOSTRAR_ADMINISTRACION } from '../config';
+import { Campanita } from './Campanita';
 
 // Las secciones de administración, cada una con el permiso que hace falta para verla
 const SECCIONES = [
+  { permiso: 'PED_GESTIONAR', to: '/tablero', texto: 'Tablero', icono: 'bi-speedometer2' },
+  { permiso: ['REP_CONSULTAR', 'REP_FINANZAS'], to: '/reportes', texto: 'Reportes', icono: 'bi-bar-chart-line' },
+  { permiso: 'CFG_GESTIONAR', to: '/notificaciones/umbrales', texto: 'Umbrales de alertas', icono: 'bi-sliders' },
   { permiso: 'VEH_GESTIONAR', to: '/vehiculos', texto: 'Vehículos', icono: 'bi-truck' },
   { permiso: 'SRV_GESTIONAR', to: '/servicios', texto: 'Servicios', icono: 'bi-list-check' },
   { permiso: 'OBJ_GESTIONAR', to: '/objetos', texto: 'Objetos', icono: 'bi-box-seam' },
@@ -20,7 +24,7 @@ export function Navbar() {
   // el chofer ve su portal en la barra; dentro de «Administración» solo lo ve quien gestiona.
   // Con el interruptor de config.js apagado no hay menú de administración.
   const secciones = MOSTRAR_ADMINISTRACION
-    ? SECCIONES.filter((s) => puede(s.permiso) && (s.to !== '/portal' || puede('PED_GESTIONAR')))
+    ? SECCIONES.filter((s) => [].concat(s.permiso).some(puede) && (s.to !== '/portal' || puede('PED_GESTIONAR')))
     : [];
 
   const cerrar = () => {
@@ -52,6 +56,7 @@ export function Navbar() {
                   </Dropdown.Menu>
                 </Dropdown>
               )}
+              <Campanita />
               <span className="ms-2 text-white-50 text-capitalize d-none d-md-inline">{usuario.nombre}</span>
               <button type="button" className="btn btn-sm btn-light ms-2" onClick={cerrar}>
                 <i className="bi bi-box-arrow-right me-1" />Salir

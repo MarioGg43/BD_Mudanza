@@ -395,3 +395,32 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 }
 .grad-brand h1, .grad-brand h2, .grad-brand h3,
 .encabezado-marca h1, .encabezado-marca h2, .encabezado-marca h3 { color: #fff; }
+
+/* ===================================================================== Parcial N° 2 (tablero, reportes, notificaciones)
+   Mismos colores que el tablero de Django (usuarios/static/css/marca.css) */
+.kpi { border-radius: 18px; padding: 1rem 1.1rem; color: #fff; box-shadow: 0 14px 26px -20px rgba(40, 15, 0, .8); }
+.kpi-naranja { background: linear-gradient(135deg, #ff8a1f, #e8590c); }
+.kpi-verde { background: linear-gradient(135deg, #22b07d, #138a5d); }
+.kpi-azul { background: linear-gradient(135deg, #3d8ce6, #2465bd); }
+.kpi-rojo { background: linear-gradient(135deg, #e5484d, #c62f35); }
+.kpi-titulo { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.kpi-icono { font-size: 1.2rem; background: rgba(255, 255, 255, .22); border-radius: 10px; padding: .3rem .45rem; }
+.kpi-valor { font-size: 1.6rem; font-weight: 700; margin: .4rem 0 .2rem; line-height: 1.15; }
+.kpi-pie { font-size: .78rem; opacity: .92; }
+.kpi-variacion { background: rgba(255, 255, 255, .22); border-radius: 999px; padding: .05rem .45rem; font-weight: 600; }
+.grafico-alto { position: relative; height: 300px; }
+.grafico-medio { position: relative; height: 260px; }
+
+.tarjeta-reporte { transition: transform .15s, box-shadow .15s; color: inherit; }
+.tarjeta-reporte:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -20px rgba(70, 30, 5, .55); }
+.icono-reporte { width: 48px; height: 48px; border-radius: 14px; display: inline-grid; place-items: center; font-size: 1.3rem; color: #fff; }
+.icono-reporte.azul { background: #2465bd; } .icono-reporte.verde { background: #138a5d; } .icono-reporte.rosa { background: #c2417a; }
+
+.notificacion.leida { opacity: .7; }
+.icono-notificacion { flex: 0 0 40px; height: 40px; border-radius: 12px; display: inline-grid; place-items: center;
+  background: #fff0e2; color: #d4561a; font-size: 1.15rem; }
+
+.campanita { position: relative; color: #fff; font-size: 1.2rem; padding: .25rem .45rem; border-radius: 10px; }
+.campanita:hover { background: rgba(255, 255, 255, .15); color: #fff; }
+.campanita-numero { position: absolute; top: -2px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: #fff; color: #c2410c; font-size: .68rem; font-weight: 700; line-height: 18px; text-align: center; }
