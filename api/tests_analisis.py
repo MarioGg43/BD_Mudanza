@@ -53,3 +53,8 @@ class ApiAnalisisTest(ApiBase):
         self.assertEqual(Configuracion.objects.get(clave='horas_sin_confirmar').valor, '24')
         self.assertIn('total', self.client.post('/api/alertas/evaluar', **self.h).json())
         self.assertEqual(self.client.get('/api/configuracion', **self.entrar(str(CLIENTE))).status_code, 403)
+
+    def test_numeros_del_menu(self):
+        r = self.client.get('/api/menu', **self.h).json()
+        self.assertEqual(set(r), {'pendientes', 'en_curso', 'materiales_bajos', 'sin_leer'})
+        self.assertEqual(set(self.client.get('/api/menu', **self.entrar(str(CLIENTE))).json()), {'sin_leer'})

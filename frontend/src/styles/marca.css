@@ -455,3 +455,84 @@ button.aviso-tarjeta:not(:disabled):hover { transform: translateY(-2px); box-sha
 .ubicacion-previa { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; padding: .5rem;
   border: 1px solid #e6ded8; border-radius: 12px; background: #fffaf6; }
 .mapa-mini { flex: 0 0 120px; height: 90px; border-radius: 9px; overflow: hidden; background: #eee; }
+
+/* ===================================================================== menú lateral del personal (como en Django) */
+:root { --ancho-lateral: 264px; }
+.con-lateral { padding-left: var(--ancho-lateral); }
+.lateral {
+  position: fixed; inset: 0 auto 0 0; width: var(--ancho-lateral); z-index: 1040;
+  display: flex; flex-direction: column; gap: .75rem; padding: 1rem .85rem;
+  background: linear-gradient(180deg, #e8590c 0%, #b8360b 100%);
+  color: rgba(255, 255, 255, .92); overflow-y: auto; scrollbar-width: thin;
+  box-shadow: 6px 0 24px -16px rgba(120, 30, 0, .8);
+}
+.lateral a { color: inherit; text-decoration: none; }
+.lateral-marca { display: flex; align-items: center; gap: .6rem; padding: .25rem .35rem .5rem; color: #fff !important; }
+.lateral-marca .logo-pastilla img { height: 26px; }
+.lateral-marca b { display: block; font-size: .95rem; line-height: 1.2; }
+.lateral-marca small { display: block; font-size: .72rem; color: rgba(255, 255, 255, .78); }
+.lateral-accion { display: flex; align-items: center; gap: .6rem; padding: .7rem .9rem; border-radius: 14px;
+  background: #fff; color: #c2410c !important; font-weight: 600; font-size: .9rem; box-shadow: 0 10px 22px -14px rgba(90, 20, 0, .9); }
+.lateral-accion span { flex: 1; }
+.lateral-accion b { background: #c2410c; color: #fff; border-radius: 999px; padding: 0 .55rem; font-size: .8rem; }
+.lateral-menu { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.lateral-grupo { display: flex; flex-direction: column; gap: 2px; }
+.lateral-grupo summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-radius: 8px; padding-right: .3rem; }
+.lateral-grupo summary::-webkit-details-marker { display: none; }
+.lateral-grupo summary i { font-size: .7rem; transition: transform .15s; }
+.lateral-grupo:not([open]) summary i { transform: rotate(-90deg); }
+.lateral-seccion, .lateral-grupo summary i { color: rgba(255, 255, 255, .72); }
+.lateral-seccion { margin: .9rem .6rem .3rem; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.lateral-grupo summary:hover { color: #fff; }
+.lateral-menu a { display: flex; align-items: center; gap: .7rem; padding: .55rem .7rem; border-radius: 10px;
+  font-size: .9rem; font-weight: 500; position: relative; transition: background-color .15s; }
+.lateral-menu a i { font-size: 1.05rem; width: 1.2rem; text-align: center; opacity: .9; }
+.lateral-menu a:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.lateral-menu a.activo { background: rgba(255, 255, 255, .22); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); color: #fff; }
+.lateral-menu a.activo::before { content: ''; position: absolute; left: -.85rem; top: 22%; bottom: 22%; width: 4px; border-radius: 0 4px 4px 0; background: #fff; }
+.lateral-numero { margin-left: auto; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: #fff; color: #c2410c; font-size: .72rem; font-weight: 700; line-height: 20px; text-align: center; }
+.lateral-numero.rojo { background: #7f1d1d; color: #fff; }
+.lateral-usuario { display: flex; align-items: center; gap: .6rem; padding: .6rem; border-radius: 14px;
+  background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22); }
+.lateral-avatar { flex: 0 0 34px; height: 34px; border-radius: 10px; display: inline-grid; place-items: center; background: #fff; color: #c2410c; font-weight: 700; }
+.lateral-avatar.chico { flex-basis: 28px; width: 28px; height: 28px; border-radius: 8px; font-size: .85rem; }
+.lateral-usuario-datos { flex: 1; min-width: 0; }
+.lateral-usuario-datos b, .lateral-usuario-datos small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lateral-usuario-datos b { color: #fff; font-size: .85rem; }
+.lateral-usuario-datos small { font-size: .72rem; color: rgba(255, 255, 255, .78); }
+.lateral-salir { padding: .35rem .45rem; border-radius: 8px; font-size: 1.1rem; background: none; border: 0; color: inherit; }
+.lateral-salir:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+.lateral a:focus-visible, .lateral-grupo summary:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.barra-superior { position: sticky; top: 0; z-index: 1030; display: flex; align-items: center; gap: .75rem;
+  padding: .65rem 1.5rem; margin-bottom: 1.5rem; background: rgba(250, 246, 243, .92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--linea); }
+.barra-titulo b { display: block; font-size: 1rem; line-height: 1.2; }
+.barra-titulo small { font-size: .75rem; color: var(--tinta-2); }
+.barra-fecha { font-size: .85rem; color: var(--tinta-2); border: 1px solid var(--linea); border-radius: 999px; padding: .3rem .8rem; background: #fff; white-space: nowrap; }
+.barra-derecha { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+.barra-boton { position: relative; display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 10px;
+  border: 1px solid var(--linea); background: #fff; color: var(--tinta); font-size: 1.1rem; text-decoration: none; }
+.barra-boton:hover { color: var(--naranja-osc); border-color: #F8D9BC; }
+.barra-numero { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: #e8473a; color: #fff; font-size: .66rem; font-weight: 700; line-height: 18px; text-align: center; }
+.barra-usuario { display: flex; align-items: center; gap: .45rem; padding: .25rem .6rem .25rem .3rem; border-radius: 10px;
+  border: 1px solid var(--linea); background: #fff; color: var(--tinta); text-decoration: none; font-weight: 600; font-size: .9rem; }
+.barra-estado { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .75rem; border-radius: 999px;
+  border: 1px solid var(--linea); background: #fff; color: var(--tinta-2); font-size: .8rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.barra-estado.activo { color: #0f7a52; border-color: #bfe6d3; background: #f1fbf6; }
+.punto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #b9b7b0; }
+.barra-estado.activo .punto-vivo { background: #0ca30c; box-shadow: 0 0 0 0 rgba(12, 163, 12, .5); animation: latido 1.8s infinite; }
+@keyframes latido { 70% { box-shadow: 0 0 0 7px rgba(12, 163, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0); } }
+.lateral-fondo { position: fixed; inset: 0; background: rgba(20, 10, 5, .45); z-index: 1035; }
+.solo-celular { display: none !important; }
+@media (max-width: 991.98px) {
+  .con-lateral { padding-left: 0; }
+  .lateral { transform: translateX(-100%); transition: transform .2s ease; }
+  .lateral.abierto { transform: none; }
+  .barra-superior { padding: .6rem 1rem; }
+  .solo-celular { display: inline-grid !important; }
+}
+@media (max-width: 767.98px) { .barra-fecha, .barra-estado { display: none; } }
+@media (max-width: 575.98px) { .solo-ancho { display: none; } }
+@media (prefers-reduced-motion: reduce) { .lateral { transition: none; } .barra-estado.activo .punto-vivo { animation: none; } }

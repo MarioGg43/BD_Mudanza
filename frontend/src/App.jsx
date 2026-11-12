@@ -1,7 +1,9 @@
+import { useCallback, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { MOSTRAR_ADMINISTRACION } from './config';
 import { Navbar } from './components/Navbar';
+import { BarraSuperior, MenuLateral, useNumerosMenu } from './components/MenuLateral';
 import { PieEmpresa } from './components/PieEmpresa';
 import { RutaPrivada } from './components/RutaPrivada';
 import { Inicio } from './pages/Inicio';
@@ -47,11 +49,33 @@ function Pedidos() {
   return MOSTRAR_ADMINISTRACION && puede('PED_GESTIONAR') ? <PanelPedidos /> : <MisPedidos />;
 }
 
+// El personal (quien no pide mudanzas) usa el menú lateral y la barra de arriba, como en Django;
+// el cliente y los visitantes, el menú de arriba de siempre
+function Marco({ children }) {
+  const { usuario, puede } = useAuth();
+  const [abierto, setAbierto] = useState(false);
+  const cerrar = useCallback(() => setAbierto(false), []);
+  const lateral = Boolean(usuario) && MOSTRAR_ADMINISTRACION && !puede('PED_REGISTRAR');
+  if (!lateral) return <><Navbar />{children}</>;
+  return <ConLateral abierto={abierto} setAbierto={setAbierto} cerrar={cerrar}>{children}</ConLateral>;
+}
+
+function ConLateral({ abierto, setAbierto, cerrar, children }) {
+  const numeros = useNumerosMenu();
+  return (
+    <div className="con-lateral">
+      <MenuLateral abierto={abierto} onCerrar={cerrar} numeros={numeros} />
+      <BarraSuperior onAbrirMenu={() => setAbierto(true)} numeros={numeros} />
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   const { pathname } = useLocation();
   return (
     <div className="d-flex flex-column min-vh-100">
-      <Navbar />
+      <Marco>
       <main className="container flex-grow-1 pb-5">
         <Routes>
           <Route path="/" element={<Inicio />} />
@@ -135,6 +159,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      </Marco>
       {pathname === '/' && <PieEmpresa />}
     </div>
   );

@@ -61,6 +61,7 @@ urlpatterns = [
     path('materiales/<int:id_material>/baja', views_materiales.baja, name='api_material_baja'),
     # Parcial N° 2: tablero, reportes (M2) y notificaciones (M3)
     path('tablero', views_analisis.tablero, name='api_tablero'),
+    path('menu', views_analisis.menu, name='api_menu'),
     path('reportes', views_analisis.reportes, name='api_reportes'),
     path('reportes/<str:clave>', views_analisis.reporte, name='api_reporte'),
     path('reportes/<str:clave>/pdf', views_analisis.reporte_pdf, name='api_reporte_pdf'),

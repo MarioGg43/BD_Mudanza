@@ -200,3 +200,23 @@ def evaluar_alertas(request):
     """POST /api/alertas/evaluar: corre ya la tarea programada (para la defensa)."""
     nuevas = alertas.evaluar_programadas()
     return JsonResponse({'total': sum(nuevas.values()), 'detalle': nuevas})
+
+
+# ------------------------------------------------------------------ números del menú lateral
+@endpoint()
+def menu(request):
+    """GET /api/menu: lo que muestran el menú lateral y la barra de arriba del personal (los mismos
+    números que el context processor de Django): pedidos por confirmar, mudanzas en curso,
+    materiales bajo el mínimo y notificaciones sin leer."""
+    from pedidos.materiales import bajo_minimo
+    from pedidos.reglas import filtro_por_venir
+    from usuarios.models import Pedido
+    u, datos = request.usuario, {}
+    if tiene_permiso(u, 'PED_GESTIONAR'):
+        datos['pendientes'] = Pedido.objects.filter(filtro_por_venir(), estado=Pedido.PENDIENTE).count()
+        datos['en_curso'] = Pedido.objects.filter(estado=Pedido.CONFIRMADO, inicio_real__isnull=False,
+                                                  fin_real__isnull=True).count()
+    if tiene_permiso(u, 'MAT_GESTIONAR'):
+        datos['materiales_bajos'] = bajo_minimo().count()
+    datos['sin_leer'] = alertas.de_usuario(u).filter(leida=False).count()
+    return JsonResponse(datos)
