@@ -5,6 +5,7 @@ import { useCarga } from '../hooks/useCarga';
 import { adminService } from '../services/adminService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
+import { Calendario, SelectorHora } from '../components/FechaHora';
 
 export function Reprogramar() {
   const { id } = useParams();
@@ -71,12 +72,12 @@ function Formulario({ id, inicial }) {
         <div className="row g-3">
           <div className="col-sm-6">
             <label htmlFor="fecha_servicio" className="form-label">Fecha nueva</label>
-            <input id="fecha_servicio" name="fecha_servicio" type="date" className="form-control" value={datos.fecha_servicio} onChange={cambiar} />
+            <Calendario name="fecha_servicio" value={datos.fecha_servicio} onChange={cambiar} />
             <Error campo="fecha_servicio" />
           </div>
           <div className="col-sm-6">
             <label htmlFor="hora_servicio" className="form-label">Hora nueva</label>
-            <input id="hora_servicio" name="hora_servicio" type="time" step={900} className="form-control" value={datos.hora_servicio} onChange={cambiar} />
+            <SelectorHora name="hora_servicio" value={datos.hora_servicio} fecha={datos.fecha_servicio} onChange={cambiar} />
             <Error campo="hora_servicio" />
           </div>
           <div className="col-12">

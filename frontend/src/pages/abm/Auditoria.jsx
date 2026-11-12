@@ -5,6 +5,7 @@ import { abmService } from '../../services/abmService';
 import { Campo, opcionesDe } from '../../components/Campo';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorAlert } from '../../components/ErrorAlert';
+import { Calendario } from '../../components/FechaHora';
 
 const VACIO = { desde: '', hasta: '', tabla: '', accion: '', usuario: '', registro: '' };
 const COLOR = { 'Anulación': 'estado-atrasada', 'Eliminación': 'estado-atrasada', Baja: 'estado-atrasada',
@@ -56,8 +57,14 @@ export function Auditoria() {
 
       <div className="card-panel p-3 mb-3">
         <div className="row g-2 align-items-end">
-          <Campo label="Desde" col="col-6 col-md-4 col-lg-2" tipo="date" {...campo('desde')} />
-          <Campo label="Hasta" col="col-6 col-md-4 col-lg-2" tipo="date" {...campo('hasta')} />
+          <div className="col-6 col-md-4 col-lg-2">
+            <label htmlFor="desde" className="form-label">Desde</label>
+            <Calendario {...campo('desde')} sinLimites corto />
+          </div>
+          <div className="col-6 col-md-4 col-lg-2">
+            <label htmlFor="hasta" className="form-label">Hasta</label>
+            <Calendario {...campo('hasta')} sinLimites corto minDate={filtros.desde} />
+          </div>
           <Campo label="Tabla" col="col-6 col-md-4 col-lg-2" {...campo('tabla')}
                  vacio="Todas" opciones={opciones?.tablas ?? []} />
           <Campo label="Acción" col="col-6 col-md-4 col-lg-2" {...campo('accion')}

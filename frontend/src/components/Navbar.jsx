@@ -58,7 +58,7 @@ export function Navbar() {
                 </Dropdown>
               )}
               <Campanita />
-              <span className="ms-2 text-white-50 text-capitalize d-none d-md-inline">{usuario.nombre}</span>
+              <NavLink to="/mi-cuenta" className="ms-2 text-capitalize d-none d-md-inline" title="Mi cuenta"><i className="bi bi-person-circle me-1" />{usuario.nombre}</NavLink>
               <button type="button" className="btn btn-sm btn-light ms-2" onClick={cerrar}>
                 <i className="bi bi-box-arrow-right me-1" />Salir
               </button>

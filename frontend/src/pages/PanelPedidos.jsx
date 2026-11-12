@@ -7,6 +7,7 @@ import { EstadoBadge } from '../components/EstadoBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { dinero, fecha } from '../utils/formato';
+import { Calendario } from '../components/FechaHora';
 
 // Los avisos que calcula Django (reglas.AVISOS), con su color y qué significan
 const AVISOS = [
@@ -70,11 +71,11 @@ export function PanelPedidos() {
           </div>
           <div className="col-6 col-md-3 col-lg-2">
             <label htmlFor="desde" className="form-label small mb-1">Desde</label>
-            <input id="desde" name="desde" type="date" className="form-control form-control-sm" value={filtros.desde} onChange={cambiar} />
+            <Calendario name="desde" value={filtros.desde} onChange={cambiar} sinLimites corto className="form-control-sm" placeholder="dd/mm/aaaa" />
           </div>
           <div className="col-6 col-md-3 col-lg-2">
             <label htmlFor="hasta" className="form-label small mb-1">Hasta</label>
-            <input id="hasta" name="hasta" type="date" className="form-control form-control-sm" value={filtros.hasta} onChange={cambiar} />
+            <Calendario name="hasta" value={filtros.hasta} onChange={cambiar} sinLimites corto minDate={filtros.desde} className="form-control-sm" placeholder="dd/mm/aaaa" />
           </div>
           <div className="col-6 col-md-3 col-lg-3">
             <label htmlFor="cliente" className="form-label small mb-1">Cliente</label>

@@ -5,6 +5,7 @@ import { analisisService } from '../../services/analisisService';
 import { Campo } from '../../components/Campo';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorAlert } from '../../components/ErrorAlert';
+import { Calendario } from '../../components/FechaHora';
 
 const NUMEROS = ['pesos', 'entero', 'horas', 'minutos', 'porcentaje'];
 const hoy = () => new Date().toLocaleDateString('sv-SE');  // AAAA-MM-DD en la hora local
@@ -56,8 +57,15 @@ export function Reporte() {
 
       <form className="card-panel p-3 mb-3" onSubmit={filtrar}>
         <div className="row g-2 align-items-end">
-          <Campo col="col-6 col-md-3" chico tipo="date" label="Desde" name="desde" value={filtros.desde} onChange={cambiar} error={errores.desde} />
-          <Campo col="col-6 col-md-3" chico tipo="date" label="Hasta" name="hasta" value={filtros.hasta} min={filtros.desde} onChange={cambiar} error={errores.hasta} />
+          <div className="col-6 col-md-3">
+            <label htmlFor="desde" className="form-label small mb-1">Desde</label>
+            <Calendario name="desde" value={filtros.desde} onChange={cambiar} sinLimites corto className="form-control-sm" />
+          </div>
+          <div className="col-6 col-md-3">
+            <label htmlFor="hasta" className="form-label small mb-1">Hasta</label>
+            <Calendario name="hasta" value={filtros.hasta} onChange={cambiar} sinLimites corto minDate={filtros.desde} className="form-control-sm" error={errores.hasta} />
+            {errores.hasta && <div className="invalid-feedback d-block">{errores.hasta}</div>}
+          </div>
           {info && (
             <Campo col="col-12 col-md-3" chico label={info.filtro.etiqueta} name={info.filtro.nombre}
               opciones={info.filtro.opciones} value={filtros[info.filtro.nombre] || ''} onChange={cambiar} />

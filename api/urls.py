@@ -47,6 +47,8 @@ urlpatterns = [
     path('auditoria', views_auditoria.auditoria, name='api_auditoria'),
     path('auditoria/opciones', views_auditoria.opciones, name='api_auditoria_opciones'),
     path('auditoria/pdf', views_auditoria.pdf, name='api_auditoria_pdf'),
+    path('mi-cuenta', views.mi_cuenta, name='api_mi_cuenta'),
+    path('mi-cuenta/clave', views.mi_clave, name='api_mi_clave'),
     # mapa (OpenRouteService)
     path('pedidos/<int:id_pedido>/recorrido', views.recorrido, name='api_recorrido'),
     path('mapa/direccion', views.direccion_del_punto, name='api_mapa_direccion'),

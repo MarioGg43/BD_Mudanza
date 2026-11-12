@@ -101,6 +101,37 @@ def yo(request):
 
 # ------------------------------------------------------------------ página de inicio (pública)
 
+@endpoint(metodos=('GET', 'PUT'))
+def mi_cuenta(request):
+    """GET /api/mi-cuenta: los datos de quien entró. PUT {correo, telefono}: el cliente los cambia
+    (el personal no: su correo lo cambia el administrador). Mismas reglas que la pantalla de Django."""
+    u = request.usuario
+    edita = tiene_permiso(u, 'PED_REGISTRAR')
+    if request.method == 'PUT':
+        if not edita:
+            return error('Tu correo y tu teléfono los cambia el administrador.', 403)
+        d = leer_json(request)
+        try:
+            operaciones.actualizar_mis_datos(u, str(d.get('correo', '')), str(d.get('telefono', '')))
+        except operaciones.ErrorUsuario as e:
+            return error(str(e), errores={e.campo or 'correo': str(e)})
+        u.refresh_from_db()
+    return JsonResponse({'nombre': u.Nombre, 'apellido': u.Apellido, 'dni': u.DNI, 'usuario': u.NombreUsuario,
+                         'rol': u.idRol.nom_rol, 'correo': u.Correo, 'telefono': u.Telefono or '', 'edita_datos': edita})
+
+
+@endpoint(metodos=('POST',))
+def mi_clave(request):
+    """POST /api/mi-cuenta/clave {actual, nueva, confirmar}: cambia la propia clave."""
+    d = leer_json(request)
+    try:
+        operaciones.cambiar_mi_clave(request.usuario, str(d.get('actual', '')), str(d.get('nueva', '')),
+                                     str(d.get('confirmar', '')))
+    except operaciones.ErrorUsuario as e:
+        return error(str(e), errores={e.campo or 'nueva': str(e)})
+    return JsonResponse({'ok': True})
+
+
 @publico(metodos=('GET',))
 def publico_info(request):
     """GET /api/publico: lo que muestra la página de inicio sin iniciar sesión: los servicios

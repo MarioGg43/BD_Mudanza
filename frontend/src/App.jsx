@@ -31,6 +31,7 @@ import { Auditoria } from './pages/abm/Auditoria';
 import { Portal } from './pages/portal/Portal';
 import { Relevamiento } from './pages/portal/Relevamiento';
 import { Tablero } from './pages/analisis/Tablero';
+import { MiCuenta } from './pages/MiCuenta';
 import { Materiales } from './pages/abm/Materiales';
 import { MaterialDetalle } from './pages/abm/MaterialDetalle';
 import { MaterialForm } from './pages/abm/MaterialForm';
@@ -64,6 +65,7 @@ export default function App() {
           {/* la bandeja de notificaciones: cualquiera que haya entrado */}
           <Route element={<RutaPrivada />}>
             <Route path="/notificaciones" element={<Bandeja />} />
+            <Route path="/mi-cuenta" element={<MiCuenta />} />
           </Route>
           <Route element={<RutaPrivada permiso="PED_REGISTRAR" />}>
             <Route path="/pedidos/nuevo" element={<PedidoForm />} />

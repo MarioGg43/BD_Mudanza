@@ -12,9 +12,9 @@ import { TarjetaOpcion } from '../components/TarjetaOpcion';
 import { dinero, fecha } from '../utils/formato';
 import { iconoServicio } from '../utils/servicios';
 import { desdeServidor, haciaServidor } from '../utils/inventario';
+import { Calendario, SelectorHora } from '../components/FechaHora';
 
 
-const hoy = () => new Date().toLocaleDateString('sv-SE'); // AAAA-MM-DD en hora local
 
 function finAproximado(hora, horas) {
   if (!hora) return '';
@@ -115,14 +115,6 @@ function Formulario({ catalogo, pedido }) {
   };
 
   const Error = ({ campo }) => (errores[campo] ? <div className="invalid-feedback d-block">{errores[campo]}</div> : null);
-  const campoTexto = (name, label, props = {}) => (
-    <div className="col-sm-6">
-      <label htmlFor={name} className="form-label">{label}</label>
-      <input id={name} name={name} className={`form-control ${errores[name] ? 'is-invalid' : ''}`}
-             value={datos[name]} onChange={cambiar} {...props} />
-      <Error campo={name} />
-    </div>
-  );
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
@@ -139,8 +131,16 @@ function Formulario({ catalogo, pedido }) {
         <section className="card-panel p-4 mb-3">
           <h2 className="h6 fw-bold text-uppercase text-muted mb-3"><i className="bi bi-geo-alt me-1" />1. Cuándo y dónde</h2>
           <div className="row g-3">
-            {campoTexto('fecha_servicio', 'Fecha de la mudanza', { type: 'date', min: hoy() })}
-            {campoTexto('hora_servicio', 'Hora de inicio', { type: 'time', step: 900 })}
+            <div className="col-sm-6">
+              <label htmlFor="fecha_servicio" className="form-label">Fecha de la mudanza</label>
+              <Calendario name="fecha_servicio" value={datos.fecha_servicio} onChange={cambiar} error={errores.fecha_servicio} />
+              <Error campo="fecha_servicio" />
+            </div>
+            <div className="col-sm-6">
+              <label htmlFor="hora_servicio" className="form-label">Hora de inicio</label>
+              <SelectorHora name="hora_servicio" value={datos.hora_servicio} fecha={datos.fecha_servicio} onChange={cambiar} error={errores.hora_servicio} />
+              <Error campo="hora_servicio" />
+            </div>
             <CampoDireccion name="origen" label="Desde" valor={datos.origen} punto={puntos.origen} error={errores.origen}
               mapaActivo={catalogo.mapa_activo} onCambio={cambiarDireccion('origen')} />
             <CampoDireccion name="destino" label="Hasta" valor={datos.destino} punto={puntos.destino} error={errores.destino}
