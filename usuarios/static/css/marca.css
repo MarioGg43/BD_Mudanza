@@ -383,7 +383,7 @@ a:hover { color: var(--rojo-osc); }
 .campo::placeholder { color: var(--tinta-3); }
 .campo:focus { border-color: var(--naranja); box-shadow: var(--anillo); }
 .etiqueta { color: var(--tinta-2); font-weight: 600; }
-.icono-campo { color: var(--tinta-2); }
+.icono-campo { color: var(--tinta-2); z-index: 1; pointer-events: none; } /* encima del campo: ver_clave.js lo envuelve y lo tapaba */
 input[type="checkbox"].casilla { accent-color: var(--naranja); }
 
 /* cajas y chips */
