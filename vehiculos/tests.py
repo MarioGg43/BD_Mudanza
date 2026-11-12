@@ -48,7 +48,7 @@ class VehiculosTest(TestCase):
     def test_la_portada_es_la_pagina_de_la_empresa(self):
         r = self.client.get('/')
         for parte in ('id="portada"', 'id="servicios"', 'id="trabajos"', 'id="contacto"',
-                      'https://wa.me/5493874732192', 'google.com/maps/embed', '/static/empresa/slider-bg-1.jpg'):
+                      'https://wa.me/5493874732192', 'google.com/maps/embed', '/static/empresa/slider-bg-1.webp'):
             self.assertContains(r, parte)
         # los camiones salen de la base de datos
         self.assertContains(r, 'Nuestros camiones')

@@ -31,23 +31,23 @@ EMPRESA = {
 
 # Las diapositivas de la portada (foto y frase de cada una)
 DIAPOSITIVAS = [
-    {'imagen': 'empresa/slider-bg-1.jpg', 'titulo': 'Mudanzas sin límites',
+    {'imagen': 'empresa/slider-bg-1.webp', 'titulo': 'Mudanzas sin límites',
      'texto': 'Tu hogar o negocio en cualquier rincón del país.'},
-    {'imagen': 'empresa/slider-bg-2.jpg', 'titulo': 'Confianza y experiencia',
+    {'imagen': 'empresa/slider-bg-2.webp', 'titulo': 'Confianza y experiencia',
      'texto': '15 años conectando destinos con seguridad y profesionalismo.'},
-    {'imagen': 'empresa/slider-bg-3.jpg', 'titulo': 'Servicio disponible y respuesta inmediata',
+    {'imagen': 'empresa/slider-bg-3.webp', 'titulo': 'Servicio disponible y respuesta inmediata',
      'texto': 'Dejá tus pertenencias en manos expertas. Nos ocupamos de todo.'},
 ]
 
 # Sus servicios, con la foto de cada uno
 ESPECIALIDADES = [
-    {'imagen': 'empresa/post-1.jpg', 'titulo': 'Mudanzas puerta a puerta',
+    {'imagen': 'empresa/post-1.webp', 'titulo': 'Mudanzas puerta a puerta',
      'texto': 'Llegamos donde necesites, dentro o fuera de tu ciudad, con unidades adaptadas a tu '
               'necesidad y presupuesto.'},
-    {'imagen': 'empresa/post-2.jpg', 'titulo': 'Embalaje, cuidado y seguimiento',
+    {'imagen': 'empresa/post-2.webp', 'titulo': 'Embalaje, cuidado y seguimiento',
      'texto': 'Personal calificado y ayudantes para el traslado, el embalaje, la carga y la descarga. '
               'Y seguís cada paso con seguimiento satelital.'},
-    {'imagen': 'empresa/post-3.jpg', 'titulo': 'Izajes de objetos pesados y frágiles',
+    {'imagen': 'empresa/post-3.webp', 'titulo': 'Izajes de objetos pesados y frágiles',
      'texto': 'Personal idóneo que cuida tus objetos más preciados con total seguridad y rapidez.'},
 ]
 
@@ -71,7 +71,7 @@ PASOS = [
 ]
 
 # «Nuestros trabajos»: algunos de los que la empresa hace a diario
-TRABAJOS = [f'empresa/trabajo-{n}.jpg' for n in range(1, 10)]
+TRABAJOS = [f'empresa/trabajo-{n}.webp' for n in range(1, 10)]
 
 
 def camiones_para_mostrar():
