@@ -1,6 +1,8 @@
 {% extends 'vehiculos/base.html' %}
 {% load static %}
 {% block title %}Mudanzas y Fletes Salta{% endblock %}
+{# la foto de la portada es un fondo de CSS: así el navegador la pide antes de leer los estilos #}
+{% block precargar %}<link rel="preload" as="image" href="{% static 'empresa/slider-bg-1.webp' %}" fetchpriority="high">{% endblock %}
 {% comment %}
   Página de inicio de la empresa, para visitantes (con sesión, cada uno va a su pantalla).
   Textos e imágenes del sitio oficial de la empresa (vehiculos/empresa.py); los servicios que se
