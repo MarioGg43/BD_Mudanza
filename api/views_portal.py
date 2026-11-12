@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from pedidos import reglas
+from pedidos import mapa, materiales, reglas
 from pedidos.forms import objetos_para_elegir
 from usuarios.models import Pedido, PersonalPedido, Servicio, Vehiculo
 from usuarios.permisos import permisos_de
@@ -37,6 +37,12 @@ def _mudanza(p, usuario, ahora):
         'cliente': f'{p.idUsuario.Nombre} {p.idUsuario.Apellido}', 'telefono': p.idUsuario.Telefono or '',
         'inventario': [{'cantidad': i.Cantidad, 'nombre': i.idObjeto.nom_objeto, 'fragil': i.Fragil,
                         'observacion': i.Observacion or ''} for i in p.inventario.all()],
+        'como_llegar': mapa.como_llegar(p.origen, p.destino, *mapa.puntos(p)),
+        # los materiales: si ya salieron, lo que llevaron; si no, lo que sugieren los servicios y si alcanza
+        'materiales': ([{'nombre': m.nom_material, 'cantidad': c} for m, c in materiales.enviados(p).items()]
+                       if p.inicio_real else
+                       [{'nombre': m.nom_material, 'cantidad': c, 'falta': max(c - m.stock_material, 0)}
+                        for m, c in materiales.sugeridos(p).items()]),
     }
 
 
@@ -48,7 +54,7 @@ def portal(request):
     recientes = Q(estado=Pedido.CONFIRMADO, fecha_servicio__gte=timezone.localdate() - timedelta(days=5))
     mudanzas = (Pedido.objects.filter(reglas.filtro_por_venir() | recientes, personal__idUsuario=usuario)
                 .distinct().select_related('patente_vehiculo', 'idUsuario')
-                .prefetch_related('detalles__idServicio', 'inventario__idObjeto', 'personal__idUsuario')
+                .prefetch_related('detalles__idServicio__recursos__idMaterial', 'inventario__idObjeto', 'personal__idUsuario')
                 .order_by('fecha_servicio', 'hora_servicio'))
     ahora = timezone.now()
     return JsonResponse({
@@ -65,7 +71,10 @@ def _marcar(request, id_pedido, funcion, estado):
         p = funcion(id_pedido, request.usuario)
     except reglas.ErrorPedido as e:
         return error(str(e))
-    return JsonResponse({'id': id_pedido, 'estado': estado, 'hora': _hora(p.inicio_real if estado == 'En curso' else p.fin_real)})
+    return JsonResponse({'id': id_pedido, 'estado': estado, 'hora': _hora(p.inicio_real if estado == 'En curso' else p.fin_real),
+                         # al empezar: lo que no alcanzó del stock (salió lo que había)
+                         'faltantes': [{'nombre': m.nom_material, 'sugerido': s, 'llevado': l}
+                                       for m, s, l in getattr(p, 'faltantes', [])]})
 
 
 @endpoint('MUDANZAS_OPERAR', metodos=('POST',))
@@ -74,10 +83,28 @@ def empezar(request, id_pedido):
     return _marcar(request, id_pedido, reglas.marcar_inicio, 'En curso')
 
 
-@endpoint('MUDANZAS_OPERAR', metodos=('POST',))
+@endpoint('MUDANZAS_OPERAR', metodos=('GET', 'POST'))
 def terminar(request, id_pedido):
-    """POST /api/portal/<id>/terminar: «Terminamos» (guarda la hora y finaliza el pedido)."""
-    return _marcar(request, id_pedido, reglas.marcar_fin, Pedido.FINALIZADO)
+    """GET /api/portal/<id>/terminar: los materiales que salieron, para contarlos.
+    POST {usados: {id_material: cantidad}}: «Terminamos». De los que se gastan va lo que se usó; de
+    los reutilizables, cuántos volvieron (los que faltan quedan como pérdida). Sin datos: todo
+    gastado y todo devuelto. Guarda la hora y finaliza el pedido."""
+    pedido = get_object_or_404(Pedido, pk=id_pedido)
+    if request.method == 'GET':
+        return JsonResponse({'materiales': [
+            {'id': m.pk, 'nombre': m.nom_material, 'unidad': m.unidad_material, 'reutilizable': m.reutilizable, 'salio': c}
+            for m, c in materiales.enviados(pedido).items()]})
+    usados = {}
+    for clave, valor in (leer_json(request).get('usados') or {}).items():
+        try:
+            usados[int(clave)] = int(valor)
+        except (TypeError, ValueError):
+            return error('Las cantidades tienen que ser números enteros.')
+    try:
+        p = reglas.marcar_fin(id_pedido, request.usuario, usados)
+    except reglas.ErrorPedido as e:
+        return error(str(e))
+    return JsonResponse({'id': id_pedido, 'estado': Pedido.FINALIZADO, 'hora': _hora(p.fin_real)})
 
 
 @endpoint('MUDANZAS_OPERAR', metodos=('GET', 'POST'))

@@ -5,12 +5,13 @@ solo traduce entre JSON y esas funciones, no repite ninguna regla."""
 from datetime import date, time
 from urllib.parse import quote
 
+from django.conf import settings
 from django.http import Http404
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from pedidos import reglas
+from pedidos import mapa, materiales, reglas
 from pedidos.forms import FiltroPedidosForm, RegistroClienteForm, objetos_para_elegir
 from pedidos.pdf import respuesta_pdf
 from usuarios.models import Pedido, PersonalPedido, Servicio, Usuario, Vehiculo
@@ -118,13 +119,17 @@ def publico_info(request):
 
 def _servicio(s):
     return {'id': s.id_servicio, 'nombre': s.Tipo_servicio, 'precio': float(s.Precio_base),
-            'horas': s.Duracion_horas or reglas.MIN_HORAS}
+            'horas': s.Duracion_horas or reglas.MIN_HORAS,
+            # lo que incluye: «correas ×6, mantas acolchadas ×6» (solo los materiales activos)
+            'incluye': ', '.join(f'{r.idMaterial.nom_material.lower()} ×{r.cant_sugerida}' for r in
+                                 sorted(s.recursos.all(), key=lambda r: r.idMaterial.nom_material)
+                                 if r.idMaterial.Activo)}
 
 
 @endpoint('PED_REGISTRAR')
 def catalogo(request):
     """GET /api/catalogo: lo que hace falta para armar el formulario de pedido."""
-    activos = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio')
+    activos = Servicio.objects.filter(Activo=True).order_by('Tipo_servicio').prefetch_related('recursos__idMaterial')
     return JsonResponse({
         'principales': [_servicio(s) for s in activos.filter(Categoria=Servicio.PRINCIPAL)],
         'adicionales': [_servicio(s) for s in activos.filter(Categoria=Servicio.ADICIONAL)],
@@ -133,6 +138,7 @@ def catalogo(request):
                     for o in objetos_para_elegir()],
         'max_cantidad': reglas.MAX_CANTIDAD,
         'horas_limite': reglas.HORAS_LIMITE_CLIENTE,
+        'mapa_activo': bool(settings.ORS_API_KEY),  # «Elegir en el mapa» y «¿Es acá?» solo con clave
     })
 
 
@@ -199,10 +205,27 @@ def _detalle(p, usuario):
                           'motivo': ultima.motivo_completo, 'nuevo': not ultima.visto_cliente,
                           'vehiculo_nuevo': ultima.vehiculo_nuevo_id
                           if ultima.vehiculo_nuevo_id != ultima.vehiculo_anterior_id else None} if ultima else None,
+        'puntos': {lado: {'lat': punto[0], 'lon': punto[1]} if punto else None
+                   for lado, punto in zip(('origen', 'destino'), mapa.puntos(p))},
+        'como_llegar': mapa.como_llegar(p.origen, p.destino, *mapa.puntos(p)),
+        'materiales': _materiales(p) if tiene_permiso(usuario, 'PED_GESTIONAR') else None,
         'es_mio': es_mio,
         'puede_cambiar': es_mio and reglas.cliente_puede_cambiar(p),
         'puede_comprobante': tiene_permiso(usuario, 'PED_COMPROBANTE'),
         'gestion': _gestion(p, usuario, personal) if tiene_permiso(usuario, 'PED_GESTIONAR') else None,
+    }
+
+
+def _materiales(p):
+    """Lo que sugieren los servicios y, si la mudanza ya salió, cada movimiento de stock."""
+    return {
+        'sugeridos': [{'nombre': m.nom_material, 'cantidad': c, 'falta': max(c - m.stock_material, 0)}
+                      for m, c in materiales.sugeridos(p).items()],
+        'movimientos': [{'fecha': timezone.localtime(mv.fec_mov).strftime('%d/%m %H:%M'), 'material': mv.idMaterial.nom_material,
+                         'tipo': mv.tipo_mov, 'efecto': mv.efecto_texto or str(mv.cant_mov), 'cambia_stock': bool(mv.efecto),
+                         'observacion': mv.observacion_mov,
+                         'quien': f'{mv.idUsuario.Nombre} {mv.idUsuario.Apellido}' if mv.idUsuario else 'Sistema'}
+                        for mv in p.movimientos_material.select_related('idMaterial', 'idUsuario').order_by('fec_mov', 'pk')],
     }
 
 
@@ -291,9 +314,14 @@ def _datos_pedido(d):
     items = [{'objeto': a_entero(i.get('objeto')), 'cantidad': i.get('cantidad'), 'fragil': bool(i.get('fragil')),
               'observacion': str(i.get('observacion') or '')} for i in items if isinstance(i, dict)]
     adicionales = [a for a in (a_entero(x) for x in d.get('adicionales') or []) if a is not None]
+    # el punto exacto de cada dirección, si se marcó en el mapa: {'origen': {'lat':, 'lon':}, ...}
+    puntos = {}
+    for lado in ('origen', 'destino'):
+        punto = (d.get('puntos') or {}).get(lado) if isinstance(d.get('puntos'), dict) else None
+        puntos[lado] = (punto.get('lat'), punto.get('lon')) if isinstance(punto, dict) else None
     return ((a_fecha(d.get('fecha_servicio')), a_hora(d.get('hora_servicio')), str(d.get('origen') or ''),
              str(d.get('destino') or ''), a_entero(d.get('servicio')), str(d.get('vehiculo') or ''), items),
-            adicionales)
+            adicionales, puntos)
 
 
 @endpoint('PED_CONSULTAR', metodos=('GET', 'POST'))
@@ -303,9 +331,9 @@ def pedidos(request):
     if request.method == 'POST':
         if not tiene_permiso(request.usuario, 'PED_REGISTRAR'):
             return error('No tenés permiso para esta operación.', 403)
-        datos, adicionales = _datos_pedido(leer_json(request))
+        datos, adicionales, puntos = _datos_pedido(leer_json(request))
         try:
-            pedido = reglas.registrar_pedido(request.usuario, *datos, ids_adicionales=adicionales)
+            pedido = reglas.registrar_pedido(request.usuario, *datos, ids_adicionales=adicionales, puntos=puntos)
         except reglas.ErrorPedido as e:
             return error('Revisá los datos marcados.', errores=e.errores)
         return JsonResponse({'id': pedido.id_pedido}, status=201)
@@ -336,9 +364,9 @@ def pedido(request, id_pedido):
         if not tiene_permiso(request.usuario, 'PED_REGISTRAR'):
             return error('No tenés permiso para esta operación.', 403)
         get_object_or_404(Pedido, pk=id_pedido, idUsuario=request.usuario)
-        datos, adicionales = _datos_pedido(leer_json(request))
+        datos, adicionales, puntos = _datos_pedido(leer_json(request))
         try:
-            reglas.modificar_pedido(id_pedido, request.usuario, *datos, ids_adicionales=adicionales)
+            reglas.modificar_pedido(id_pedido, request.usuario, *datos, ids_adicionales=adicionales, puntos=puntos)
         except reglas.ErrorPedido as e:
             return error('Revisá los datos marcados.', errores=e.errores)
         return JsonResponse({'id': id_pedido})
@@ -371,3 +399,44 @@ def comprobante(request, id_pedido):
     p = _pedido_visible(request, id_pedido)
     return respuesta_pdf(request, 'pedidos/comprobante_pdf.html', {'pedido': p, 'emitido': timezone.localtime()},
                          f'Comprobante-pedido-{p.id_pedido}.pdf')
+
+
+# ------------------------------------------------------------------ mapa (OpenRouteService)
+@endpoint('PED_CONSULTAR')
+def recorrido(request, id_pedido):
+    """GET /api/pedidos/<id>/recorrido: la ruta en GeoJSON con km y minutos, para dibujarla con
+    Leaflet. Usa el punto exacto de cada dirección si se marcó en el mapa."""
+    p = _pedido_visible(request, id_pedido)
+    respuesta = {'como_llegar': mapa.como_llegar(p.origen, p.destino, *mapa.puntos(p))}
+    try:
+        respuesta.update(ok=True, **mapa.recorrido(p.origen, p.destino, *mapa.puntos(p)))
+    except mapa.ErrorMapa as e:
+        respuesta.update(ok=False, error=str(e))
+    return JsonResponse(respuesta)
+
+
+@endpoint('PED_REGISTRAR')
+def direccion_del_punto(request):
+    """GET /api/mapa/direccion?lat=&lon=: la dirección del punto que el cliente tocó en el mapa."""
+    try:
+        lat, lon = float(request.GET['lat']), float(request.GET['lon'])
+    except (KeyError, ValueError):
+        return error('Faltan las coordenadas del punto.')
+    if not (-56 <= lat <= -21 and -74 <= lon <= -53):
+        return error('Elegí un punto dentro de la Argentina.')
+    try:
+        return JsonResponse({'ok': True, 'direccion': mapa.direccion_de(lat, lon)})
+    except mapa.ErrorMapa as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
+
+
+@endpoint('PED_REGISTRAR')
+def ubicar(request):
+    """GET /api/mapa/ubicar?direccion=: dónde cae una dirección escrita a mano («¿Es acá?»)."""
+    direccion = ' '.join((request.GET.get('direccion') or '').split())
+    if len(direccion) < 5:
+        return error('Escribí la dirección completa.')
+    try:
+        return JsonResponse({'ok': True, **mapa.ubicar(direccion[:200])})
+    except mapa.ErrorMapa as e:
+        return JsonResponse({'ok': False, 'error': str(e)})

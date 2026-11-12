@@ -1,6 +1,7 @@
 from django.urls import path
 
-from . import views, views_abm, views_admin, views_analisis, views_auditoria, views_portal, views_usuarios
+from . import (views, views_abm, views_admin, views_analisis, views_auditoria, views_materiales, views_portal,
+               views_usuarios)
 
 # Contrato de la API (lo que consume frontend/src/services)
 urlpatterns = [
@@ -46,6 +47,16 @@ urlpatterns = [
     path('auditoria', views_auditoria.auditoria, name='api_auditoria'),
     path('auditoria/opciones', views_auditoria.opciones, name='api_auditoria_opciones'),
     path('auditoria/pdf', views_auditoria.pdf, name='api_auditoria_pdf'),
+    # mapa (OpenRouteService)
+    path('pedidos/<int:id_pedido>/recorrido', views.recorrido, name='api_recorrido'),
+    path('mapa/direccion', views.direccion_del_punto, name='api_mapa_direccion'),
+    path('mapa/ubicar', views.ubicar, name='api_mapa_ubicar'),
+    # control de materiales
+    path('materiales', views_materiales.materiales, name='api_materiales'),
+    path('materiales/catalogo', views_materiales.catalogo_materiales, name='api_materiales_catalogo'),
+    path('materiales/<int:id_material>', views_materiales.material, name='api_material'),
+    path('materiales/<int:id_material>/movimiento', views_materiales.movimiento, name='api_material_movimiento'),
+    path('materiales/<int:id_material>/baja', views_materiales.baja, name='api_material_baja'),
     # Parcial N° 2: tablero, reportes (M2) y notificaciones (M3)
     path('tablero', views_analisis.tablero, name='api_tablero'),
     path('reportes', views_analisis.reportes, name='api_reportes'),
