@@ -38,12 +38,12 @@ def _mes(desde, hasta):
             'total': pedidos.count()}
 
 
-@requiere_permiso('PED_GESTIONAR')
-def tablero(request):
+def calcular(clave_periodo='30'):
+    """Todo lo que muestra el tablero, para la pantalla de Django y para la API de React."""
     ahora = timezone.localtime()
     hoy = ahora.date()
-    clave = request.GET.get('periodo', '30')
-    dias = int(clave) if clave in PERIODOS else 30
+    clave = clave_periodo if clave_periodo in PERIODOS else '30'
+    dias = int(clave)
     desde = hoy - timedelta(days=dias - 1)
 
     # ---- hoy
@@ -102,7 +102,7 @@ def tablero(request):
                 .prefetch_related('personal__idUsuario').order_by('fecha_servicio', 'hora_servicio')[:6])
 
     saludo = 'Buenos días' if ahora.hour < 12 else 'Buenas tardes' if ahora.hour < 20 else 'Buenas noches'
-    return render(request, 'reportes/tablero.html', {
+    return {
         'saludo': saludo, 'hoy': hoy, 'mudanzas_hoy': activos_hoy.count(), 'en_curso': en_curso,
         'por_confirmar': por_confirmar, 'disponibles': disponibles, 'flota': Vehiculo.objects.count(),
         'mes': mes, 'cancelacion': cancelacion,
@@ -112,4 +112,9 @@ def tablero(request):
         'var_cancelacion': cancelacion - cancelacion_ant if anterior['total'] else None,
         'periodo': str(dias), 'periodos': PERIODOS, 'graficos': graficos, 'proximas': proximas,
         'total_periodo': len(del_periodo),
-    })
+    }
+
+
+@requiere_permiso('PED_GESTIONAR')
+def tablero(request):
+    return render(request, 'reportes/tablero.html', calcular(request.GET.get('periodo', '30')))

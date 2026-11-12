@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_abm, views_admin, views_auditoria, views_portal, views_usuarios
+from . import views, views_abm, views_admin, views_analisis, views_auditoria, views_portal, views_usuarios
 
 # Contrato de la API (lo que consume frontend/src/services)
 urlpatterns = [
@@ -46,6 +46,17 @@ urlpatterns = [
     path('auditoria', views_auditoria.auditoria, name='api_auditoria'),
     path('auditoria/opciones', views_auditoria.opciones, name='api_auditoria_opciones'),
     path('auditoria/pdf', views_auditoria.pdf, name='api_auditoria_pdf'),
+    # Parcial N° 2: tablero, reportes (M2) y notificaciones (M3)
+    path('tablero', views_analisis.tablero, name='api_tablero'),
+    path('reportes', views_analisis.reportes, name='api_reportes'),
+    path('reportes/<str:clave>', views_analisis.reporte, name='api_reporte'),
+    path('reportes/<str:clave>/pdf', views_analisis.reporte_pdf, name='api_reporte_pdf'),
+    path('notificaciones', views_analisis.notificaciones, name='api_notificaciones'),
+    path('notificaciones/contar', views_analisis.notificaciones_contar, name='api_notificaciones_contar'),
+    path('notificaciones/leer-todas', views_analisis.notificaciones_leer_todas, name='api_notificaciones_leer_todas'),
+    path('notificaciones/<int:id_notificacion>/leer', views_analisis.notificacion_leer, name='api_notificacion_leer'),
+    path('configuracion', views_analisis.configuracion, name='api_configuracion'),
+    path('alertas/evaluar', views_analisis.evaluar_alertas, name='api_evaluar_alertas'),
     # portal del personal
     path('portal', views_portal.portal, name='api_portal'),
     path('portal/<int:id_pedido>/empezar', views_portal.empezar, name='api_empezar'),
