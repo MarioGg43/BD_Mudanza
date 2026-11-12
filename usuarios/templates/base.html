@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Mudanzas y Fletes Salta{% endblock %}</title>
   <link rel="icon" type="image/png" href="/static/img/favicon.png">
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,6 +14,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   {% block extra_head %}{% endblock %}
+  {% comment %}Tailwind ya compilado (documentacion/herramientas/tailwind). Va último, donde el compilador
+  del CDN ponía sus estilos, para que las prioridades frente a marca.css sean las mismas.{% endcomment %}
+  <link rel="stylesheet" href="/static/css/tailwind.min.css?v=1">
 </head>
 <body class="flex flex-col min-h-screen{% if menu_lateral %} con-lateral{% endif %}">
   {% block content %}{% endblock %}
