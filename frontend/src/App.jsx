@@ -31,6 +31,10 @@ import { Auditoria } from './pages/abm/Auditoria';
 import { Portal } from './pages/portal/Portal';
 import { Relevamiento } from './pages/portal/Relevamiento';
 import { Tablero } from './pages/analisis/Tablero';
+import { Materiales } from './pages/abm/Materiales';
+import { MaterialDetalle } from './pages/abm/MaterialDetalle';
+import { MaterialForm } from './pages/abm/MaterialForm';
+import { Terminar } from './pages/portal/Terminar';
 import { Reportes } from './pages/analisis/Reportes';
 import { Reporte } from './pages/analisis/Reporte';
 import { Bandeja } from './pages/notificaciones/Bandeja';
@@ -86,6 +90,12 @@ export default function App() {
             <Route path="/servicios/nuevo" element={<ServicioForm />} />
             <Route path="/servicios/:id/editar" element={<ServicioForm />} />
           </Route>
+          <Route element={<RutaPrivada permiso="MAT_GESTIONAR" />}>
+            <Route path="/materiales" element={<Materiales />} />
+            <Route path="/materiales/nuevo" element={<MaterialForm />} />
+            <Route path="/materiales/:id" element={<MaterialDetalle />} />
+            <Route path="/materiales/:id/editar" element={<MaterialForm />} />
+          </Route>
           <Route element={<RutaPrivada permiso="OBJ_GESTIONAR" />}>
             <Route path="/objetos" element={<Objetos />} />
           </Route>
@@ -117,6 +127,7 @@ export default function App() {
           <Route element={<RutaPrivada permiso="MUDANZAS_OPERAR" />}>
             <Route path="/portal" element={<Portal />} />
             <Route path="/portal/:id/relevamiento" element={<Relevamiento />} />
+            <Route path="/portal/:id/terminar" element={<Terminar />} />
           </Route>
           </>)}
           <Route path="*" element={<NotFound />} />

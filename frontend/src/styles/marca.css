@@ -424,3 +424,34 @@ input[type="checkbox"].casilla { accent-color: var(--naranja); }
 .campanita:hover { background: rgba(255, 255, 255, .15); color: #fff; }
 .campanita-numero { position: absolute; top: -2px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
   background: #fff; color: #c2410c; font-size: .68rem; font-weight: 700; line-height: 18px; text-align: center; }
+
+/* ===================================================================== materiales y mapa (como en Django) */
+.aviso-tarjeta { display: flex; align-items: flex-start; gap: .7rem; padding: .85rem .9rem; border-radius: 16px; background: #fff;
+  border: 1px solid #e6ded8; color: #231a15; position: relative; overflow: hidden; height: 100%; }
+button.aviso-tarjeta:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18px rgba(70, 30, 5, .55); }
+.aviso-tarjeta::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--tono, #c8c2bc); }
+.aviso-icono { flex: 0 0 38px; height: 38px; border-radius: 11px; display: inline-grid; place-items: center; font-size: 1.05rem;
+  background: var(--tono-suave, #f3efeb); color: var(--tono, #8a7f78); }
+.aviso-texto { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.aviso-texto b { font-size: 1.45rem; } .aviso-texto span { font-weight: 600; font-size: .9rem; }
+.aviso-texto small { font-size: .74rem; color: #5e524b; margin-top: .15rem; }
+.aviso-tarjeta.rojo { --tono: #c62f35; --tono-suave: #fdecec; } .aviso-tarjeta.azul { --tono: #2465bd; --tono-suave: #e8f1fc; }
+.aviso-tarjeta.violeta { --tono: #5143c9; --tono-suave: #efedff; } .aviso-tarjeta.verde { --tono: #138a5d; --tono-suave: #e5f6ee; }
+.aviso-tarjeta.gris { --tono: #5e524b; --tono-suave: #f1ece8; } .aviso-tarjeta.apagada { opacity: .6; }
+
+.barra-stock { height: 5px; border-radius: 99px; background: #e6ded8; margin-top: .3rem; overflow: hidden; max-width: 160px; }
+.barra-stock span { display: block; height: 100%; border-radius: inherit; background: #138a5d; }
+.barra-stock.baja span { background: #c62f35; }
+.mov { display: inline-block; font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 99px; background: #f1ece8; color: #5e524b; }
+.mov-ingreso, .mov-devolucion { background: #e5f6ee; color: #138a5d; } .mov-salida { background: #e8f1fc; color: #2465bd; }
+.mov-consumo { background: #fff0e2; color: #b14a12; } .mov-perdida { background: #fdecec; color: #c62f35; }
+.mov-ajuste { background: #efedff; color: #5143c9; }
+.materiales-mudanza { list-style: none; padding: 0; margin: .25rem 0 0; display: flex; flex-wrap: wrap; gap: .35rem; }
+.materiales-mudanza li { padding: .15rem .55rem; border-radius: 99px; background: rgba(0, 0, 0, .05); }
+.materiales-mudanza li.falta { background: #fdecec; color: #c62f35; font-weight: 600; }
+
+.mapa-caja { height: 320px; border-radius: 14px; overflow: hidden; border: 1px solid #e6ded8; }
+.mapa-elegir { height: 380px; }
+.ubicacion-previa { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; padding: .5rem;
+  border: 1px solid #e6ded8; border-radius: 12px; background: #fffaf6; }
+.mapa-mini { flex: 0 0 120px; height: 90px; border-radius: 9px; overflow: hidden; background: #eee; }

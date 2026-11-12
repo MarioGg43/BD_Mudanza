@@ -6,6 +6,7 @@ import { adminService } from '../services/adminService';
 import { EstadoBadge } from '../components/EstadoBadge';
 import { LineaEstados } from '../components/LineaEstados';
 import { ConfirmarAccion } from '../components/ConfirmarAccion';
+import { MapaRecorrido } from '../components/mapa/MapaRecorrido';
 import { AvisosAtraso, HistorialCambios, TarjetaCliente, TarjetaPersonal } from '../components/GestionPedido';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
@@ -152,6 +153,8 @@ export function PedidoDetalle() {
         )}
       </div>
 
+      <MapaRecorrido idPedido={p.id} comoLlegar={p.como_llegar} />
+
       <div className="card-panel p-3 mb-3">
         <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
           <h2 className="h6 fw-bold text-uppercase text-muted mb-0">Servicios</h2>
@@ -174,6 +177,43 @@ export function PedidoDetalle() {
           </table>
         </div>
       </div>
+
+      {p.materiales && (p.materiales.sugeridos.length > 0 || p.materiales.movimientos.length > 0) && (
+        <div className="card-panel p-3 mb-3">
+          <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <h2 className="h6 fw-bold text-uppercase text-muted mb-0"><i className="bi bi-boxes me-1" />Materiales</h2>
+            <Link to="/materiales" className="small">Ver el stock</Link>
+          </div>
+          {p.materiales.movimientos.length ? (
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead><tr><th>Fecha</th><th>Material</th><th>Movimiento</th><th className="text-end">Stock</th><th>Quién</th></tr></thead>
+                <tbody>
+                  {p.materiales.movimientos.map((mv, k) => (
+                    <tr key={k}>
+                      <td className="small text-nowrap">{mv.fecha}</td><td>{mv.material}</td>
+                      <td><span className={`mov mov-${mv.tipo.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}`}>{mv.tipo}</span>
+                        {mv.observacion && <span className="small text-muted"> · {mv.observacion}</span>}</td>
+                      <td className={`text-end fw-semibold ${mv.cambia_stock ? '' : 'text-muted fw-normal'}`}>{mv.efecto}</td>
+                      <td className="small">{mv.quien}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <>
+              <p className="small text-muted mb-2">Salen del depósito cuando el chofer toca «Empezamos». Lo que sugieren los servicios:</p>
+              <ul className="materiales-mudanza mb-0">
+                {p.materiales.sugeridos.map((m) => {
+                  const falta = m.falta && ['Pendiente', 'Confirmado'].includes(p.estado);
+                  return <li key={m.nombre} className={falta ? 'falta' : ''}>{m.nombre} <b>×{m.cantidad}</b>{falta ? ` · faltan ${m.falta}` : ''}</li>;
+                })}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="card-panel p-3">
         <h2 className="h6 fw-bold text-uppercase text-muted">Qué se lleva</h2>

@@ -12,6 +12,7 @@ const SECCIONES = [
   { permiso: 'VEH_GESTIONAR', to: '/vehiculos', texto: 'Vehículos', icono: 'bi-truck' },
   { permiso: 'SRV_GESTIONAR', to: '/servicios', texto: 'Servicios', icono: 'bi-list-check' },
   { permiso: 'OBJ_GESTIONAR', to: '/objetos', texto: 'Objetos', icono: 'bi-box-seam' },
+  { permiso: 'MAT_GESTIONAR', to: '/materiales', texto: 'Materiales', icono: 'bi-boxes' },
   { permiso: 'USR_CONSULTAR', to: '/usuarios', texto: 'Usuarios', icono: 'bi-people' },
   { permiso: 'ROL_GESTIONAR', to: '/roles', texto: 'Roles y permisos', icono: 'bi-shield-lock' },
   { permiso: 'AUD_CONSULTAR', to: '/auditoria', texto: 'Auditoría', icono: 'bi-journal-text' },

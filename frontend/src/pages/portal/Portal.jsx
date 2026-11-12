@@ -40,7 +40,7 @@ function TarjetaMudanza({ m, onEmpezar, onTerminar }) {
           {m.en_curso ? (
             <>
               <div className="d-flex flex-wrap gap-2 mb-2">
-                <button type="button" className="btn btn-primary fw-bold" onClick={() => onTerminar(m)}><i className="bi bi-flag me-1" />Terminamos</button>
+                <Link to={`/portal/${m.id}/terminar`} className="btn btn-primary fw-bold"><i className="bi bi-flag me-1" />Terminamos</Link>
                 <Link to={`/portal/${m.id}/relevamiento`} className="btn btn-outline-secondary fw-bold"><i className="bi bi-clipboard-check me-1" />Relevamiento</Link>
               </div>
               <p className="small text-muted mb-0">Empezaron a las {m.inicio_real}. Fin estimado: {m.fin_esperado}. Si hay más cosas de las declaradas, cargalo en «Relevamiento».</p>
@@ -59,6 +59,11 @@ function TarjetaMudanza({ m, onEmpezar, onTerminar }) {
       )}
 
       <div className="row g-2 small">
+        <div className="col-12">
+          <a href={m.como_llegar} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-secondary">
+            <i className="bi bi-sign-turn-right me-1" />Cómo llegar
+          </a>
+        </div>
         <div className="col-md-6"><i className="bi bi-geo-alt me-1 text-marca" /><b>Desde:</b> {m.origen}</div>
         <div className="col-md-6"><i className="bi bi-flag me-1 text-marca" /><b>Hasta:</b> {m.destino}</div>
         <div className="col-md-6"><i className="bi bi-truck me-1 text-marca" /><b>Vehículo:</b> {m.vehiculo}</div>
@@ -67,6 +72,20 @@ function TarjetaMudanza({ m, onEmpezar, onTerminar }) {
         <div className="col-md-6"><i className="bi bi-person me-1 text-marca" /><b>Cliente:</b> {m.cliente}
           {m.telefono && <> · <a href={`tel:${m.telefono.replace(/\D/g, '')}`}>{m.telefono}</a></>}</div>
       </div>
+
+      {m.materiales.length > 0 && (
+        <div className="small mt-2">
+          <b>{m.en_curso ? 'Materiales que llevaron:' : 'Materiales del depósito:'}</b>
+          <ul className="materiales-mudanza">
+            {m.materiales.map((x) => (
+              <li key={x.nombre} className={x.falta ? 'falta' : ''} title={x.falta ? 'No alcanza el stock' : undefined}>
+                {x.nombre} <b>×{x.cantidad}</b>{x.falta ? ` · faltan ${x.falta}` : ''}
+              </li>
+            ))}
+          </ul>
+          {m.materiales.some((x) => x.falta) && <p className="text-danger mb-0"><i className="bi bi-exclamation-triangle me-1" />Hoy no alcanza el stock para todo: avisale al administrador.</p>}
+        </div>
+      )}
 
       <button type="button" className="btn btn-link px-0 mt-2" onClick={() => setVerObjetos(!verObjetos)} aria-expanded={verObjetos}>
         <i className={`bi ${verObjetos ? 'bi-chevron-up' : 'bi-chevron-down'} me-1`} />Qué hay que llevar ({m.inventario.length})
@@ -99,7 +118,10 @@ export function Portal() {
     const { tipo, m } = preguntar;
     if (tipo === 'empezar') {
       const r = await portalService.empezar(m.id);
-      setAviso(`Mudanza N° ${m.id} en curso desde las ${r.hora}. Cuando terminen, tocá «Terminamos».`);
+      const faltaron = r.faltantes?.length
+        ? ` No alcanzó el stock de: ${r.faltantes.map((f) => `${f.nombre} (llevan ${f.llevado} de ${f.sugerido})`).join(', ')}. Ya le avisamos al administrador.`
+        : '';
+      setAviso(`Mudanza N° ${m.id} en curso desde las ${r.hora}. Cuando terminen, tocá «Terminamos».${faltaron}`);
     } else {
       await portalService.terminar(m.id);
       setAviso(`Mudanza N° ${m.id} terminada y finalizada. ¡Buen trabajo!`);

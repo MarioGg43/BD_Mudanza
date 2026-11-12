@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CampoDireccion } from '../components/mapa/CampoDireccion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useCatalogo } from '../hooks/useCatalogo';
 import { usePedido } from '../hooks/usePedido';
@@ -56,6 +57,12 @@ function Formulario({ catalogo, pedido }) {
     vehiculo: pedido?.vehiculo ?? '',
   });
   const [items, setItems] = useState(pedido ? pedido.inventario.map(desdeServidor) : []);
+  // el punto exacto de cada dirección (si se marcó en el mapa o se confirmó «¿Es acá?»)
+  const [puntos, setPuntos] = useState({ origen: pedido?.puntos?.origen ?? null, destino: pedido?.puntos?.destino ?? null });
+  const cambiarDireccion = (lado) => (texto, punto) => {
+    setDatos((d) => ({ ...d, [lado]: texto }));
+    setPuntos((p) => ({ ...p, [lado]: punto }));
+  };
   const [modal, setModal] = useState(null); // null = cerrada; -1 = agregar; n = editar la fila n
   const [errores, setErrores] = useState({});
   const [enviando, setEnviando] = useState(false);
@@ -93,7 +100,7 @@ function Formulario({ catalogo, pedido }) {
     }
     setEnviando(true);
     setErrores({});
-    const cuerpo = { ...datos, vehiculo: vehiculo ? datos.vehiculo : '', inventario: items.map(haciaServidor) };
+    const cuerpo = { ...datos, vehiculo: vehiculo ? datos.vehiculo : '', inventario: items.map(haciaServidor), puntos };
     try {
       const { id } = pedido ? await pedidoService.update(pedido.id, cuerpo) : await pedidoService.create(cuerpo);
       const hecho = pedido ? 'modificado' : 'registrado';
@@ -109,7 +116,7 @@ function Formulario({ catalogo, pedido }) {
 
   const Error = ({ campo }) => (errores[campo] ? <div className="invalid-feedback d-block">{errores[campo]}</div> : null);
   const campoTexto = (name, label, props = {}) => (
-    <div className="col-sm-6 col-lg-3">
+    <div className="col-sm-6">
       <label htmlFor={name} className="form-label">{label}</label>
       <input id={name} name={name} className={`form-control ${errores[name] ? 'is-invalid' : ''}`}
              value={datos[name]} onChange={cambiar} {...props} />
@@ -134,8 +141,10 @@ function Formulario({ catalogo, pedido }) {
           <div className="row g-3">
             {campoTexto('fecha_servicio', 'Fecha de la mudanza', { type: 'date', min: hoy() })}
             {campoTexto('hora_servicio', 'Hora de inicio', { type: 'time', step: 900 })}
-            {campoTexto('origen', 'Desde', { maxLength: 200, placeholder: 'Calle, número y ciudad' })}
-            {campoTexto('destino', 'Hasta', { maxLength: 200, placeholder: 'Calle, número y ciudad' })}
+            <CampoDireccion name="origen" label="Desde" valor={datos.origen} punto={puntos.origen} error={errores.origen}
+              mapaActivo={catalogo.mapa_activo} onCambio={cambiarDireccion('origen')} />
+            <CampoDireccion name="destino" label="Hasta" valor={datos.destino} punto={puntos.destino} error={errores.destino}
+              mapaActivo={catalogo.mapa_activo} onCambio={cambiarDireccion('destino')} />
           </div>
         </section>
 
@@ -148,7 +157,7 @@ function Formulario({ catalogo, pedido }) {
                                checked={datos.servicio === String(s.id)}
                                onChange={() => setDatos({ ...datos, servicio: String(s.id) })}>
                   <span className="fw-bold fs-5">{dinero(s.precio)}</span>
-                  <span className="small text-muted">unas {s.horas} horas</span>
+                  {s.incluye && <span className="small text-muted">Incluye: {s.incluye}</span>}
                 </TarjetaOpcion>
               </div>
             ))}
@@ -165,6 +174,7 @@ function Formulario({ catalogo, pedido }) {
                                    titulo={s.nombre} checked={datos.adicionales.includes(String(s.id))}
                                    onChange={() => alternarAdicional(String(s.id))}>
                       <span className="small fw-semibold">{s.precio > 0 ? `+ ${dinero(s.precio)}` : 'Sin cargo'}</span>
+                      {s.incluye && <span className="small text-muted">Incluye: {s.incluye}</span>}
                     </TarjetaOpcion>
                   </div>
                 ))}
