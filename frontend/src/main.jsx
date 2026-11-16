@@ -8,6 +8,8 @@ import './index.css';
 import { AuthProvider } from './context/AuthContext';
 import App from './App.jsx';
 
+// Acá arranca todo: React se mete en el <div id="root"> del index.html y dibuja la app.
+// BrowserRouter maneja las direcciones (/pedidos, /login...) y AuthProvider guarda quién entró.
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>

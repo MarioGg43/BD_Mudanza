@@ -28,12 +28,14 @@ export function CampoDireccion({ name, label, valor, punto, error, mapaActivo, o
   const [confirmado, setConfirmado] = useState(false);
   const consulta = useRef(null);
 
+  // Si la persona vuelve a escribir la dirección, el punto marcado antes ya no sirve: lo borramos.
   const escribir = (e) => {
     onCambio(e.target.value, null);   // a mano: el punto viejo ya no corresponde
     setPropuesto(null);
     setConfirmado(false);
     consulta.current?.abort();
   };
+  // Al salir del campo le preguntamos a Django dónde queda lo que escribió y mostramos «¿Es acá?».
   const proponer = async () => {
     const texto = valor.trim();
     if (!mapaActivo || punto || texto.length < 5) return;

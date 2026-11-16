@@ -104,6 +104,7 @@ function TarjetaMudanza({ m, onEmpezar, onTerminar }) {
   );
 }
 
+// El portal del chofer y los ayudantes: sus mudanzas, con los botones «Empezamos» y «Terminamos».
 export function Portal() {
   const { usuario } = useAuth();
   const location = useLocation();
@@ -114,6 +115,7 @@ export function Portal() {
   if (loading) return <LoadingSpinner texto="Cargando tus mudanzas..." />;
   if (error) return <ErrorAlert message={error} onRetry={refetch} />;
 
+  // «Empezamos» avisa a Django la hora real de inicio y descuenta los materiales que se llevan.
   const marcar = async () => {
     const { tipo, m } = preguntar;
     if (tipo === 'empezar') {

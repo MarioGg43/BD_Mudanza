@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 
+// En criollo: «traeme esto de la API y avisame si está cargando o si falló».
+// Si salís de la pantalla antes de que llegue, la consulta se cancela y no queda colgada.
 /* Hook general para traer algo de la API una vez (y al cambiar `deps`), con cargando / error /
    cancelación. `pedir` recibe la señal del AbortController y devuelve la promesa del servicio.
    Ej.: useCarga((signal) => adminService.getPersonal(id, signal), [id]) */

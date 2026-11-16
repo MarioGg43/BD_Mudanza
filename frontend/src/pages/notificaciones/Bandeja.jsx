@@ -11,7 +11,7 @@ const ICONO = {
   'Mudanza confirmada': 'bi-check-circle', 'Mudanza reprogramada': 'bi-calendar-event', 'Stock bajo': 'bi-box-seam',
 };
 
-// avisa a la barra de arriba que cambió la cantidad sin leer (la campanita)
+// Un «grito» al resto de la app: «cambiaron las notificaciones». La campanita y el menú lo escuchan y vuelven a contar.
 const avisarCampanita = () => window.dispatchEvent(new Event('notificaciones-cambiaron'));
 
 /* La bandeja de notificaciones (M3): las del perfil de quien entró y las suyas propias. */

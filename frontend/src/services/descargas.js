@@ -1,6 +1,6 @@
 import { api } from './api';
 
-// Los PDF piden el token, así que se bajan con Axios y se guardan como archivo
+// Un link común no manda el token, por eso el PDF se pide con Axios y después se «descarga» a mano.
 export async function descargarPdf(url, nombre, params) {
   const { data } = await api.get(url, { params, responseType: 'blob' });
   const enlace = URL.createObjectURL(data);

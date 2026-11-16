@@ -49,8 +49,7 @@ function Pedidos() {
   return MOSTRAR_ADMINISTRACION && puede('PED_GESTIONAR') ? <PanelPedidos /> : <MisPedidos />;
 }
 
-// El personal (quien no pide mudanzas) usa el menú lateral y la barra de arriba, como en Django;
-// el cliente y los visitantes, el menú de arriba de siempre
+// Decide el «marco» de la pantalla: el personal ve el menú naranja al costado, el cliente la barra de arriba.
 function Marco({ children }) {
   const { usuario, puede } = useAuth();
   const [abierto, setAbierto] = useState(false);
@@ -71,6 +70,8 @@ function ConLateral({ abierto, setAbierto, cerrar, children }) {
   );
 }
 
+// El «mapa» de la app: cada <Route> dice qué pantalla se ve en cada dirección.
+// Las que están dentro de <RutaPrivada> piden haber entrado y, a veces, un permiso.
 export default function App() {
   const { pathname } = useLocation();
   return (

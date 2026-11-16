@@ -9,6 +9,7 @@ export function Campanita() {
   const { pathname } = useLocation();
   const [sinLeer, setSinLeer] = useState(0);
 
+  // Cuenta las notificaciones sin leer: al cambiar de pantalla, cada minuto y cuando la bandeja avisa.
   useEffect(() => {
     const controller = new AbortController();
     const contar = () => analisisService.contarNotificaciones(controller.signal)

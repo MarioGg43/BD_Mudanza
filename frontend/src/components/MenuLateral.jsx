@@ -4,7 +4,7 @@ import axios from 'axios';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-// Las secciones del menú; cada opción solo aparece si el rol tiene alguno de sus permisos
+// Todas las opciones del menú. Cada una se muestra solo si el rol tiene el permiso que pide.
 const GRUPOS = [
   { titulo: 'Principal', opciones: [
     { to: '/tablero', texto: 'Tablero', icono: 'bi-speedometer2', permiso: 'PED_GESTIONAR' },

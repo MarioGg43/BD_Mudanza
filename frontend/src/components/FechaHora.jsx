@@ -13,6 +13,7 @@ export const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-$
 const enUnAnio = () => { const d = new Date(); d.setDate(d.getDate() + 365); return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`; };
 const HORAS = Array.from({ length: 24 * 4 }, (_, i) => `${dos(Math.floor(i / 4))}:${dos((i % 4) * 15)}`);
 
+// El calendario lindo en castellano. Flatpickr tampoco es de React: se arma una vez y se destruye al salir.
 export function Calendario({ id, name, value, onChange, error, sinLimites, corto, placeholder = 'Elegí el día', minDate, className = '' }) {
   const input = useRef(null);
   const fp = useRef(null);
@@ -46,6 +47,7 @@ export function Calendario({ id, name, value, onChange, error, sinLimites, corto
   return <input ref={input} type="hidden" name={name} defaultValue={value} placeholder={placeholder} />;
 }
 
+// La lista de horas cada 15 minutos. Si elegiste hoy, las horas que ya pasaron aparecen apagadas.
 export function SelectorHora({ id, name, value, onChange, fecha, error }) {
   const [, setTic] = useState(0);
   // si la página queda abierta, cada minuto se apaga la hora que va pasando

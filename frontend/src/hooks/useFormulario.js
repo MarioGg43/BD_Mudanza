@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+// Se encarga de lo repetido de cualquier formulario: guardar lo que se escribe,
+// mandar los datos y poner al lado de cada campo el error que devuelve Django.
 /* Estado de un formulario: los datos, los errores por campo que devuelve la API y si se está
    enviando. `enviar(guardar, alTerminar)` llama al servicio y, si sale bien, a `alTerminar`. */
 export function useFormulario(inicial) {

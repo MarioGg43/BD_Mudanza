@@ -1,8 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Sin sesión manda al login (y vuelve a donde quería ir); sin el permiso muestra el aviso.
-// `permiso` puede ser uno o una lista (alcanza con tener alguno).
+// El «patovica» de las pantallas: sin sesión te manda a entrar; sin permiso te muestra el aviso.
 export function RutaPrivada({ permiso }) {
   const { usuario, puede } = useAuth();
   const location = useLocation();

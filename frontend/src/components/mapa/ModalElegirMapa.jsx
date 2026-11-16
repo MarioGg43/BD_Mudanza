@@ -17,6 +17,7 @@ export function ModalElegirMapa({ titulo, desde, onUsar, onHide }) {
   const [direccion, setDireccion] = useState('');
   const [estado, setEstado] = useState({ texto: AYUDA, error: false, buscando: false });
 
+  // Cuando toca un punto del mapa: ponemos el pin y le pedimos a Django la dirección de ese lugar.
   const elegir = async (lat, lon) => {
     if (marcador.current) marcador.current.setLatLng([lat, lon]);
     else marcador.current = L.marker([lat, lon]).addTo(mapa.current);

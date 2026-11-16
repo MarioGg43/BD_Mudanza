@@ -9,6 +9,8 @@ export function MapaRecorrido({ idPedido, comoLlegar }) {
   const lienzo = useRef(null);
   const { datos, loading } = useCarga((signal) => mapaService.recorrido(idPedido, signal), [idPedido]);
 
+  // Leaflet no es de React, así que lo armamos a mano cuando llegan los datos
+  // y lo borramos al salir de la pantalla (el return del final).
   useEffect(() => {
     if (!datos?.ok || !lienzo.current) return undefined;
     const mapa = L.map(lienzo.current, { scrollWheelZoom: false });

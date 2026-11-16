@@ -25,7 +25,7 @@ function finAproximado(hora, horas) {
   return ` (termina aprox. a las ${fin}${dias === 0 ? '' : dias === 1 ? ' del día siguiente' : `, ${dias} días después`})`;
 }
 
-// Página: carga el catálogo (y el pedido si se modifica) y recién ahí arma el formulario
+// Pedir o modificar una mudanza. Primero traemos el catálogo (servicios, objetos...) y después armamos el formulario.
 export function PedidoForm() {
   const { id } = useParams();
   const { catalogo, loading, error } = useCatalogo();
@@ -57,7 +57,7 @@ function Formulario({ catalogo, pedido }) {
     vehiculo: pedido?.vehiculo ?? '',
   });
   const [items, setItems] = useState(pedido ? pedido.inventario.map(desdeServidor) : []);
-  // el punto exacto de cada dirección (si se marcó en el mapa o se confirmó «¿Es acá?»)
+  // Además del texto de la dirección, guardamos el punto exacto en el mapa (latitud y longitud).
   const [puntos, setPuntos] = useState({ origen: pedido?.puntos?.origen ?? null, destino: pedido?.puntos?.destino ?? null });
   const cambiarDireccion = (lado) => (texto, punto) => {
     setDatos((d) => ({ ...d, [lado]: texto }));
@@ -77,7 +77,7 @@ function Formulario({ catalogo, pedido }) {
     adicionales: datos.adicionales.includes(id) ? datos.adicionales.filter((a) => a !== id) : [...datos.adicionales, id],
   });
 
-  // Total = principal con el recargo del camión + adicionales (igual que reglas.registrar_pedido)
+  // El total se calcula acá solo para mostrarlo; el que vale es el que calcula Django al guardar.
   const principal = catalogo.principales.find((s) => String(s.id) === datos.servicio);
   const vehiculo = vehiculos.find((v) => v.patente === datos.vehiculo);
   const recargo = vehiculo?.recargo ?? 0;
@@ -92,6 +92,8 @@ function Formulario({ catalogo, pedido }) {
     setErrores({ ...errores, inventario: undefined });
   };
 
+  // Al registrar: juntamos todo, lo mandamos a Django y, si sale bien, vamos al detalle del pedido.
+  // Si Django encuentra errores, los mostramos al lado de cada campo.
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!items.length) {

@@ -10,6 +10,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { EstadoBadge } from '../../components/EstadoBadge';
 
+// Chart.js viene por partes: acá le decimos cuáles vamos a usar (barras, torta, leyenda...).
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Legend, Tooltip);
 ChartJS.defaults.font.family = "'Poppins', system-ui, sans-serif";
 ChartJS.defaults.color = '#5E524B';
@@ -43,6 +44,8 @@ function Indicador({ color, icono, titulo, valor, variacion, sufijo = '%', detal
    Los datos los calcula Django (reportes/tablero.py), igual que en la pantalla de Django. */
 export function Tablero() {
   const [periodo, setPeriodo] = useState('30');
+  // Django ya manda los números calculados; nosotros solo se los pasamos a los gráficos.
+  // Si cambia el período, se vuelve a pedir todo y los gráficos se redibujan solos.
   const { datos, loading, error, refetch } = useCarga((signal) => analisisService.tablero(periodo, signal), [periodo]);
   if (loading) return <LoadingSpinner texto="Armando el tablero..." />;
   if (error) return <ErrorAlert message={error} onRetry={refetch} />;

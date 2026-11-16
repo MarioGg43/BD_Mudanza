@@ -37,6 +37,7 @@ export function Reporte() {
     setAplicados(filtros);
     setPagina(1);
   };
+  // El PDF lo arma Django con los mismos filtros que se ven en pantalla.
   const pdf = async () => {
     setBajando(true);
     try { await analisisService.pdfReporte(clave, datos?.titulo || 'Reporte', activos); } finally { setBajando(false); }

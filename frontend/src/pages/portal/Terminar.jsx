@@ -20,6 +20,7 @@ export function Terminar() {
     if (datos) setValores(Object.fromEntries(datos.materiales.map((m) => [m.id, m.salio])));
   }, [datos]);
 
+  // Al terminar, el chofer cuenta cuántos materiales se usaron; Django devuelve al stock lo que volvió.
   const terminar = async (e) => {
     e.preventDefault();
     setEnviando(true);

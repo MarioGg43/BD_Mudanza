@@ -10,6 +10,7 @@ L.Icon.Default.mergeOptions({ iconUrl: icono, iconRetinaUrl: icono2x, shadowUrl:
 
 export const SALTA = [-24.7821, -65.4117];
 
+// La capa con el dibujo de las calles. La pone OpenStreetMap, que es gratis.
 export function capaOSM() {
   return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,

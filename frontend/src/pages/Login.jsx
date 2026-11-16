@@ -121,9 +121,10 @@ export function Login() {
   // qué se muestra: el login, el paso de la clave provisoria o «¿Olvidaste tu contraseña?»
   const [modo, setModo] = useState('login');
 
-  // Con sesión: vuelve a donde quería ir o a su primera pantalla (el chofer, a su portal)
+  // Si ya entró, no tiene sentido mostrarle el login: lo mandamos a su pantalla.
   if (usuario) return <Navigate to={location.state?.desde || inicio} replace />;
 
+  // Al tocar «Entrar»: le mandamos DNI y clave a Django; si están bien, nos devuelve el token y los permisos.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

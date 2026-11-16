@@ -37,7 +37,8 @@ function guardarSesion(sesion) {
   }
 }
 
-// Quién está conectado, para toda la app (evita pasar el usuario por props a cada página)
+// El «guardián» de la sesión: cualquier pantalla puede preguntar quién entró o si puede hacer algo,
+// sin que le pasemos el usuario de mano en mano.
 export function AuthProvider({ children }) {
   const [sesion, setSesion] = useState(leerSesion);
 
@@ -59,13 +60,15 @@ export function AuthProvider({ children }) {
   const cambiarClave = async (datos) => entrar(await authService.cambiarClave(datos));
   const recuperarClave = async (datos) => entrar(await authService.recuperarClave(datos));
 
-  // El interceptor de Axios avisa cuando el servidor rechaza el token (401)
+  // Si la API dice «token vencido», acá nos enteramos y cerramos la sesión solos.
   useEffect(() => {
     window.addEventListener('sesion-vencida', salir);
     return () => window.removeEventListener('sesion-vencida', salir);
   }, [salir]);
 
   const usuario = sesion?.usuario ?? null;
+  // puede('PED_GESTIONAR') → ¿este usuario tiene ese permiso? Sirve para mostrar u ocultar botones.
+  // Ojo: esto es solo para la vista; la seguridad de verdad la vuelve a revisar Django en cada consulta.
   const puede = (permiso) => !!usuario?.permisos.includes(permiso);
   // La primera pantalla según los permisos (igual que pantalla_inicio de Django)
   const inicio = PANTALLAS.find(([permiso]) => puede(permiso))?.[1] ?? '/';

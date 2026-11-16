@@ -2,14 +2,14 @@ import axios from 'axios';
 
 export const CLAVE_SESION = 'mudanzas.sesion';
 
-// Instancia única de Axios: la URL base sale de la variable de entorno de Vite (.env)
+// Por acá pasan TODAS las consultas a Django. Es como el «teléfono» entre React y la API.
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 });
 
-// Antes de cada petición: si hay sesión, se manda el token
+// Antes de salir cada consulta le pegamos el token, así Django sabe quién la hace.
 api.interceptors.request.use((config) => {
   try {
     const sesion = JSON.parse(localStorage.getItem(CLAVE_SESION));
@@ -20,8 +20,8 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Después de cada respuesta: los errores llegan siempre igual a los componentes
-// { message, status, errores: {campo: mensaje} }
+// Cuando vuelve la respuesta, si hubo error lo dejamos siempre con la misma forma,
+// así cada pantalla solo tiene que mostrar el mensaje. Si el token venció (401), se cierra la sesión.
 api.interceptors.response.use(
   (response) => response,
   (error) => {

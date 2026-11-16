@@ -7,6 +7,7 @@ import { catalogoService } from '../services/catalogoService';
 export function useVehiculosLibres({ fecha, hora, servicio, pedido }) {
   const [estado, setEstado] = useState({ vehiculos: [], motivo: '', loading: false });
 
+  // Cada vez que el cliente cambia fecha, hora o servicio, preguntamos de nuevo qué camiones están libres.
   useEffect(() => {
     if (!fecha || !hora || !servicio) {
       setEstado({ vehiculos: [], motivo: '', loading: false });

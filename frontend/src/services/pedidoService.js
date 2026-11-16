@@ -1,7 +1,9 @@
 import { api } from './api';
 import { descargarPdf } from './descargas';
 
-// Contrato con Django (api/urls.py):
+// Los servicios son la lista de cosas que se le pueden pedir a Django sobre pedidos.
+// Las pantallas nunca llaman a la API directo: siempre pasan por acá.
+// Las direcciones que usa (están en api/urls.py):
 // GET  /pedidos             POST /pedidos
 // GET  /pedidos/:id         PUT  /pedidos/:id
 // POST /pedidos/:id/cancelar

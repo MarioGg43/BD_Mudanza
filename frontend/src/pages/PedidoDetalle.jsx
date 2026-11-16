@@ -36,7 +36,7 @@ export function PedidoDetalle() {
     }
   };
 
-  // Confirmar / finalizar: después de hacerlo se vuelve a cargar el pedido con el aviso
+  // Lo usa el administrador para confirmar o finalizar: hace la acción y vuelve a cargar el pedido.
   const hacer = (funcion, hecho) => async () => {
     await funcion(p.id);
     setPreguntar(null);
