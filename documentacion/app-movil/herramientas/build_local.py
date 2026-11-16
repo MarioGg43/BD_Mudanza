@@ -1,4 +1,4 @@
-# Arma una página completa (con doctype y head) a partir de index.html, para abrirla fuera del Artifact.
+# Arma una página completa (con doctype y head) a partir de index.html, para abrirla con doble clic, sin servidor.
 import sys, pathlib
 APP = pathlib.Path(__file__).resolve().parent.parent
 src = (APP / "index.html").read_text(encoding="utf-8")

@@ -234,8 +234,7 @@ mudanzas_django/
     ├── base_de_datos/, sql/  # Scripts SQL de las entregas
     ├── herramientas/       # Scripts que generan el DER, el Word de cambios, capturas…
     ├── app-movil/          # Prototipo de la app móvil (HTML + JS)
-    ├── entregas/           # Word y PDF entregados (no se suben a GitHub)
-    └── superpowers/        # Especificaciones y planes de diseño
+    └── entregas/           # Word y PDF entregados (no se suben a GitHub)
 ```
 
 El modelo `Vehiculo` vive en la app `usuarios`, junto al resto del DER; la app
