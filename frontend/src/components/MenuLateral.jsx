@@ -44,7 +44,8 @@ export function ubicacion(pathname) {
 
 // Los números del menú (pedidos por confirmar, materiales bajos…): se piden al cambiar de pantalla y cada minuto
 export function useNumerosMenu() {
-  const { pathname } = useLocation();
+  // key cambia en cada navegación, también al volver a la misma pantalla después de confirmar algo
+  const { pathname, key } = useLocation();
   const [numeros, setNumeros] = useState({});
   useEffect(() => {
     const controller = new AbortController();
@@ -54,7 +55,7 @@ export function useNumerosMenu() {
     const cada = setInterval(pedir, 60000);
     window.addEventListener('notificaciones-cambiaron', pedir);
     return () => { controller.abort(); clearInterval(cada); window.removeEventListener('notificaciones-cambiaron', pedir); };
-  }, [pathname]);
+  }, [pathname, key]);
   return numeros;
 }
 
