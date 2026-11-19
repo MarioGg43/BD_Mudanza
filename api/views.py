@@ -289,6 +289,7 @@ def _gestion(p, usuario, personal):
         'puede_confirmar': p.estado == Pedido.PENDIENTE and not p.vencido,
         'puede_finalizar': p.estado == Pedido.CONFIRMADO and p.ya_empezo,
         'espera_para_finalizar': p.estado == Pedido.CONFIRMADO and not p.ya_empezo,
+        'para_finalizar': p.para_finalizar,
         'puede_reprogramar': activo,
         'puede_editar_servicios': activo,
         'puede_anular': activo and tiene_permiso(usuario, 'PED_ANULAR'),
@@ -382,6 +383,7 @@ def pedidos(request):
     for p in lista.prefetch_related('personal'):
         fila = _resumen(p)
         fila['atrasada'] = p.pk in atrasadas
+        fila['para_finalizar'] = p.para_finalizar
         fila['tiene_chofer'] = any(x.Funcion == PersonalPedido.CHOFER for x in p.personal.all())
         filas.append(fila)
     return JsonResponse({'pedidos': filas, 'avisos': reglas.contar_avisos(),

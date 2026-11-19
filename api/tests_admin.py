@@ -20,6 +20,7 @@ class ApiAdminTest(ApiBase):
         self.assertIn('Vencido', r['avisos'])
         fila = next(f for f in r['pedidos'] if f['id'] == self.p.pk)
         self.assertFalse(fila['tiene_chofer'])
+        self.assertEqual((fila['atrasada'], fila['para_finalizar']), (False, False))
         o = self.client.get('/api/admin/opciones', **self.admin_h).json()
         self.assertIn('AD-321-JK', o['vehiculos'])
 
@@ -27,6 +28,7 @@ class ApiAdminTest(ApiBase):
         d = self.client.get(self.url(), **self.admin_h).json()
         self.assertEqual(d['gestion']['cliente']['dni'], CLIENTE)
         self.assertTrue(d['gestion']['puede_asignar'])
+        self.assertFalse(d['gestion']['para_finalizar'])  # todavía no empezó
         cliente_h = self.entrar(str(CLIENTE))
         self.assertIsNone(self.client.get(self.url(), **cliente_h).json()['gestion'])
 
