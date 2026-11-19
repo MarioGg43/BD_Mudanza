@@ -29,7 +29,7 @@ export function Terminar() {
       const usados = Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, Number(v)]));
       await portalService.terminar(id, usados);
       const perdidos = datos.materiales.filter((m) => m.reutilizable && Number(valores[m.id]) < m.salio)
-        .map((m) => `${m.salio - Number(valores[m.id])} ${m.nombre.toLowerCase()}`);
+        .map((m) => `${m.nombre.toLowerCase()} (${m.salio - Number(valores[m.id])})`);
       navigate('/portal', { state: { aviso: `Mudanza N° ${id} terminada y finalizada. ¡Buen trabajo!`
         + (perdidos.length ? ` Quedó registrado que no volvieron: ${perdidos.join(', ')}.` : '') } });
     } catch (err) {
@@ -60,6 +60,7 @@ export function Terminar() {
                     <label className="d-flex align-items-center gap-2 small fw-semibold">
                       {m.reutilizable ? 'Volvieron' : 'Se usaron'}
                       <input type="number" className="form-control text-end" style={{ width: 90 }} min="0" max={m.salio} inputMode="numeric"
+                        aria-label={`${m.reutilizable ? 'Volvieron' : 'Se usaron'} de ${m.nombre.toLowerCase()}`}
                         value={valores[m.id] ?? ''} onChange={(e) => setValores({ ...valores, [m.id]: e.target.value })} required />
                     </label>
                   </div>
