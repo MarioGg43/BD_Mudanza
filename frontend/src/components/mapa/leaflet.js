@@ -5,7 +5,9 @@ import icono from 'leaflet/dist/images/marker-icon.png';
 import icono2x from 'leaflet/dist/images/marker-icon-2x.png';
 import sombra from 'leaflet/dist/images/marker-shadow.png';
 
-// con Vite, las imágenes del marcador hay que indicarlas a mano
+// con Vite, las imágenes del marcador hay que indicarlas a mano. Leaflet además les pega
+// adelante su propia carpeta (y la ruta queda repetida): por eso se borra esa función.
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl: icono, iconRetinaUrl: icono2x, shadowUrl: sombra });
 
 export const SALTA = [-24.7821, -65.4117];
