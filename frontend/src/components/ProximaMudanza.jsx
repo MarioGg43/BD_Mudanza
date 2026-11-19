@@ -3,7 +3,9 @@ import { dinero, diaSemana, diasHasta, fecha } from '../utils/formato';
 
 function cuandoEs(p) {
   const dias = diasHasta(p.fecha_servicio);
-  if (p.en_curso || dias < 0) return 'En curso';
+  // «En curso» solo cuando el chofer tocó «Empezamos», igual que en Django
+  if (p.en_curso) return 'En curso';
+  if (dias < 0) return 'Ya pasó la fecha';
   if (dias === 0) return 'Es hoy';
   if (dias === 1) return 'Es mañana';
   return `Faltan ${dias} días`;
