@@ -16,10 +16,10 @@ class VehiculoForm(forms.ModelForm):
         ]
         labels = {
             'patente': 'Patente',
-            'marca_modelo': 'Marca y Modelo',
-            'tipo_vehiculo': 'Tipo de Vehículo',
-            'capacidad_kg': 'Capacidad Máxima (kg)',
-            'capacidad_m3': 'Capacidad Máxima (m³)',
+            'marca_modelo': 'Marca y modelo',
+            'tipo_vehiculo': 'Tipo de vehículo',
+            'capacidad_kg': 'Carga máxima (kg)',
+            'capacidad_m3': 'Volumen máximo (m³)',
             'estado': 'Estado',
             'kilometraje': 'Kilometraje',
             'anio': 'Año',

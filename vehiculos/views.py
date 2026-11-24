@@ -70,7 +70,7 @@ def createVehiculo(request):
             messages.success(request, '¡Vehículo registrado con éxito!')
             return redirect('lista_vehiculos')
         else:
-            messages.error(request, 'Por favor, revise los errores.')
+            messages.error(request, 'Revisá los datos marcados.')
     else:
         form = VehiculoForm()
 
@@ -89,7 +89,7 @@ def editarVehiculo(request, patente):
             messages.success(request, '¡Vehículo actualizado con éxito!')
             return redirect('lista_vehiculos')
         else:
-            messages.error(request, 'Por favor, revise los errores.')
+            messages.error(request, 'Revisá los datos marcados.')
     else:
         form = VehiculoForm(instance=vehiculo)
 

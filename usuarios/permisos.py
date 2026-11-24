@@ -104,7 +104,7 @@ def requiere_permiso_api(codigo):
         def envoltura(request, *args, **kwargs):
             usuario = get_usuario_actual(request)
             if not usuario:
-                return JsonResponse({'ok': False, 'error': 'Debe iniciar sesion.'}, status=401)
+                return JsonResponse({'ok': False, 'error': 'Tenés que iniciar sesión.'}, status=401)
             if not tiene_permiso(usuario, codigo):
                 return JsonResponse({'ok': False, 'error': 'No tenés permiso para esta operación.'}, status=403)
             request.usuario = usuario

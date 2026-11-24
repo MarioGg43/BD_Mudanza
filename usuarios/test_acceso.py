@@ -148,7 +148,7 @@ class MenuYBotonesTest(BaseAcceso):
     def test_panel_sin_usr_baja_no_muestra_baja(self):
         self.entrar(20111222)
         r = self.client.get('/panel/')
-        self.assertContains(r, 'Alta de Usuario')
+        self.assertContains(r, 'Alta de usuario')
         self.assertNotContains(r, 'abrirModalBaja(\'')
         self.assertNotContains(r, 'abrirModalRestablecer(\'')
         self.entrar(ADMIN)

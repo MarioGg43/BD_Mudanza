@@ -19,6 +19,24 @@
   <link rel="stylesheet" href="/static/css/tailwind.min.css?v=1">
 </head>
 <body class="flex flex-col min-h-screen{% if menu_lateral %} con-lateral{% endif %}">
+  {% if messages %}
+  {# avisos de lo que se acaba de hacer («Guardado», «Empezaron la mudanza»...): arriba a la derecha y se van solos #}
+  <div id="avisos" class="flex flex-col gap-2"
+       style="position: fixed; top: 4.25rem; right: 1rem; z-index: 1100; max-width: min(420px, calc(100vw - 2rem));">
+    {% for m in messages %}
+    <div role="{% if m.tags == 'error' %}alert{% else %}status{% endif %}"
+         class="aviso-flotante {% if m.tags == 'error' %}aviso-error{% elif m.tags == 'warning' %}aviso-atencion{% elif m.tags == 'success' %}aviso-ok{% else %}aviso-info{% endif %} rounded-xl text-sm"
+         style="position: relative; padding: .75rem 2.25rem .75rem .9rem; box-shadow: 0 10px 25px rgba(0,0,0,.12);">
+      <i class="fa-solid {% if m.tags == 'error' %}fa-circle-exclamation{% elif m.tags == 'warning' %}fa-triangle-exclamation{% elif m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %} mr-1"></i>{{ m }}
+      <button type="button" aria-label="Cerrar el aviso" onclick="this.parentElement.remove()"
+              style="position: absolute; top: .35rem; right: .7rem; font-size: 1.2rem; line-height: 1; opacity: .6; background: none; border: 0; cursor: pointer; color: inherit;">&times;</button>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    setTimeout(() => document.querySelectorAll('#avisos .aviso-flotante[role="status"]').forEach((a) => a.remove()), 7000);
+  </script>
+  {% endif %}
   {% block content %}{% endblock %}
   {% block extra_js %}{% endblock %}
   <script src="/static/js/ver_clave.js"></script>

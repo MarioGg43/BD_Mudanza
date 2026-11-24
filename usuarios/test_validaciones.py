@@ -101,6 +101,24 @@ class PantallasTest(TestCase):
         self.assertIn('El apellido lleva solo letras', r.json()['error'])
         self.assertFalse(Usuario.objects.filter(DNI=42123456).exists())
 
+    def test_las_pantallas_de_tailwind_muestran_el_aviso_de_lo_que_se_hizo(self):
+        # Usuarios, el portal del chofer y «Terminamos» usan la otra plantilla base: antes no mostraban los avisos
+        self.entrar(ADMIN)
+        self.assertTrue(self.client.post('/usuarios/40987654/reactivar/').json()['ok'])
+        r = self.client.get('/panel/')
+        self.assertContains(r, 'id="avisos"')
+        self.assertContains(r, 'está activo otra vez.')
+
+    def test_solo_activos_se_queda_en_usuarios(self):
+        # antes llevaba a «/», que ahora es la página de la empresa
+        self.entrar(ADMIN)
+        Usuario.objects.filter(DNI=40987654).update(Activo=False)
+        r = self.client.get('/panel/')
+        self.assertNotContains(r, "'/?activos=1'")
+        self.assertContains(r, 'url.searchParams.set(\'activos\'')
+        self.assertIn(40987654, [u.DNI for u in r.context['usuarios']])
+        self.assertNotIn(40987654, [u.DNI for u in self.client.get('/panel/?activos=1').context['usuarios']])
+
     def test_patente_con_formato_y_sin_repetir_aunque_cambien_los_guiones(self):
         from vehiculos.forms import VehiculoForm
         base = {'marca_modelo': 'Fiat Ducato', 'tipo_vehiculo': 'Camión Chico', 'capacidad_kg': '1500',

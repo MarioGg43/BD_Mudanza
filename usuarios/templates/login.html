@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Iniciar Sesión - Mudanzas y Fletes Salta{% endblock %}
+{% block title %}Iniciar sesión · Mudanzas y Fletes Salta{% endblock %}
 
 {% block content %}
 <div class="flex-1 flex flex-col justify-center items-center p-4">
@@ -10,7 +10,7 @@
         <a href="{% url 'inicio' %}" title="Ir a la página de inicio" class="logo-pastilla logo-pastilla-lg"><img src="/static/img/logo.webp" alt="Mudanzas y Fletes Salta" class="object-contain"></a>
       </div>
       <h2 class="text-xl font-bold">Mudanzas y Fletes Salta</h2>
-      <p class="text-xs texto-blanco-suave mt-1">Control de Acceso y Seguridad de Usuarios</p>
+      <p class="text-xs texto-blanco-suave mt-1">Ingresá con tu usuario o tu DNI</p>
     </div>
 
     {% if cambio_obligatorio %}
@@ -18,7 +18,7 @@
     <div class="p-6 sm:p-8 space-y-4">
       <div class="aviso-atencion p-3 rounded-xl text-xs">
         <i class="fa-solid fa-triangle-exclamation mr-1 text-sm"></i>
-        <strong>Seguridad Obligatoria:</strong> Debe establecer una nueva contraseña personal antes de ingresar al sistema.
+        <strong>Antes de entrar:</strong> cambiá la clave provisoria por una tuya.
       </div>
 
       {% if error_cambio %}
@@ -33,24 +33,24 @@
         <input type="hidden" name="clave_actual" value="{{ clave_actual }}">
 
         <div>
-          <label class="etiqueta block text-xs mb-1">Nueva Contraseña Personal *</label>
-          <input type="password" name="nueva_clave" required minlength="8" placeholder="Mínimo 8 caracteres"
+          <label class="etiqueta block text-xs mb-1">Clave nueva *</label>
+          <input type="password" name="nueva_clave" required minlength="8" placeholder="8 o más caracteres"
                  class="campo w-full p-2.5 text-sm">
           <div class="caja-suave mt-1.5 p-2 rounded-lg text-[11px] texto-suave">
-            <span class="block text-marca font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Requisitos de Seguridad:</span>
-            <span>• 8+ caracteres • 1 Mayúscula (A-Z) • 1 Minúscula (a-z) • 1 Número (0-9) • 1 Especial (!@#$%&*-_)</span>
+            <span class="block text-marca font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> La clave tiene que tener:</span>
+            <span>8 o más caracteres, una mayúscula, una minúscula, un número y un carácter especial (!@#$%&*-_).</span>
           </div>
         </div>
 
         <div>
-          <label class="etiqueta block text-xs mb-1">Confirmar Nueva Contraseña *</label>
+          <label class="etiqueta block text-xs mb-1">Repetí la clave nueva *</label>
           <input type="password" name="confirmar_clave" required minlength="8"
                  class="campo w-full p-2.5 text-sm">
         </div>
 
         <button type="submit" class="btn-primary w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
           <i class="fa-solid fa-check-double"></i>
-          <span>Guardar Nueva Contraseña y Acceder</span>
+          <span>Guardar la clave y entrar</span>
         </button>
       </form>
     </div>
@@ -70,7 +70,7 @@
           <label class="etiqueta block text-xs mb-1">Usuario o DNI</label>
           <div class="relative">
             <i class="fa-solid fa-user absolute left-3 top-3 icono-campo text-sm"></i>
-            <input type="text" name="usuario" required placeholder="Ingrese su Usuario o DNI"
+            <input type="text" name="usuario" required placeholder="Tu usuario o tu DNI"
                    class="campo w-full pl-9 pr-3 py-2.5 text-sm">
           </div>
         </div>
@@ -86,7 +86,7 @@
 
         <button type="submit" class="btn-primary w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer">
           <i class="fa-solid fa-right-to-bracket"></i>
-          <span>Iniciar Sesión</span>
+          <span>Iniciar sesión</span>
         </button>
       </form>
 
@@ -114,7 +114,7 @@
     <div class="grad-brand p-4 font-bold flex justify-between items-center">
       <h3 class="text-base flex items-center gap-2">
         <i class="fa-solid fa-key"></i>
-        Restablecer Contraseña
+        Recuperar la clave
       </h3>
       <button onclick="cerrarModalOlvido()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>

@@ -12,7 +12,7 @@
             {% endif %}
             {% if puede_gestionar and pedido.estado == 'Pendiente' and not pedido.vencido %}
             {% if chofer %}
-            <form method="post" action="{% url 'pedidos_confirmar' pedido.id_pedido %}">{% csrf_token %}
+            <form method="post" action="{% url 'pedidos_confirmar' pedido.id_pedido %}" onsubmit="return confirm('¿Confirmar el pedido N° {{ pedido.id_pedido }}? Al cliente le llega el aviso.')">{% csrf_token %}
                 <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Confirmar</button></form>
             {% else %}
             <a href="{% url 'pedidos_asignar' pedido.id_pedido %}" class="btn btn-primary" title="Para confirmar hace falta el chofer">
@@ -21,7 +21,7 @@
             {% endif %}
             {% if puede_gestionar and pedido.estado == 'Confirmado' %}
             {% if pedido.ya_empezo %}
-            <form method="post" action="{% url 'pedidos_finalizar' pedido.id_pedido %}">{% csrf_token %}
+            <form method="post" action="{% url 'pedidos_finalizar' pedido.id_pedido %}" onsubmit="return confirm('¿Finalizar la mudanza N° {{ pedido.id_pedido }}? Queda cerrada y no se puede volver atrás.')">{% csrf_token %}
                 <button class="btn btn-success"><i class="bi bi-flag me-1"></i>Finalizar</button></form>
             {% else %}
             <span class="btn btn-outline-secondary disabled" title="La mudanza todavía no empezó">

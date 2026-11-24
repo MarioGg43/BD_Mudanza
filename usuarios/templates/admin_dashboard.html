@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Panel Administrador - Mudanzas y Fletes Salta{% endblock %}
+{% block title %}Usuarios · Mudanzas y Fletes Salta{% endblock %}
 
 {% block content %}
 {% include '_navegacion.html' %}
@@ -19,7 +19,7 @@
       <span><strong>Pedido N° {{ r.id_pedido }}</strong> · {{ r.idUsuario.Nombre }} {{ r.idUsuario.Apellido }} · {{ r.patente_vehiculo_id }} · {{ r.fecha_servicio|date:"d/m" }}, fin estimado {{ r.hasta }}{% if r.atrasada %} · <strong>Otra mudanza la espera</strong>{% endif %}</span>
       <span class="flex items-center gap-2">
         <a href="{% url 'pedidos_detalle' r.id_pedido %}" class="btn-secundario px-3 py-1 rounded-lg">Ver pedido</a>
-        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" class="inline">{% csrf_token %}
+        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" class="inline" onsubmit="return confirm('¿Finalizar la mudanza N° {{ r.id_pedido }}? Queda cerrada y no se puede volver atrás.')">{% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}">
           <button class="btn-primary px-3 py-1 rounded-lg font-semibold cursor-pointer"><i class="fa-solid fa-flag-checkered mr-1"></i>Finalizar</button>
         </form>
@@ -44,7 +44,7 @@
       <div class="flex flex-wrap items-center gap-3">
         <label class="caja-suave flex items-center gap-2 text-xs texto-tinta px-3 py-2 rounded-lg cursor-pointer">
           <input type="checkbox" id="chkSoloActivos" {% if solo_activos %}checked{% endif %} onchange="filtrarActivos(this)" class="casilla rounded">
-          <span>Solo Activos</span>
+          <span>Solo activos</span>
         </label>
 
         <div class="relative">
@@ -56,7 +56,7 @@
         {% if 'USR_CREAR' in permisos %}
         <button id="btnAltaUsuarioNav" onclick="abrirModalAlta()" class="btn-primary px-4 py-2 rounded-xl text-sm flex items-center gap-2 cursor-pointer">
           <i class="fa-solid fa-user-plus"></i>
-          <span>Alta de Usuario</span>
+          <span>Alta de usuario</span>
         </button>
         {% endif %}
       </div>
@@ -66,14 +66,14 @@
       <table class="tabla-marca w-full text-left border-collapse text-xs sm:text-sm" id="tablaUsuarios">
         <thead>
           <tr class="uppercase text-[11px] tracking-wider">
-            <th class="p-3 sm:p-4 font-semibold">DNI (PK)</th>
-            <th class="p-3 sm:p-4 font-semibold">Apellido y Nombre</th>
-            <th class="p-3 sm:p-4 font-semibold">NombreUsuario</th>
-            <th class="p-3 sm:p-4 font-semibold">Correo (Editable)</th>
-            <th class="p-3 sm:p-4 font-semibold">Rol Asignado</th>
+            <th class="p-3 sm:p-4 font-semibold">DNI</th>
+            <th class="p-3 sm:p-4 font-semibold">Apellido y nombre</th>
+            <th class="p-3 sm:p-4 font-semibold">Usuario</th>
+            <th class="p-3 sm:p-4 font-semibold">Correo</th>
+            <th class="p-3 sm:p-4 font-semibold">Rol</th>
             <th class="p-3 sm:p-4 font-semibold text-center">Activo</th>
-            <th class="p-3 sm:p-4 font-semibold text-center">Exige Clave</th>
-            <th class="p-3 sm:p-4 font-semibold">Últ. Modif. / Baja</th>
+            <th class="p-3 sm:p-4 font-semibold text-center">Clave</th>
+            <th class="p-3 sm:p-4 font-semibold">Última modificación o baja</th>
             <th class="p-3 sm:p-4 font-semibold text-right">Acciones</th>
           </tr>
         </thead>
@@ -119,7 +119,7 @@
             </td>
             <td class="p-3 sm:p-4 text-center">
               {% if u.DebeCambiarClave %}
-              <span class="estado estado-clave" title="Debe cambiar contraseña en su próximo login"><i class="fa-solid fa-key mr-1"></i> Obligatorio</span>
+              <span class="estado estado-clave" title="Tiene que cambiar la clave la próxima vez que entre"><i class="fa-solid fa-key mr-1"></i> Debe cambiarla</span>
               {% else %}
               <span class="text-xs texto-suave"><i class="fa-solid fa-check mr-1" style="color: var(--ok);"></i> Actualizada</span>
               {% endif %}
@@ -155,11 +155,11 @@
                 {% if u.DNI == usuario_actual.DNI %}
                 {# nadie se da de baja a sí mismo #}
                 {% elif u.Activo %}
-                <button onclick="abrirModalBaja('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}')" class="accion accion-baja p-1.5 rounded-lg text-xs" title="Dar de Baja">
+                <button onclick="abrirModalBaja('{{ u.DNI }}', '{{ u.Apellido }}', '{{ u.Nombre }}')" class="accion accion-baja p-1.5 rounded-lg text-xs" title="Dar de baja">
                   <i class="fa-solid fa-user-slash"></i>
                 </button>
                 {% else %}
-                <button onclick="reactivarUsuario('{{ u.DNI }}')" class="accion accion-reactivar p-1.5 rounded-lg text-xs" title="Reactivar Usuario">
+                <button onclick="reactivarUsuario('{{ u.DNI }}')" class="accion accion-reactivar p-1.5 rounded-lg text-xs" title="Reactivar usuario">
                   <i class="fa-solid fa-user-check"></i>
                 </button>
                 {% endif %}
@@ -187,7 +187,7 @@
     <div class="grad-brand p-4 flex justify-between items-center">
       <h3 class="font-bold text-lg flex items-center gap-2">
         <i class="fa-solid fa-user-plus"></i>
-        Alta de Usuario
+        Alta de usuario
       </h3>
       <button onclick="cerrarModalAlta()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
@@ -196,13 +196,13 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label class="etiqueta block mb-1">DNI *</label>
-          <input type="text" id="altaDNI" required maxlength="8" inputmode="numeric" autocomplete="off" data-validar="dni" placeholder="Ej: 42123456 (sin puntos)"
+          <input type="text" id="altaDNI" required maxlength="8" inputmode="numeric" autocomplete="off" data-validar="dni" placeholder="Ej.: 42123456 (sin puntos)"
                  class="campo w-full p-2.5">
         </div>
         <div>
-          <label class="etiqueta block mb-1">Rol Asignado *</label>
+          <label class="etiqueta block mb-1">Rol *</label>
           <select id="altaPerfil" required class="campo w-full p-2.5">
-            <option value="">-- Seleccionar Rol --</option>
+            <option value="">Elegí el rol</option>
             {% for p in roles_asignables %}
             <option value="{{ p.id_rol }}">{{ p.nom_rol }}</option>
             {% endfor %}
@@ -213,12 +213,12 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label class="etiqueta block mb-1">Apellido *</label>
-          <input type="text" id="altaApellido" required maxlength="50" autocomplete="off" data-validar="persona" data-que="apellido" oninput="actualizarPreviewUsuario()" placeholder="Ej: Gomez"
+          <input type="text" id="altaApellido" required maxlength="50" autocomplete="off" data-validar="persona" data-que="apellido" oninput="actualizarPreviewUsuario()" placeholder="Ej.: Gómez"
                  class="campo w-full p-2.5">
         </div>
         <div>
           <label class="etiqueta block mb-1">Nombre *</label>
-          <input type="text" id="altaNombre" required maxlength="50" autocomplete="off" data-validar="persona" data-que="nombre" oninput="actualizarPreviewUsuario()" placeholder="Ej: Juan"
+          <input type="text" id="altaNombre" required maxlength="50" autocomplete="off" data-validar="persona" data-que="nombre" oninput="actualizarPreviewUsuario()" placeholder="Ej.: Juan"
                  class="campo w-full p-2.5">
         </div>
       </div>
@@ -226,25 +226,25 @@
       <!-- Preview de Usuario automático -->
       <div class="aviso-info p-3 rounded-xl flex items-center justify-between gap-2">
         <div>
-          <span class="text-[11px] texto-suave block font-semibold">Nombre de Usuario (Automático del sistema):</span>
-          <span id="previewUsername" class="text-sm font-mono font-bold text-amber-gold">Complete Apellido y Nombre...</span>
+          <span class="text-[11px] texto-suave block font-semibold">Nombre de usuario (lo genera el sistema):</span>
+          <span id="previewUsername" class="text-sm font-mono font-bold text-amber-gold">Escribí el apellido y el nombre…</span>
         </div>
-        <span class="text-xs texto-suave bg-white px-2 py-1 rounded border" style="border-color: var(--linea);">Apellido + 1ra letra</span>
+        <span class="text-xs texto-suave bg-white px-2 py-1 rounded border" style="border-color: var(--linea);">Apellido + inicial del nombre</span>
       </div>
 
       <div>
-        <label class="etiqueta block mb-1">Correo Electrónico *</label>
-        <input type="email" id="altaCorreo" required maxlength="150" autocomplete="off" data-validar="correo" placeholder="Ej: juan.gomez@mudanzassalta.com"
+        <label class="etiqueta block mb-1">Correo *</label>
+        <input type="email" id="altaCorreo" required maxlength="150" autocomplete="off" data-validar="correo" placeholder="Ej.: juan.gomez@gmail.com"
                class="campo w-full p-2.5">
       </div>
 
       <div>
         <label class="etiqueta block mb-1">Clave inicial (se guarda cifrada) *</label>
-        <input type="password" id="altaClave" required autocomplete="new-password" data-validar="clave-nueva" placeholder="Mínimo 8 caracteres (Mayús, Minús, Núm y Símbolo)"
+        <input type="password" id="altaClave" required autocomplete="new-password" data-validar="clave-nueva" placeholder="8 o más caracteres"
                class="campo w-full p-2.5">
         <div class="caja-suave mt-1.5 p-2 rounded-lg text-[11px] texto-suave space-y-0.5">
-          <span class="block text-marca font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Requisitos de seguridad obligatorios:</span>
-          <span>• 8+ caracteres • 1 Mayúscula (A-Z) • 1 Minúscula (a-z) • 1 Número (0-9) • 1 Símbolo (!@#$%&*-_)</span>
+          <span class="block text-marca font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> La clave tiene que tener:</span>
+          <span>8 o más caracteres, una mayúscula, una minúscula, un número y un carácter especial (!@#$%&*-_).</span>
         </div>
       </div>
 
@@ -252,7 +252,7 @@
 
       <div class="flex justify-end gap-3 pt-3 linea-t">
         <button type="button" onclick="cerrarModalAlta()" class="btn-secundario px-4 py-2 rounded-xl">Cancelar</button>
-        <button type="submit" class="btn-primary px-5 py-2 rounded-xl">Registrar Usuario</button>
+        <button type="submit" class="btn-primary px-5 py-2 rounded-xl">Registrar usuario</button>
       </div>
     </form>
   </div>
@@ -264,7 +264,7 @@
     <div class="grad-brand p-4 font-bold flex justify-between items-center">
       <h3 class="text-base flex items-center gap-2">
         <i class="fa-solid fa-pen-to-square"></i>
-        Modificación de Usuario
+        Modificar correo
       </h3>
       <button onclick="cerrarModalModificar()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
@@ -277,7 +277,7 @@
       </div>
 
       <div>
-        <label class="etiqueta block mb-1">Correo Electrónico *</label>
+        <label class="etiqueta block mb-1">Correo *</label>
         <input type="email" id="modificarCorreo" required
                class="campo w-full p-2.5">
       </div>
@@ -286,7 +286,7 @@
 
       <div class="flex justify-end gap-3 pt-3 linea-t">
         <button type="button" onclick="cerrarModalModificar()" class="btn-secundario px-4 py-2 rounded-xl">Cancelar</button>
-        <button type="submit" class="btn-primary px-5 py-2 rounded-xl">Guardar Modificación</button>
+        <button type="submit" class="btn-primary px-5 py-2 rounded-xl">Guardar el correo</button>
       </div>
     </form>
   </div>
@@ -298,21 +298,21 @@
     <div class="grad-brand p-4 font-bold flex justify-between items-center">
       <h3 class="text-base flex items-center gap-2">
         <i class="fa-solid fa-key"></i>
-        Restablecer Clave de Usuario
+        Restablecer la clave
       </h3>
       <button onclick="cerrarModalRestablecer()" class="text-white hover:opacity-75 rounded" aria-label="Cerrar"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
 
     <form onsubmit="guardarRestablecerClave(event)" class="p-6 space-y-4 text-xs sm:text-sm">
       <div class="caja-suave p-3 rounded-lg">
-        <p class="texto-suave text-xs">Restableciendo contraseña para:</p>
+        <p class="texto-suave text-xs">Vas a restablecer la clave de:</p>
         <p id="restablecerInfoUsuario" class="font-bold texto-tinta text-sm mt-0.5"></p>
         <input type="hidden" id="restablecerDNI">
       </div>
 
       <div>
-        <label class="etiqueta block mb-1">Nueva Clave Provisoria (Opcional - dejar vacío para autogenerar)</label>
-        <input type="text" id="restablecerNuevaClave" placeholder="Ej: Temporal2026!"
+        <label class="etiqueta block mb-1">Clave provisoria (opcional: si la dejás vacía, el sistema genera una)</label>
+        <input type="text" id="restablecerNuevaClave" placeholder="Ej.: Temporal2026!"
                class="campo w-full p-2.5 font-mono text-xs">
       </div>
 
@@ -321,7 +321,7 @@
 
       <div class="flex justify-end gap-3 pt-3 linea-t">
         <button type="button" onclick="cerrarModalRestablecer()" class="btn-secundario px-4 py-2 rounded-xl">Cerrar</button>
-        <button type="submit" id="btnSubmitRestablecer" class="btn-primary px-5 py-2 rounded-xl">Aplicar Restablecimiento</button>
+        <button type="submit" id="btnSubmitRestablecer" class="btn-primary px-5 py-2 rounded-xl">Restablecer la clave</button>
       </div>
     </form>
   </div>
@@ -345,7 +345,7 @@ function actualizarPreviewUsuario() {
   const nom = document.getElementById('altaNombre').value.trim();
   const span = document.getElementById('previewUsername');
   if (!ape || !nom) {
-    span.textContent = 'Complete Apellido y Nombre...';
+    span.textContent = 'Escribí el apellido y el nombre…';
     span.className = 'text-xs text-gray-500 italic';
     return;
   }
@@ -357,7 +357,11 @@ function actualizarPreviewUsuario() {
 }
 
 function filtrarActivos(chk) {
-  window.location.href = chk.checked ? '/?activos=1' : '/';
+  // se queda en esta misma pantalla y solo cambia el filtro
+  const url = new URL(window.location.href);
+  if (chk.checked) url.searchParams.set('activos', '1');
+  else url.searchParams.delete('activos');
+  window.location.href = url.pathname + url.search;
 }
 
 function filtrarTabla() {
@@ -433,7 +437,6 @@ async function cambiarRol(dni) {
     alert(data.error || 'No se pudo cambiar el rol.');
     return;
   }
-  alert(`${data.usuario}: ${data.anterior} → ${data.nuevo}`);
   window.location.reload();
 }
 
@@ -499,9 +502,9 @@ async function guardarRestablecerClave(e) {
   }
 
   resDiv.innerHTML = `
-    <p class="font-bold mb-1"><i class="fa-solid fa-circle-check mr-1"></i> Clave restablecida exitosamente</p>
-    <p>Clave generada: <strong class="font-mono text-white text-sm">${data.clave_temporal}</strong></p>
-    <p class="text-[11px] text-gray-300 mt-1">Se le exigirá cambiarla en su próximo Login.</p>
+    <p class="font-bold mb-1"><i class="fa-solid fa-circle-check mr-1"></i> La clave se restableció</p>
+    <p>Clave provisoria: <strong class="font-mono text-white text-sm">${data.clave_temporal}</strong></p>
+    <p class="text-[11px] text-gray-300 mt-1">La va a tener que cambiar la próxima vez que entre.</p>
   `;
   resDiv.classList.remove('hidden');
   document.getElementById('btnSubmitRestablecer').classList.add('hidden');
@@ -509,7 +512,7 @@ async function guardarRestablecerClave(e) {
 }
 
 async function abrirModalBaja(dni, ape, nom) {
-  if (!confirm(`¿Está seguro que desea dar de baja a ${ape}, ${nom} (DNI ${dni})?
+  if (!confirm(`¿Dar de baja a ${ape}, ${nom} (DNI ${dni})?
 El usuario pasará a Inactivo y se asentará la fecha de baja.`)) return;
   const formData = new FormData();
   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -518,7 +521,7 @@ El usuario pasará a Inactivo y se asentará la fecha de baja.`)) return;
 }
 
 async function reactivarUsuario(dni) {
-  if (!confirm(`¿Desea reactivar al usuario con DNI ${dni}?`)) return;
+  if (!confirm(`¿Reactivar al usuario con DNI ${dni}?`)) return;
   const formData = new FormData();
   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   const res = await fetch(`/usuarios/${dni}/reactivar/`, { method: 'POST', body: formData });

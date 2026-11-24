@@ -228,6 +228,7 @@ def alta_usuario(request):
                                           request.POST.get('correo'), request.POST.get('clave', ''), id_rol)
     except operaciones.ErrorUsuario as e:
         return _fallo(e)
+    messages.success(request, f'Usuario creado: {nuevo.NombreUsuario}. Va a tener que cambiar la clave la primera vez que entre.')
     return JsonResponse({'ok': True, 'usuario': nuevo.NombreUsuario})
 
 
@@ -240,6 +241,7 @@ def modificar_correo(request, dni):
         operaciones.modificar_correo(request.usuario, usuario, request.POST.get('correo', ''))
     except operaciones.ErrorUsuario as e:
         return _fallo(e)
+    messages.success(request, f'Correo de {usuario.NombreUsuario} actualizado.')
     return JsonResponse({'ok': True, 'nuevo_correo': usuario.Correo})
 
 
@@ -247,20 +249,24 @@ def modificar_correo(request, dni):
 @requiere_permiso_api('USR_BAJA')
 def baja_usuario(request, dni):
     # Regla estricta Hito 2: Cambiar Activo a (no) y asentar FechaBaja
+    usuario = get_object_or_404(Usuario, DNI=dni)
     try:
-        operaciones.dar_de_baja(request.usuario, get_object_or_404(Usuario, DNI=dni))
+        operaciones.dar_de_baja(request.usuario, usuario)
     except operaciones.ErrorUsuario as e:
         return _fallo(e)
+    messages.success(request, f'{usuario.NombreUsuario} quedó dado de baja. Se puede reactivar cuando haga falta.')
     return JsonResponse({'ok': True})
 
 
 @require_POST
 @requiere_permiso_api('USR_BAJA')
 def reactivar_usuario(request, dni):
+    usuario = get_object_or_404(Usuario, DNI=dni)
     try:
-        operaciones.reactivar(request.usuario, get_object_or_404(Usuario, DNI=dni))
+        operaciones.reactivar(request.usuario, usuario)
     except operaciones.ErrorUsuario as e:
         return _fallo(e)
+    messages.success(request, f'{usuario.NombreUsuario} está activo otra vez.')
     return JsonResponse({'ok': True})
 
 
@@ -285,6 +291,7 @@ def cambiar_rol(request, dni):
         anterior = operaciones.cambiar_rol(request.usuario, usuario, request.POST.get('idRol'))
     except operaciones.ErrorUsuario as e:
         return _fallo(e)
+    messages.success(request, f'{usuario.NombreUsuario} pasó de {anterior.nom_rol} a {usuario.idRol.nom_rol}.')
     return JsonResponse({'ok': True, 'usuario': usuario.NombreUsuario,
                          'anterior': anterior.nom_rol, 'nuevo': usuario.idRol.nom_rol})
 

@@ -108,6 +108,23 @@
     return aviso;
   }
 
+  // nombre y apellido: cada palabra empieza con mayúscula mientras se escribe («maría» → «María»),
+  // salvo «de», «del», «la», «las», «los» e «y» en el medio («María de la Paz»)
+  function mayusculaInicial(c) {
+    const v = c.value;
+    const nuevo = v.replace(new RegExp(`(^|[ '\\-])([${LETRA}]+)`, 'g'), (m, sep, palabra, pos) => {
+      const resto = v.slice(pos + m.length);
+      const enMedio = pos > 0 && /^(de|del|la|las|los|y)$/i.test(palabra) && resto.startsWith(' ');
+      return sep + (enMedio ? palabra.toLowerCase() : palabra[0].toUpperCase() + palabra.slice(1));
+    });
+    if (nuevo !== v) {
+      const inicio = c.selectionStart;
+      const fin = c.selectionEnd;
+      c.value = nuevo;
+      try { c.setSelectionRange(inicio, fin); } catch (e) { /* algunos tipos no lo permiten */ }
+    }
+  }
+
   // en los campos numéricos el navegador deja escribir «e», «+», «-» y comas: se frenan antes
   function teclaNumero(e) {
     const c = e.target;
@@ -331,6 +348,7 @@
     ocultarErrorDelServidor(c);
     c.dataset.vTocado = '1';
     const aviso = limpiar(c);
+    if (regla(c) === 'persona') mayusculaInicial(c);
     if (aviso) mostrar(c, aviso, true);
     else revisar(c);
     // si cambia la clave, la repetida se vuelve a revisar
