@@ -52,10 +52,13 @@ def guardar_rol(rol, nombre, descripcion, codigos, actor):
     errores = {}
     if codigos - CODIGOS_VALIDOS:
         errores['permisos'] = 'Hay permisos que no existen.'
-    if not nombre:
-        errores['nombre'] = 'Escribí el nombre del rol.'
-    elif len(nombre) > 100:
-        errores['nombre'] = 'El nombre puede tener hasta 100 caracteres.'
+    from . import validaciones
+    try:
+        nombre = validaciones.nombre_de_algo(nombre, 'nombre del rol', minimo=3)
+    except validaciones.DatoInvalido as e:
+        errores['nombre'] = str(e)
+    if errores.get('nombre'):
+        pass
     elif Rol.objects.filter(nom_rol__iexact=nombre).exclude(pk=getattr(rol, 'pk', None)).exists():
         errores['nombre'] = 'Ya existe un rol con ese nombre.'
     if rol and rol.nom_rol in ROLES_DEL_SISTEMA and nombre != rol.nom_rol:

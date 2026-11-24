@@ -9,6 +9,7 @@ from django.db.models import Case, IntegerField, Q, Value, When
 
 from usuarios.models import (Material, Objeto, Pedido, RecursoAsignado, Reprogramacion, Rol, Servicio, Usuario,
                              Vehiculo)
+from usuarios import validaciones
 from usuarios.utils import hash_password, nombre_usuario_libre, validate_strong_password
 from . import reglas
 
@@ -243,27 +244,50 @@ class AnularForm(forms.Form):
 
 
 class RegistroClienteForm(forms.Form):
-    dni = forms.IntegerField(label='DNI', min_value=1000000, max_value=99999999)
-    apellido = forms.CharField(max_length=100, label='Apellido')
-    nombre = forms.CharField(max_length=100, label='Nombre')
-    correo = forms.EmailField(max_length=150, label='Correo')
-    telefono = forms.CharField(max_length=30, required=False, label='Teléfono')
-    clave = forms.CharField(label='Clave', widget=forms.PasswordInput,
+    dni = forms.CharField(label='DNI', widget=forms.TextInput(attrs={
+        'inputmode': 'numeric', 'autocomplete': 'off', 'maxlength': '8', 'data-validar': 'dni', 'placeholder': 'Solo números, sin puntos'}))
+    apellido = forms.CharField(max_length=50, label='Apellido', widget=forms.TextInput(attrs={
+        'autocomplete': 'family-name', 'data-validar': 'persona', 'data-que': 'apellido'}))
+    nombre = forms.CharField(max_length=50, label='Nombre', widget=forms.TextInput(attrs={
+        'autocomplete': 'given-name', 'data-validar': 'persona', 'data-que': 'nombre'}))
+    correo = forms.CharField(max_length=150, label='Correo', widget=forms.EmailInput(attrs={
+        'autocomplete': 'email', 'data-validar': 'correo', 'placeholder': 'nombre@gmail.com'}))
+    telefono = forms.CharField(max_length=20, label='Teléfono', widget=forms.TextInput(attrs={
+        'type': 'tel', 'inputmode': 'tel', 'autocomplete': 'tel', 'data-validar': 'telefono',
+        'placeholder': 'Con código de área, ej. 387 4112233'}))
+    clave = forms.CharField(label='Clave', widget=forms.PasswordInput(attrs={
+        'autocomplete': 'new-password', 'data-validar': 'clave-nueva'}),
                             help_text='8 o más caracteres, con mayúscula, minúscula, número y un caracter especial.')
-    clave2 = forms.CharField(label='Repetir clave', widget=forms.PasswordInput)
+    clave2 = forms.CharField(label='Repetir clave', widget=forms.PasswordInput(attrs={
+        'autocomplete': 'new-password', 'data-validar': 'repetir', 'data-igual-a': 'id_clave'}))
+
+    FALTA = {'dni': 'Escribí el DNI.', 'apellido': 'Escribí el apellido.', 'nombre': 'Escribí el nombre.',
+             'correo': 'Escribí el correo.', 'telefono': 'Escribí el teléfono.', 'clave': 'Escribí una clave.',
+             'clave2': 'Repetí la clave.'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for nombre, mensaje in self.FALTA.items():
+            self.fields[nombre].error_messages['required'] = mensaje
         con_bootstrap(self)
 
     def clean_dni(self):
-        dni = self.cleaned_data['dni']
+        dni = validaciones.para_form(validaciones.dni, self.cleaned_data['dni'])
         if Usuario.objects.filter(DNI=dni).exists():
             raise forms.ValidationError('Ya hay una cuenta con ese DNI.')
         return dni
 
+    def clean_apellido(self):
+        return validaciones.para_form(validaciones.persona, self.cleaned_data['apellido'], 'apellido')
+
+    def clean_nombre(self):
+        return validaciones.para_form(validaciones.persona, self.cleaned_data['nombre'], 'nombre')
+
+    def clean_telefono(self):
+        return validaciones.para_form(validaciones.telefono, self.cleaned_data['telefono'], obligatorio=True)
+
     def clean_correo(self):
-        correo = self.cleaned_data['correo'].strip().lower()
+        correo = validaciones.para_form(validaciones.correo, self.cleaned_data['correo'])
         if Usuario.objects.filter(Correo=correo).exists():
             raise forms.ValidationError('Ese correo ya está en uso.')
         return correo
@@ -280,15 +304,25 @@ class RegistroClienteForm(forms.Form):
             self.add_error('clave2', 'Las claves no coinciden.')
         return datos
 
-    def crear_cliente(self):
+    def datos_en_espera(self):
+        """Lo que espera el código del correo (pedidos/verificacion.py): la clave ya va cifrada."""
         d = self.cleaned_data
-        return Usuario.objects.create(
-            DNI=d['dni'], Apellido=d['apellido'].strip(), Nombre=d['nombre'].strip(), Correo=d['correo'],
-            Telefono=d['telefono'] or None,
-            NombreUsuario=nombre_usuario_libre(d['apellido'], d['nombre']),
-            Clave=hash_password(d['clave']), Activo=True,
-            DebeCambiarClave=False,  # la clave la eligió el cliente
-            idRol=Rol.objects.get(nom_rol='Cliente'))
+        return {'dni': d['dni'], 'apellido': d['apellido'], 'nombre': d['nombre'], 'correo': d['correo'],
+                'telefono': d['telefono'], 'clave_cifrada': hash_password(d['clave'])}
+
+    def crear_cliente(self):
+        return crear_cliente(self.datos_en_espera())
+
+
+def crear_cliente(datos):
+    """Da de alta al cliente con los datos ya revisados (y la clave ya cifrada)."""
+    return Usuario.objects.create(
+        DNI=datos['dni'], Apellido=datos['apellido'], Nombre=datos['nombre'], Correo=datos['correo'],
+        Telefono=datos['telefono'] or None,
+        NombreUsuario=nombre_usuario_libre(datos['apellido'], datos['nombre']),
+        Clave=datos['clave_cifrada'], Activo=True,
+        DebeCambiarClave=False,  # la clave la eligió el cliente
+        idRol=Rol.objects.get(nom_rol='Cliente'))
 
 
 class ServicioForm(forms.ModelForm):
@@ -311,6 +345,10 @@ class ServicioForm(forms.ModelForm):
         self.fields['Duracion_horas'].widget.attrs.update(min=reglas.MIN_HORAS, max=reglas.MAX_HORAS)
         con_bootstrap(self)
         self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
+
+    def clean_Tipo_servicio(self):
+        return validaciones.para_form(validaciones.nombre_de_algo, self.cleaned_data['Tipo_servicio'],
+                                      'nombre del servicio', minimo=3)
 
     def clean(self):
         d = super().clean()
@@ -460,15 +498,17 @@ class MaterialForm(forms.ModelForm):
             self.fields[campo].widget.attrs['class'] = 'form-check-input'
 
     def clean_nom_material(self):
-        nombre = ' '.join(self.cleaned_data['nom_material'].split())
-        if len(nombre) < 2:
-            raise forms.ValidationError('Escribí el nombre del material.')
+        nombre = validaciones.para_form(validaciones.nombre_de_algo, self.cleaned_data['nom_material'],
+                                        'nombre del material', maximo=60)
         if Material.objects.filter(nom_material__iexact=nombre).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError('Ya hay un material con ese nombre.')
         return nombre[:1].upper() + nombre[1:]
 
     def clean_unidad_material(self):
-        return ' '.join(self.cleaned_data['unidad_material'].split()).lower() or 'unidades'
+        unidad = ' '.join(self.cleaned_data['unidad_material'].split()).lower()
+        if not unidad:
+            return 'unidades'
+        return validaciones.para_form(validaciones.nombre_de_algo, unidad, 'la unidad', maximo=20)
 
 
 class MovimientoMaterialForm(forms.Form):
@@ -499,7 +539,8 @@ class ObjetoForm(forms.ModelForm):
         self.fields['Activo'].widget.attrs['class'] = 'form-check-input'
 
     def clean_nom_objeto(self):
-        nombre = ' '.join(self.cleaned_data['nom_objeto'].split())
+        nombre = validaciones.para_form(validaciones.nombre_de_algo, self.cleaned_data['nom_objeto'],
+                                        'nombre del objeto', maximo=100)
         nombre = nombre[:1].upper() + nombre[1:]
         if nombre.lower() == Objeto.OTRO.lower():
             raise forms.ValidationError('«Otro» ya existe y es fijo.')

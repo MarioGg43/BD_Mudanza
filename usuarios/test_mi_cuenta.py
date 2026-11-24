@@ -43,7 +43,9 @@ class MiCuentaTest(TestCase):
         r = self.client.post(URL, {'accion': 'datos', 'correo': otro, 'telefono': ''})
         self.assertContains(r, 'Ese correo ya lo usa otra cuenta.')
         r = self.client.post(URL, {'accion': 'datos', 'correo': 'maria@ejemplo.com', 'telefono': 'llamame'})
-        self.assertContains(r, 'Escribí un teléfono válido')
+        self.assertContains(r, 'El teléfono lleva solo números')
+        r = self.client.post(URL, {'accion': 'datos', 'correo': 'maria@ejemplo.com', 'telefono': '4112233'})
+        self.assertContains(r, 'con código de área')
         self.assertNotEqual(Usuario.objects.get(DNI=CLIENTE).Correo, 'maria@ejemplo.com')
 
     def test_el_personal_no_cambia_su_correo(self):

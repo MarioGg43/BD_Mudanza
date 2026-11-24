@@ -11,12 +11,12 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
-from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio
+from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Servicio, Usuario
 from usuarios.permisos import pantalla_inicio, requiere_permiso_api
 from usuarios.views import get_usuario_actual
-from . import mapa, materiales, reglas
+from . import mapa, materiales, reglas, verificacion
 from .pdf import respuesta_pdf
-from .forms import (AnularForm, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
+from .forms import (AnularForm, crear_cliente, AsignarPersonalForm, FiltroPedidosForm, InventarioFormSet, PedidoForm,
                     RegistroClienteForm, ReprogramarForm, ServiciosPedidoForm, objetos_para_elegir)
 from .permisos import requiere_permiso, tiene_permiso
 
@@ -518,16 +518,57 @@ def registro(request):
     usuario = get_usuario_actual(request)
     if usuario:
         return pantalla_inicio(usuario)
+    if request.method == 'GET' and 'cambiar' in request.GET:
+        verificacion.cancelar(request)  # «Usar otro correo»: se empieza de nuevo
     form = RegistroClienteForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        cliente = form.crear_cliente()
-        cliente.registrar_acceso()
-        request.session.cycle_key()
-        request.session['usuario_dni'] = cliente.DNI
-        request.session['usuario_rol'] = cliente.idRol.nom_rol
-        messages.success(request, f'¡Bienvenida/o! Tu usuario es {cliente.NombreUsuario}.')
-        return redirect('pedidos_lista')
+        # la cuenta todavía no se crea: primero se confirma el correo con un código
+        try:
+            verificacion.iniciar(request, form.datos_en_espera())
+        except Exception:
+            form.add_error('correo', 'No pudimos mandar el código a ese correo. Revisalo o probá de nuevo en unos minutos.')
+        else:
+            return redirect('registro_verificar')
     return render(request, 'pedidos/registro.html', {'form': form})
+
+
+def registro_verificar(request):
+    """Segundo paso de «Crear cuenta»: escribir el código que llegó al correo."""
+    usuario = get_usuario_actual(request)
+    if usuario:
+        return pantalla_inicio(usuario)
+    p = verificacion.pendiente(request)
+    if not p:
+        messages.info(request, 'El código venció o no hay una cuenta esperando. Completá el formulario de nuevo.')
+        return redirect('registro_cliente')
+    error = ''
+    if request.method == 'POST':
+        try:
+            if request.POST.get('accion') == 'reenviar':
+                verificacion.reenviar(request)
+                messages.success(request, 'Te mandamos un código nuevo.')
+                return redirect('registro_verificar')
+            datos = verificacion.confirmar(request, request.POST.get('codigo'))
+        except verificacion.ErrorCodigo as e:
+            error = str(e)
+        except Exception:
+            error = 'No pudimos mandar el código. Probá de nuevo en unos minutos.'
+        else:
+            # mientras esperaba el código, alguien pudo haber usado el mismo DNI o correo
+            if Usuario.objects.filter(DNI=datos['dni']).exists() or Usuario.objects.filter(Correo=datos['correo']).exists():
+                messages.error(request, 'Ese DNI o correo ya tiene una cuenta. Iniciá sesión o usá otros datos.')
+                return redirect('registro_cliente')
+            cliente = crear_cliente(datos)
+            cliente.registrar_acceso()
+            request.session.cycle_key()
+            request.session['usuario_dni'] = cliente.DNI
+            request.session['usuario_rol'] = cliente.idRol.nom_rol
+            messages.success(request, f'¡Listo, tu correo quedó confirmado! Tu usuario es {cliente.NombreUsuario}.')
+            return redirect('pedidos_lista')
+        p = verificacion.pendiente(request) or p
+    return render(request, 'pedidos/registro_codigo.html', {
+        'correo': verificacion.correo_tapado(p['datos']['correo']), 'error': error, 'minutos': verificacion.MINUTOS,
+        'espera': verificacion.segundos_para_reenviar(p)})
 
 
 def recorrido(request, id_pedido):

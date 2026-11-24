@@ -2,6 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from pedidos.reglas import tiene_pedidos_activos
+from usuarios import validaciones
 from usuarios.models import Usuario, Vehiculo
 
 
@@ -43,6 +44,12 @@ class VehiculoForm(forms.ModelForm):
                 field.widget.attrs.update({'class': 'form-control', 'rows': 3})
             else:
                 field.widget.attrs.update({'class': 'form-control'})
+        # los mismos rangos que se controlan al guardar, para que se avisen mientras se escribe (validar.js)
+        for campo, (minimo, maximo, _) in self.RANGOS.items():
+            self.fields[campo].widget.attrs.update({'min': minimo, 'max': maximo})
+        self.fields['anio'].widget.attrs.update({'min': 1980, 'max': timezone.localdate().year + 1, 'step': 1})
+        self.fields['patente'].widget.attrs.update({'data-validar': 'patente', 'placeholder': 'AB123CD o ABC123'})
+        self.fields['marca_modelo'].widget.attrs.update({'data-validar': 'nombre-cosa', 'data-min-letras': 3})
 
     def clean(self):
         datos = super().clean()
@@ -82,4 +89,14 @@ class VehiculoForm(forms.ModelForm):
 
     def clean_patente(self):
         # Se guarda siempre en mayúsculas y sin espacios, como en el Hito 2
-        return self.cleaned_data['patente'].strip().upper().replace(' ', '')
+        patente = validaciones.para_form(validaciones.patente, self.cleaned_data['patente'])
+        if not self.instance.pk:
+            # AE123CD y AE-123-CD son la misma patente
+            sin_guiones = patente.replace('-', '')
+            if any(p.replace('-', '') == sin_guiones for p in Vehiculo.objects.values_list('patente', flat=True)):
+                raise forms.ValidationError('Ya hay un vehículo con esa patente.')
+        return patente
+
+    def clean_marca_modelo(self):
+        return validaciones.para_form(validaciones.nombre_de_algo, self.cleaned_data['marca_modelo'],
+                                      'marca y modelo', minimo=3)

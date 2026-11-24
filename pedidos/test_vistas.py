@@ -365,6 +365,16 @@ class ComprobanteTest(BaseVistas):
         self.assertEqual(self.client.get(f'/pedidos/{self.p.pk}/comprobante/').status_code, 403)
 
 
+def registrar_y_confirmar(client, datos):
+    """Crear cuenta completo: el formulario, el código que llega al correo y la confirmación."""
+    import re
+    from django.core import mail
+    r = client.post('/registro/', datos)
+    assert r.status_code == 302 and r['Location'] == '/registro/verificar/', r.status_code
+    codigo = re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)
+    return client.post('/registro/verificar/', {'codigo': codigo})
+
+
 class RegistroClienteTest(BaseVistas):
     def datos(self, **cambios):
         d = {'dni': '33444555', 'apellido': 'Herrera', 'nombre': 'Juan Pablo', 'correo': 'JP@Mail.com',
@@ -373,7 +383,7 @@ class RegistroClienteTest(BaseVistas):
         return d
 
     def test_crea_la_cuenta_y_entra(self):
-        r = self.client.post('/registro/', self.datos())
+        r = registrar_y_confirmar(self.client, self.datos())
         self.assertRedirects(r, '/pedidos/')
         u = Usuario.objects.get(DNI=33444555)
         self.assertEqual(u.NombreUsuario, 'herreraj1')  # herreraj ya existe
@@ -419,7 +429,7 @@ class RevisionFinalTest(BaseVistas):
         s.save()
         antes = self.client.session.session_key
         datos = RegistroClienteTest.datos(self, dni='33444555')
-        self.client.post('/registro/', datos)
+        registrar_y_confirmar(self.client, datos)
         self.assertNotEqual(self.client.session.session_key, antes)
         self.assertEqual(self.client.session['usuario_dni'], 33444555)
 

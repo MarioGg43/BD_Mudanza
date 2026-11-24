@@ -1,14 +1,11 @@
 """Reglas del ABM de usuarios (Hito 2). Las usan el panel de Django (views.py) y la API de React
 (api/views_usuarios.py), así una regla se escribe una sola vez.
 `actor` es quien hace la operación: no puede actuar sobre roles con más permisos que el suyo."""
-import re
-
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.utils import timezone
 
 from .models import Rol, Usuario
 from .permisos import puede_actuar_sobre_rol
+from . import validaciones
 from .reglas_roles import (error_baja_gestor, error_cambio_rol_gestor, error_cruce_cliente,
                            error_restablecer_clave)
 from .utils import generate_temp_password, hash_password, nombre_usuario_libre, validate_strong_password
@@ -32,8 +29,22 @@ def _puede(actor, rol):
 
 def crear_usuario(actor, dni, apellido, nombre, correo, clave, id_rol):
     """Alta con usuario automático (apellido + inicial) y cambio de clave obligatorio al entrar."""
-    correo = (correo or '').strip().lower()
-    apellido, nombre = (apellido or '').strip(), (nombre or '').strip()
+    try:
+        dni = validaciones.dni(dni)
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='dni')
+    try:
+        apellido = validaciones.persona(apellido, 'apellido')
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='apellido')
+    try:
+        nombre = validaciones.persona(nombre, 'nombre')
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='nombre')
+    try:
+        correo = validaciones.correo(correo)
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='correo')
     if Usuario.objects.filter(DNI=dni).exists():
         raise ErrorUsuario(f'El DNI {dni} ya se encuentra registrado.')
     if Usuario.objects.filter(Correo=correo).exists():
@@ -54,11 +65,10 @@ def crear_usuario(actor, dni, apellido, nombre, correo, clave, id_rol):
 def modificar_correo(actor, usuario, correo):
     """Por consigna del Hito 2, la modificación solo cambia el correo."""
     _puede(actor, usuario.idRol)
-    correo = (correo or '').strip().lower()
     try:
-        validate_email(correo)
-    except ValidationError:
-        raise ErrorUsuario('Escribí un correo válido.')
+        correo = validaciones.correo(correo)
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='correo')
     if Usuario.objects.filter(Correo=correo).exclude(pk=usuario.pk).exists():
         raise ErrorUsuario('El correo ya pertenece a otro usuario.')
     usuario.Correo = correo
@@ -175,28 +185,20 @@ def cambiar_rol(actor, usuario, id_rol):
 
 
 # ---- «Mi cuenta»: cada persona cambia lo suyo (no hace falta ningún permiso de administración) ----
-TELEFONO_VALIDO = re.compile(r'^\+?[\d\s-]{7,20}$')
-
-
 def _validar_telefono(telefono):
-    """Opcional. Si se escribe: números, espacios, guiones y un + al principio, de 7 a 15 dígitos."""
-    telefono = (telefono or '').strip()
-    if not telefono:
-        return None
-    digitos = sum(c.isdigit() for c in telefono)
-    if not TELEFONO_VALIDO.match(telefono) or not 7 <= digitos <= 15:
-        raise ErrorUsuario('Escribí un teléfono válido: solo números (con código de área), por ejemplo 387 4112233.',
-                           campo='telefono')
-    return telefono
+    """Opcional. Si se escribe: con código de área (ver validaciones.telefono)."""
+    try:
+        return validaciones.telefono(telefono)
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='telefono')
 
 
 def actualizar_mis_datos(usuario, correo, telefono):
     """El cliente cambia su correo y su teléfono desde «Mi cuenta». El correo sigue siendo único."""
-    correo = (correo or '').strip().lower()
     try:
-        validate_email(correo)
-    except ValidationError:
-        raise ErrorUsuario('Escribí un correo válido.', campo='correo')
+        correo = validaciones.correo(correo)
+    except validaciones.DatoInvalido as e:
+        raise ErrorUsuario(str(e), campo='correo')
     if Usuario.objects.filter(Correo=correo).exclude(pk=usuario.pk).exists():
         raise ErrorUsuario('Ese correo ya lo usa otra cuenta.', campo='correo')
     usuario.Telefono = _validar_telefono(telefono)

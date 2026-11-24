@@ -22,6 +22,12 @@ MAX_DIRECCION = 200
 MAX_OBSERVACION = 200
 
 
+def _con_palabras(texto):
+    """Un motivo u observación con sentido: al menos 3 letras y no «aaaa» ni «.....»."""
+    from usuarios.validaciones import letras, repite_letras
+    return letras(texto) >= 3 and not repite_letras(texto, 4)
+
+
 def tiene_pedidos_activos(**filtro):
     """¿Hay pedidos Pendientes o Confirmados de hoy en adelante? (patente_vehiculo=... o idUsuario=...)"""
     return Pedido.objects.filter(estado__in=Pedido.ACTIVOS, fecha_servicio__gte=timezone.localdate(),
@@ -482,9 +488,11 @@ def marcar_fin(id_pedido, usuario, usados=None):
 def anular(id_pedido, usuario, motivo):
     """Anula sin borrar: guarda fecha, motivo y usuario. Como un pedido anulado ya no
     cuenta como activo, el vehículo vuelve a estar libre en ese horario."""
-    motivo = (motivo or '').strip()
+    motivo = ' '.join((motivo or '').split())
     if not 5 <= len(motivo) <= 200:
         raise ErrorPedido({'motivo': 'El motivo tiene que tener entre 5 y 200 caracteres.'})
+    if not _con_palabras(motivo):
+        raise ErrorPedido({'motivo': 'Escribí el motivo con palabras (al menos 3 letras).'})
     with transaction.atomic():
         pedido = _pasar_a(id_pedido, 'anular')
         pedido.fecha_anulacion = timezone.now()
@@ -585,6 +593,8 @@ def reprogramar(id_pedido, usuario, fecha, hora, patente, motivo, observacion=''
         errores['motivo'] = 'Elegí el motivo de la lista.'
     elif motivo == 'Otro' and len(observacion) < 5:
         errores['observacion'] = 'Con «Otro», contá el motivo (5 caracteres o más).'
+    elif observacion and not _con_palabras(observacion):
+        errores['observacion'] = 'Escribí la observación con palabras (al menos 3 letras).'
     if len(observacion) > MAX_OBSERVACION:
         errores['observacion'] = f'La observación puede tener hasta {MAX_OBSERVACION} caracteres.'
     if errores:
@@ -727,6 +737,8 @@ def relevamiento(id_pedido, usuario, reales, nuevos=(), ids_adicionales=(), reca
         errores['recargo'] = 'El recargo tiene que ser un monto de 0 en adelante.'
     elif recargo > 0 and not 5 <= len(motivo) <= MAX_OBSERVACION:
         errores['motivo'] = 'Contá por qué se cobra el recargo (de 5 a 200 caracteres).'
+    elif recargo > 0 and not _con_palabras(motivo):
+        errores['motivo'] = 'Escribí el motivo del recargo con palabras (al menos 3 letras).'
     limpios = _validar_items(list(nuevos), errores) if nuevos else []
     if errores.get('inventario') == 'Agregá al menos un objeto.':
         errores.pop('inventario')

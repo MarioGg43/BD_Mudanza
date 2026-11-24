@@ -42,10 +42,7 @@ def usuarios(request):
         if not tiene_permiso(actor, 'USR_CREAR'):
             return error('No tenés permiso para esta operación.', 403)
         d = leer_json(request)
-        try:
-            dni = int(d.get('dni'))
-        except (TypeError, ValueError):
-            return error('Revisá los datos marcados.', errores={'dni': 'Escribí el DNI, solo números.'})
+        dni = d.get('dni')
         faltan = {c: 'Completá este dato.' for c in ('apellido', 'nombre', 'correo', 'clave', 'id_rol')
                   if not str(d.get(c) or '').strip()}
         if faltan:

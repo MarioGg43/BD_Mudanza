@@ -195,8 +195,8 @@
     <form id="formAltaUsuario" onsubmit="guardarAltaUsuario(event)" class="p-6 space-y-4 text-xs sm:text-sm">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label class="etiqueta block mb-1">DNI (Numérico) *</label>
-          <input type="number" id="altaDNI" required placeholder="Ej: 42123456"
+          <label class="etiqueta block mb-1">DNI *</label>
+          <input type="text" id="altaDNI" required maxlength="8" inputmode="numeric" autocomplete="off" data-validar="dni" placeholder="Ej: 42123456 (sin puntos)"
                  class="campo w-full p-2.5">
         </div>
         <div>
@@ -213,12 +213,12 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label class="etiqueta block mb-1">Apellido *</label>
-          <input type="text" id="altaApellido" required oninput="actualizarPreviewUsuario()" placeholder="Ej: Gomez"
+          <input type="text" id="altaApellido" required maxlength="50" autocomplete="off" data-validar="persona" data-que="apellido" oninput="actualizarPreviewUsuario()" placeholder="Ej: Gomez"
                  class="campo w-full p-2.5">
         </div>
         <div>
           <label class="etiqueta block mb-1">Nombre *</label>
-          <input type="text" id="altaNombre" required oninput="actualizarPreviewUsuario()" placeholder="Ej: Juan"
+          <input type="text" id="altaNombre" required maxlength="50" autocomplete="off" data-validar="persona" data-que="nombre" oninput="actualizarPreviewUsuario()" placeholder="Ej: Juan"
                  class="campo w-full p-2.5">
         </div>
       </div>
@@ -234,13 +234,13 @@
 
       <div>
         <label class="etiqueta block mb-1">Correo Electrónico *</label>
-        <input type="email" id="altaCorreo" required placeholder="Ej: juan.gomez@mudanzassalta.com"
+        <input type="email" id="altaCorreo" required maxlength="150" autocomplete="off" data-validar="correo" placeholder="Ej: juan.gomez@mudanzassalta.com"
                class="campo w-full p-2.5">
       </div>
 
       <div>
-        <label class="etiqueta block mb-1">Clave Inicial (Cifrada con Hash SHA-256) *</label>
-        <input type="password" id="altaClave" required minlength="8" placeholder="Mínimo 8 caracteres (Mayús, Minús, Núm y Símbolo)"
+        <label class="etiqueta block mb-1">Clave inicial (se guarda cifrada) *</label>
+        <input type="password" id="altaClave" required autocomplete="new-password" data-validar="clave-nueva" placeholder="Mínimo 8 caracteres (Mayús, Minús, Núm y Símbolo)"
                class="campo w-full p-2.5">
         <div class="caja-suave mt-1.5 p-2 rounded-lg text-[11px] texto-suave space-y-0.5">
           <span class="block text-marca font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Requisitos de seguridad obligatorios:</span>

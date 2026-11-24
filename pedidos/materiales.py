@@ -96,6 +96,9 @@ def registrar_ajuste(material, cantidad, usuario, motivo):
         raise ErrorMaterial('Indicá cuánto suma (número positivo) o cuánto resta (negativo).')
     if len(motivo) < 5:
         raise ErrorMaterial('Contá el motivo del ajuste (al menos 5 caracteres).')
+    from usuarios.validaciones import letras, repite_letras
+    if letras(motivo) < 3 or repite_letras(motivo, 4):
+        raise ErrorMaterial('Escribí el motivo del ajuste con palabras (al menos 3 letras).')
     if material.stock_material + cantidad < 0:
         raise ErrorMaterial(f'No se pueden restar {-cantidad}: hay {material.stock_material} en stock.')
     with transaction.atomic():

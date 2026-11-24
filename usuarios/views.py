@@ -217,11 +217,11 @@ def _fallo(e):
 @require_POST
 @requiere_permiso_api('USR_CREAR')
 def alta_usuario(request):
+    dni = request.POST.get('dni')
     try:
-        dni = int(request.POST.get('dni'))
         id_rol = int(request.POST.get('idRol'))
-    except (TypeError, ValueError) as e:
-        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Elegí el rol.'}, status=400)
     get_object_or_404(Rol, id_rol=id_rol)
     try:
         nuevo = operaciones.crear_usuario(request.usuario, dni, request.POST.get('apellido'), request.POST.get('nombre'),

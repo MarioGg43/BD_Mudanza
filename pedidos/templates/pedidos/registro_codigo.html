@@ -1,0 +1,54 @@
+{% extends 'vehiculos/base.html' %}
+{% block title %}Confirmá tu correo{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 480px;">
+    <a href="{% url 'registro_cliente' %}?cambiar=1" class="d-inline-block mb-3 text-decoration-none fw-semibold"><i class="bi bi-arrow-left me-1"></i>Usar otro correo</a>
+    <div class="card-panel bg-white p-4 text-center">
+        <div class="mb-2" style="font-size: 2.4rem; line-height: 1;"><i class="bi bi-envelope-check text-marca"></i></div>
+        <h1 class="h4 fw-bold mb-2">Revisá tu correo</h1>
+        <p class="text-muted mb-4">Te mandamos un código de 6 números a <strong>{{ correo }}</strong>.
+            Escribilo para terminar de crear tu cuenta. Vence en {{ minutos }} minutos.</p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <label for="codigo" class="form-label fw-semibold">Código</label>
+            <input type="text" id="codigo" name="codigo" required maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                   data-validar="codigo" placeholder="000000" autofocus
+                   class="form-control form-control-lg text-center fw-bold{% if error %} is-invalid{% endif %}"
+                   style="letter-spacing: .5em; font-size: 1.6rem; max-width: 240px; margin: 0 auto;">
+            {% if error %}<div class="invalid-feedback d-block">{{ error }}</div>{% endif %}
+            <button class="btn btn-success fw-bold px-4 mt-4 w-100">Confirmar y crear mi cuenta</button>
+        </form>
+
+        <form method="post" class="mt-3" data-sin-validar>
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="reenviar">
+            <p class="small text-muted mb-1">¿No te llegó? Fijate en la carpeta de spam o pedí otro.</p>
+            <button class="btn btn-link fw-semibold p-0" id="reenviar" data-espera="{{ espera }}"{% if espera %} disabled{% endif %}>
+                Mandarme otro código{% if espera %} <span>(en {{ espera }} s)</span>{% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // la cuenta regresiva para poder pedir otro código
+  (function () {
+    const boton = document.getElementById('reenviar');
+    let falta = Number(boton.dataset.espera || 0);
+    if (!falta) return;
+    const reloj = setInterval(() => {
+      falta -= 1;
+      if (falta <= 0) {
+        clearInterval(reloj);
+        boton.disabled = false;
+        boton.textContent = 'Mandarme otro código';
+      } else {
+        boton.querySelector('span').textContent = `(en ${falta} s)`;
+      }
+    }, 1000);
+  })();
+</script>
+{% endblock %}

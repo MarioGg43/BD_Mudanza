@@ -2,12 +2,12 @@
 {% block title %}Iniciar Sesión - Mudanzas y Fletes Salta{% endblock %}
 
 {% block content %}
-<div class="flex-1 flex justify-center items-center p-4">
+<div class="flex-1 flex flex-col justify-center items-center p-4">
   <div class="tarjeta w-full max-w-md overflow-hidden">
 
     <div class="grad-brand p-6 text-center">
       <div class="mb-3 flex justify-center">
-        <span class="logo-pastilla logo-pastilla-lg"><img src="/static/img/logo.webp" alt="Mudanzas y Fletes Salta" class="object-contain"></span>
+        <a href="{% url 'inicio' %}" title="Ir a la página de inicio" class="logo-pastilla logo-pastilla-lg"><img src="/static/img/logo.webp" alt="Mudanzas y Fletes Salta" class="object-contain"></a>
       </div>
       <h2 class="text-xl font-bold">Mudanzas y Fletes Salta</h2>
       <p class="text-xs texto-blanco-suave mt-1">Control de Acceso y Seguridad de Usuarios</p>
@@ -103,6 +103,9 @@
     {% endif %}
 
   </div>
+  <a href="{% url 'inicio' %}" class="mt-5 text-sm texto-suave font-semibold flex items-center gap-2 hover:underline">
+    <i class="fa-solid fa-arrow-left"></i> Volver a la página de inicio
+  </a>
 </div>
 
 <!-- MODAL: RECUPERAR CONTRASEÑA -->
