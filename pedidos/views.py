@@ -82,6 +82,7 @@ def lista(request):
         'por_confirmar': avisos.get(reglas.POR_CONFIRMAR), 'dias_por_confirmar': reglas.DIAS_POR_CONFIRMAR,
         'sin_chofer': avisos.get(reglas.SIN_CHOFER),
         'puede_registrar': tiene_permiso(request.usuario, 'PED_REGISTRAR'),
+        'bienvenida': request.session.pop('bienvenida', False),
     })
 
 
@@ -575,6 +576,7 @@ def registro_verificar(request):
             request.session['usuario_dni'] = cliente.DNI
             request.session['usuario_rol'] = cliente.idRol.nom_rol
             messages.success(request, f'¡Listo, tu correo quedó confirmado! Tu usuario es {cliente.NombreUsuario}.')
+            request.session['bienvenida'] = True  # la lista de pedidos muestra los primeros pasos una sola vez
             return redirect('pedidos_lista')
         p = verificacion.pendiente(request) or p
     return render(request, 'pedidos/registro_codigo.html', {

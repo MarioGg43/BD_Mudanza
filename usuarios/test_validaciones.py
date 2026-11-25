@@ -121,6 +121,26 @@ class PantallasTest(TestCase):
             self.assertContains(r, 'js/confirmar.js')
             self.assertContains(r, 'js/validar.js')
 
+    def test_la_campanita_muestra_los_ultimos_avisos_y_vuelve_a_la_misma_pantalla(self):
+        from usuarios.models import Notificacion, Rol
+        self.assertRedirects(self.client.get('/notificaciones/ultimas/'), '/login/', fetch_redirect_response=False)
+        admin = Rol.objects.get(nom_rol='Administrador')
+        Notificacion.objects.create(tipo='Stock bajo', mensaje='Quedan 3 cajas de cartón.', destino_perfil=admin, clave='prueba:1')
+        self.entrar(ADMIN)
+        r = self.client.get('/notificaciones/ultimas/', {'volver': '/tablero/'})
+        self.assertContains(r, 'Quedan 3 cajas de cartón.')
+        self.assertContains(r, '1 sin leer')
+        self.assertContains(r, 'value="/tablero/"')
+        self.assertRedirects(self.client.post('/notificaciones/leer-todas/', {'volver': '/tablero/'}), '/tablero/',
+                             fetch_redirect_response=False)
+        self.assertContains(self.client.get('/notificaciones/ultimas/'), 'Estás al día')
+
+    def test_la_bienvenida_sale_una_sola_vez(self):
+        from pedidos.test_vistas import registrar_y_confirmar
+        registrar_y_confirmar(self.client, self.datos())
+        self.assertTrue(self.client.get('/pedidos/').context['bienvenida'])
+        self.assertFalse(self.client.get('/pedidos/').context['bienvenida'])
+
     def test_solo_activos_se_queda_en_usuarios(self):
         # antes llevaba a «/», que ahora es la página de la empresa
         self.entrar(ADMIN)

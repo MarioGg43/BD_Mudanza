@@ -1,0 +1,32 @@
+{# Lo que se despliega al tocar la campanita (campanita.js): los últimos avisos, primero los sin leer #}
+<div class="cp-cabeza">
+    <strong>Notificaciones</strong>
+    <span>{% if sin_leer %}{{ sin_leer }} sin leer{% else %}Estás al día{% endif %}</span>
+</div>
+{% if ultimas %}
+<ul class="cp-lista">
+    {% for n in ultimas %}
+    <li>
+        <form method="post" action="{% url 'notificaciones_abrir' n.pk %}">{% csrf_token %}
+            <input type="hidden" name="ir" value="1">
+            <input type="hidden" name="volver" value="{{ volver }}">
+            <button class="cp-aviso{% if not n.leida %} cp-sin-leer{% endif %}">
+                <span class="cp-tipo">{% if not n.leida %}<span class="cp-punto" aria-label="Sin leer"></span>{% endif %}{{ n.tipo }} · {{ n.fecha|date:"d/m H:i" }}</span>
+                <span class="cp-mensaje">{{ n.mensaje }}</span>
+            </button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="cp-vacio">No tenés notificaciones por ahora. Cuando pase algo importante, te avisamos acá.</p>
+{% endif %}
+<div class="cp-pie">
+    <a href="{% url 'notificaciones_bandeja' %}">Ver todas</a>
+    {% if sin_leer %}
+    <form method="post" action="{% url 'notificaciones_leer_todas' %}">{% csrf_token %}
+        <input type="hidden" name="volver" value="{{ volver }}">
+        <button>Marcar todas como leídas</button>
+    </form>
+    {% endif %}
+</div>

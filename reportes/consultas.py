@@ -18,6 +18,19 @@ from django.utils import timezone
 
 from usuarios.models import Pedido, PersonalPedido, Reprogramacion, Vehiculo
 
+# lo que explica el «?» de cada columna en la pantalla del reporte
+AYUDA_COLUMNAS = {
+    'estimadas': 'La suma de las duraciones de los servicios de cada mudanza.',
+    'reales': 'Desde el «Empezamos» hasta el «Terminamos» que marcó el chofer.',
+    'desvio': 'Cuánto más (o menos) duraron las mudanzas que lo estimado. Negativo: terminaron antes.',
+    'demora': 'Minutos promedio entre la hora pactada con el cliente y el «Empezamos» del chofer.',
+    'tarde': 'Cuántas mudanzas empezaron más de 15 minutos después de la hora pactada.',
+    'horas': 'Las horas reales que marcó el chofer o, si no hay, las estimadas.',
+    'ingresos': 'Lo que suman las mudanzas finalizadas: servicios, adicionales y recargos del relevamiento.',
+    'recargos': 'Lo que se cobró de más en el relevamiento, cuando había más cosas que las declaradas.',
+    'ticket': 'Ingresos divididos por la cantidad de mudanzas hechas.',
+    'participacion': 'Qué parte de los ingresos de toda la flota generó este vehículo.',
+}
 TARDE_MINUTOS = 15  # desde cuántos minutos tarde al «Empezamos» cuenta como llegada tarde
 
 

@@ -8,6 +8,7 @@
     {% include '_titulo_pagina.html' with icono='bi-box-seam' color='naranja' titulo='Mis pedidos' bajada='Tus mudanzas y en qué estado está cada una.' %}
     {% endif %}
     <div class="d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-outline-secondary fw-bold" id="verEstados"><i class="bi bi-question-circle me-1"></i>¿Qué significa cada estado?</button>
     <a href="{% url 'pedidos_descargar' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
     {% if puede_registrar %}
     <a href="{% url 'pedidos_nuevo' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Pedir una mudanza</a>
@@ -108,4 +109,43 @@
 </nav>
 {% endif %}
 {% include 'pedidos/_fecha_hora.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // «¿Qué significa cada estado?»: los estados del pedido y los avisos, en un cartel
+  document.getElementById('verEstados')?.addEventListener('click', () => {
+    const lista = document.createElement('dl');
+    lista.style.cssText = 'margin:0;display:grid;grid-template-columns:8.5rem 1fr;gap:.5rem .9rem';
+    [['Pendiente', 'El cliente lo pidió y la empresa todavía no lo confirmó.'],
+     ['Confirmado', 'La empresa lo aceptó: tiene vehículo y chofer asignados.'],
+     ['En curso', 'El chofer marcó «Empezamos».'],
+     ['Finalizado', 'La mudanza terminó: el chofer tocó «Terminamos» o el administrador la finalizó.'],
+     ['Anulado', 'Se canceló, con su motivo. No se borra: queda en el historial.'],{% if ve_todos %}
+     ['Vencido', 'Pendiente cuya fecha ya pasó sin que nadie lo confirmara. Se reprograma o se anula.'],
+     ['Atrasada', 'Ya tendría que haber terminado y hay otra mudanza esperando ese vehículo o ese personal.'],
+     ['Para finalizar', 'Confirmada cuya hora de fin ya pasó y nadie la cerró.'],
+     ['Sin chofer', 'Todavía no tiene chofer asignado: no se puede confirmar.']{% endif %}].forEach(([t, d]) => {
+      const dt = document.createElement('dt'); dt.textContent = t; dt.style.fontWeight = '700';
+      const dd = document.createElement('dd'); dd.textContent = d; dd.style.margin = '0';
+      lista.append(dt, dd);
+    });
+    confirmar({ titulo: '¿Qué significa cada estado?', contenido: lista, soloAceptar: true, ancho: true, icono: '?' });
+  });
+  {% if bienvenida %}
+  // la primera vez que entra un cliente nuevo
+  (async () => {
+    const pasos = document.createElement('ol');
+    pasos.style.cssText = 'margin:.5rem 0 0;padding-left:1.2rem;display:grid;gap:.45rem';
+    ['Pedí tu mudanza: la fecha, las direcciones, el servicio y qué hay que llevar. El total lo ves en el momento.',
+     'La empresa la confirma y te avisa acá, en la campanita, y por correo.',
+     'Seguí el estado en «Mis pedidos». Podés cambiarla o cancelarla hasta 24 horas antes.'].forEach((t) => {
+      const li = document.createElement('li'); li.textContent = t; pasos.append(li);
+    });
+    const ok = await confirmar({ titulo: '¡Bienvenida/o, {{ usuario_sesion.Nombre|escapejs }}!', contenido: pasos, icono: '👋',
+                                 boton: 'Pedir mi primera mudanza', cancelar: 'Más tarde', ancho: true });
+    if (ok) location.href = "{% url 'pedidos_nuevo' %}";
+  })();
+  {% endif %}
+</script>
 {% endblock %}

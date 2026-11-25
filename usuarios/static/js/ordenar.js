@@ -53,12 +53,15 @@
       boton.type = 'button';
       boton.className = 'orden-btn';
       boton.title = `Ordenar por ${texto.toLowerCase()}`;
+      // el «?» de ayuda queda afuera del botón de ordenar (un botón no va adentro de otro)
+      const ayudas = [...th.querySelectorAll('.ayuda')];
+      ayudas.forEach((a) => a.remove());
       boton.append(...th.childNodes);
       const f = document.createElement('span');
       f.className = 'orden-flecha';
       f.setAttribute('aria-hidden', 'true');
       boton.append(f);
-      th.append(boton);
+      th.append(boton, ...ayudas);
       if (enServidor) {
         const campo = th.dataset.orden;
         flecha(th, actual === campo ? 1 : actual === `-${campo}` ? -1 : 0);

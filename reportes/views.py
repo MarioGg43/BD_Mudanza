@@ -123,6 +123,8 @@ def ver(request, clave):
     sin_pagina = {k: v for k, v in request.GET.items() if k != 'pagina'}
     contexto.update(pagina=pagina, filtros_usados=_filtros_usados(contexto['form']),
                     consulta=urlencode(sin_pagina))
+    from .consultas import AYUDA_COLUMNAS
+    contexto['ayudas'] = AYUDA_COLUMNAS
     return render(request, 'reportes/reporte.html', contexto)
 
 

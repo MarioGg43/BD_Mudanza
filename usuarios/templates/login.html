@@ -64,7 +64,7 @@
       </div>
       {% endif %}
 
-      <form method="POST" action="{% url 'login' %}" class="space-y-4">
+      <form method="POST" action="{% url 'login' %}" class="space-y-4" data-sin-aviso>
         {% csrf_token %}
         <div>
           <label class="etiqueta block text-xs mb-1">Usuario o DNI</label>

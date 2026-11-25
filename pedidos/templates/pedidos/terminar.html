@@ -11,7 +11,7 @@
 
     {% if error %}<div class="aviso-error p-3 rounded-xl text-sm mb-4" role="alert">{{ error }}</div>{% endif %}
 
-    <form method="post" novalidate>
+    <form method="post" novalidate data-revisar id="formTerminar">
       {% csrf_token %}
       {% if filas %}
       <p class="text-sm mb-3">Antes de cerrar, contá los materiales. Ya está cargado lo que salió: cambiá solo lo que no coincida.</p>
@@ -26,6 +26,8 @@
           <label class="text-sm flex items-center gap-2">
             <span class="font-semibold">{% if f.material.reutilizable %}Volvieron{% else %}Se usaron{% endif %}</span>
             <input type="number" name="{{ f.campo }}" value="{{ f.valor }}" min="0" max="{{ f.salio }}" required
+                   data-material="{{ f.material.nom_material }}" data-unidad="{{ f.material.unidad_material }}" data-salio="{{ f.salio }}"
+                   data-reutilizable="{% if f.material.reutilizable %}1{% endif %}"
                    class="campo w-24 px-3 py-2 rounded-lg border text-right" inputmode="numeric">
           </label>
         </div>
@@ -42,4 +44,37 @@
     </form>
   </div>
 </main>
+<script>
+  // Antes de «Terminamos»: qué vuelve al depósito, qué se usó y qué se pierde (confirmar.js muestra el cartel)
+  (function () {
+    const form = document.getElementById('formTerminar');
+    form.armarResumen = () => {
+      const vuelve = [], usado = [], perdido = [];
+      // «1 unidad», «3 unidades», «1 rollo»
+      const cuanto = (n, u, m) => n + ' ' + (n === 1 ? u.replace(/des$/, 'd').replace(/([^d])s$/, '$1') : u) + ' de ' + m.toLowerCase();
+      form.querySelectorAll('[data-material]').forEach((c) => {
+        const n = Number(c.value), salio = Number(c.dataset.salio), u = c.dataset.unidad, m = c.dataset.material;
+        if (c.dataset.reutilizable) {           // lo que se carga es lo que volvió
+          if (n) vuelve.push(cuanto(n, u, m));
+          if (salio - n) perdido.push(cuanto(salio - n, u, m));
+        } else {                                 // lo que se carga es lo que se usó
+          if (n) usado.push(cuanto(n, u, m));
+          if (salio - n) vuelve.push(cuanto(salio - n, u, m));
+        }
+      });
+      const filas = [];
+      if (vuelve.length) filas.push({ titulo: 'Vuelve al depósito', lineas: vuelve, iguales: true });
+      if (usado.length) filas.push({ titulo: 'Se usó', lineas: usado, iguales: true });
+      filas.push(perdido.length ? { titulo: 'Se pierde', lineas: perdido.map((p) => ({ texto: p, destacado: true })), iguales: true }
+                                : ['Se pierde', 'Nada']);
+      if (!form.querySelector('[data-material]')) filas.splice(0, filas.length, ['Materiales', 'Esta mudanza no llevó materiales del depósito']);
+      return {
+        titulo: '¿Terminaron la mudanza N° {{ pedido.id_pedido }}?',
+        filas,
+        nota: 'Se guarda la hora de fin y el pedido queda finalizado. No se puede volver atrás.',
+        boton: 'Sí, terminamos',
+      };
+    };
+  })();
+</script>
 {% endblock %}

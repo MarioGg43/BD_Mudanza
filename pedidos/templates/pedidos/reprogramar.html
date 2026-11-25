@@ -8,7 +8,9 @@
         Ahora: {{ pedido.fecha_servicio|date:"l"|capfirst }} {{ pedido.fecha_servicio|date:"d/m/Y" }} {{ pedido.horario }} ·
         Vehículo {{ pedido.patente_vehiculo_id }}</p>
 
-    <form method="post" class="card-panel bg-white p-4" novalidate>
+    <form method="post" class="card-panel bg-white p-4" novalidate data-revisar id="formReprogramar"
+          data-antes-dia="{{ pedido.fecha_servicio|date:'l'|capfirst }} {{ pedido.fecha_servicio|date:'d/m/Y' }}"
+          data-antes-hora="{{ pedido.horario }}" data-antes-vehiculo="{{ pedido.patente_vehiculo_id }}">
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
         <div class="row g-3">
@@ -46,4 +48,36 @@
     </form>
 </div>
 {% include 'pedidos/_fecha_hora.html' %}
+<script>
+  // Antes de reprogramar: «antes → ahora», para revisar el cambio (confirmar.js muestra el cartel)
+  (function () {
+    const form = document.getElementById('formReprogramar');
+    const texto = (nombre) => { const s = form.querySelector('[name="' + nombre + '"]'); return s && s.selectedOptions && s.selectedOptions[0] ? s.selectedOptions[0].textContent.trim() : ''; };
+    form.armarResumen = () => {
+      const valor = form.querySelector('[name="fecha_servicio"]').value;
+      const [a, m, d] = valor.split('-').map(Number);
+      let dia = valor ? new Date(a, m - 1, d).toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+      dia = dia.charAt(0).toUpperCase() + dia.slice(1).replace(',', '');
+      const hora = form.querySelector('[name="hora_servicio"]').value;
+      const vehiculo = texto('vehiculo');
+      const patente = vehiculo.split(' · ')[0];
+      const motivo = texto('motivo');
+      const obs = form.querySelector('[name="observacion"]').value.trim();
+      const chofer = form.querySelector('[name="chofer"]').value ? texto('chofer') : '';
+      const quitar = form.querySelector('[name="quitar_ocupados"]');
+      return {
+        titulo: '¿Reprogramar el pedido N° {{ pedido.id_pedido }}?',
+        filas: [
+          ['Antes', form.dataset.antesDia + ', ' + form.dataset.antesHora, 'Vehículo ' + form.dataset.antesVehiculo],
+          ['Ahora', { texto: dia + ', desde las ' + hora, destacado: true },
+            patente === form.dataset.antesVehiculo ? 'Mismo vehículo (' + patente + ')' : 'Vehículo ' + vehiculo],
+          ['Motivo', motivo + (obs ? ': ' + obs : '')],
+          ['Chofer', chofer || 'El mismo de antes'],
+        ].concat(quitar && quitar.checked ? [['Personal', 'Si alguien no está libre en el horario nuevo, sale del pedido']] : []),
+        nota: 'El cambio queda en el historial y el cliente lo ve en «Mis pedidos».',
+        boton: 'Sí, reprogramar',
+      };
+    };
+  })();
+</script>
 {% endblock %}

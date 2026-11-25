@@ -31,7 +31,7 @@
 
 <div class="card-panel bg-white p-0 overflow-auto mb-4">
     <table class="table table-hover align-middle mb-0" data-ordenable>
-        <thead class="table-light"><tr><th>Material</th><th>Tipo</th><th style="min-width:180px">Stock</th><th class="text-end">Afuera</th><th class="text-end">Mínimo</th><th class="text-end">Servicios</th><th>Estado</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th>Material</th><th>Tipo</th><th style="min-width:180px">Stock</th><th class="text-end">Afuera<button type="button" class="ayuda" data-ayuda="Lo que salió con una mudanza que todavía no terminó. Vuelve (o se descuenta) cuando el chofer toca «Terminamos»." aria-label="¿Qué es «Afuera»?">?</button></th><th class="text-end">Mínimo<button type="button" class="ayuda" data-ayuda="Si el stock baja de este número, al administrador le llega un aviso para comprar." aria-label="¿Qué es «Mínimo»?">?</button></th><th class="text-end">Servicios</th><th>Estado</th><th></th></tr></thead>
         <tbody>
             {% for m in materiales %}
             <tr class="{% if not m.Activo %}text-muted{% endif %}">

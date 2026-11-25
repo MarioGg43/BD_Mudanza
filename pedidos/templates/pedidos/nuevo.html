@@ -83,7 +83,7 @@
                 {% if form.adicionales.errors %}<div class="invalid-feedback d-block">{{ form.adicionales.errors.as_text }}</div>{% endif %}
             </div>
             {% endif %}
-            <p class="fw-bold mt-3 mb-0">Total: $<span id="total">0</span></p>
+            <p class="fw-bold mt-3 mb-0">Total: $<span id="total">0</span><button type="button" class="ayuda" data-ayuda="El servicio principal tiene un recargo según el tamaño del camión: chico sin recargo, mediano +25 % y grande +50 %. Los adicionales se cobran a su precio. El precio queda fijo al registrar el pedido." aria-label="¿Qué es «Total»?">?</button></p>
             <p class="text-muted small mb-0" id="detalleTotal">El servicio principal tiene un recargo según el camión: Mediano +25 %, Grande +50 %.</p>
             <p class="text-muted small mb-0" id="duracion"></p>
         </div>

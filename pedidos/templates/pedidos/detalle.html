@@ -30,13 +30,21 @@
             {% endif %}
             {% if es_mio and cliente_puede_cambiar %}
             <a href="{% url 'pedidos_modificar' pedido.id_pedido %}" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1"></i>Modificar</a>
-            <a href="{% url 'pedidos_cancelar' pedido.id_pedido %}" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Cancelar mudanza</a>
+            <a href="{% url 'pedidos_cancelar' pedido.id_pedido %}" class="btn btn-outline-danger"
+               data-motivo-url="{% url 'pedidos_cancelar' pedido.id_pedido %}" data-token="{{ csrf_token }}" data-motivo-titulo="¿Cancelar la mudanza del pedido N° {{ pedido.id_pedido }}?"
+               data-motivo-detalle="El pedido queda anulado con tu motivo. Si después querés mudarte igual, podés pedir una mudanza nueva."
+               data-motivo-pregunta="¿Por qué cancelás la mudanza?" data-motivo-boton="Sí, cancelar la mudanza"
+               data-motivos='["Ya no me mudo", "Cambié la fecha: voy a pedir otra", "Conseguí otro flete", "Me resulta caro"]'><i class="bi bi-x-circle me-1"></i>Cancelar mudanza</a>
             {% endif %}
             {% if puede_gestionar and pedido.estado == 'Pendiente' or puede_gestionar and pedido.estado == 'Confirmado' %}
             <a href="{% url 'pedidos_reprogramar' pedido.id_pedido %}" class="btn btn-outline-primary"><i class="bi bi-calendar2-week me-1"></i>Reprogramar</a>
             {% endif %}
             {% if puede_anular and pedido.estado == 'Pendiente' or puede_anular and pedido.estado == 'Confirmado' %}
-            <a href="{% url 'pedidos_anular' pedido.id_pedido %}" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Anular</a>
+            <a href="{% url 'pedidos_anular' pedido.id_pedido %}" class="btn btn-outline-danger"
+               data-motivo-url="{% url 'pedidos_anular' pedido.id_pedido %}" data-token="{{ csrf_token }}" data-motivo-titulo="¿Anular el pedido N° {{ pedido.id_pedido }}?"
+               data-motivo-detalle="El pedido no se borra: queda anulado con la fecha, el motivo y tu usuario, y el vehículo vuelve a estar libre en ese horario."
+               data-motivo-pregunta="Motivo de la anulación" data-motivo-boton="Sí, anular"
+               data-motivos='[{% if pedido.vencido %}"Nadie lo confirmó a tiempo", {% endif %}"El cliente desistió de la mudanza", "Duplicado", "Problema con el vehículo", "Cambio de presupuesto"]'><i class="bi bi-x-circle me-1"></i>Anular</a>
             {% endif %}
         </div>
     </div>

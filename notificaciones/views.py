@@ -53,7 +53,21 @@ def leer_todas(request):
         return redirect('login')
     n = reglas.de_usuario(usuario).filter(leida=False).update(leida=True, fecha_lectura=timezone.now())
     messages.success(request, f'Marcaste {n} notificaci{"ones" if n != 1 else "ón"} como leída{"s" if n != 1 else ""}.')
+    volver = request.POST.get('volver', '')
+    if volver and url_has_allowed_host_and_scheme(volver, allowed_hosts={request.get_host()}):
+        return redirect(volver)  # desde la vista previa de la campanita se vuelve a la misma pantalla
     return redirect('notificaciones_bandeja')
+
+
+def ultimas(request):
+    """Lo que muestra la campanita al tocarla: los últimos avisos, sin salir de la pantalla."""
+    usuario = get_usuario_actual(request)
+    if not usuario:
+        return redirect('login')
+    todas = reglas.de_usuario(usuario)
+    return render(request, 'notificaciones/_ultimas.html', {
+        'ultimas': todas.order_by('leida', '-fecha')[:6], 'sin_leer': todas.filter(leida=False).count(),
+        'volver': request.GET.get('volver', '')})
 
 
 @requiere_permiso('CFG_GESTIONAR')

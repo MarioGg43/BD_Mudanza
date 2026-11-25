@@ -54,7 +54,7 @@
       <div class="flex flex-wrap items-center gap-2 pt-1">
         {% if p.en_curso %}
         <a href="{% url 'pedidos_terminar' p.id_pedido %}" class="btn-primary px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-flag-checkered mr-1"></i>Terminamos</a>
-        <a href="{% url 'pedidos_relevamiento' p.id_pedido %}" class="btn-secundario px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-clipboard-list mr-1"></i>Relevamiento</a>
+        <a href="{% url 'pedidos_relevamiento' p.id_pedido %}" class="btn-secundario px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-clipboard-list mr-1"></i>Relevamiento</a><button type="button" class="ayuda" data-ayuda="Al llegar al domicilio, el chofer carga lo que hay de verdad: si hay más cosas que las declaradas, las suma, y si corresponde, un recargo con su motivo." aria-label="¿Qué es «Relevamiento»?">?</button>
         <span class="texto-suave">Empezaron a las {{ p.inicio_real|time:"H:i" }}. Fin estimado: {{ p.fin_esperado|time:"H:i" }}. Si hay más cosas de las declaradas, cargalo en «Relevamiento».</span>
         {% elif p.puede_empezar %}
         <form method="post" action="{% url 'pedidos_empezar' p.id_pedido %}" data-confirmar="¿Empezaron la mudanza?" data-confirmar-detalle="Queda guardada la hora y los materiales salen del depósito." data-confirmar-boton="Sí, empezamos">{% csrf_token %}

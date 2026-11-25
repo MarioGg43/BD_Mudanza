@@ -38,22 +38,22 @@
 {# ---------- indicadores del mes ---------- #}
 <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-4">
     <div class="col"><div class="tarjeta-kpi kpi-naranja">
-        <div class="kpi-cabeza"><span>Mudanzas del mes</span><i class="bi bi-truck"></i></div>
+        <div class="kpi-cabeza"><span>Mudanzas del mes<button type="button" class="ayuda" data-ayuda="Las mudanzas finalizadas en lo que va del mes, comparadas con el mismo tramo del mes anterior." aria-label="¿Qué es «Mudanzas del mes»?">?</button></span><i class="bi bi-truck"></i></div>
         <b>{{ mes.mudanzas }}</b>
         <small>{% include 'reportes/_variacion.html' with valor=var_mudanzas %} vs. el mismo tramo del mes anterior</small>
     </div></div>
     <div class="col"><div class="tarjeta-kpi kpi-verde">
-        <div class="kpi-cabeza"><span>Facturación del mes</span><i class="bi bi-cash-stack"></i></div>
+        <div class="kpi-cabeza"><span>Facturación del mes<button type="button" class="ayuda" data-ayuda="Lo que suman las mudanzas finalizadas del mes: servicios, adicionales y recargos. El cobro se registra fuera del sistema." aria-label="¿Qué es «Facturación del mes»?">?</button></span><i class="bi bi-cash-stack"></i></div>
         <b>{{ mes.facturacion|formato:"pesos" }}</b>
         <small>{% include 'reportes/_variacion.html' with valor=var_facturacion %} · mudanzas finalizadas</small>
     </div></div>
     <div class="col"><div class="tarjeta-kpi kpi-azul">
-        <div class="kpi-cabeza"><span>Ticket promedio</span><i class="bi bi-receipt"></i></div>
+        <div class="kpi-cabeza"><span>Ticket promedio<button type="button" class="ayuda" data-ayuda="Cuánto factura en promedio cada mudanza finalizada: la facturación dividida por la cantidad de mudanzas." aria-label="¿Qué es «Ticket promedio»?">?</button></span><i class="bi bi-receipt"></i></div>
         <b>{{ mes.ticket|formato:"pesos" }}</b>
         <small>{% include 'reportes/_variacion.html' with valor=var_ticket %} · por mudanza finalizada</small>
     </div></div>
     <div class="col"><div class="tarjeta-kpi kpi-rojo">
-        <div class="kpi-cabeza"><span>Cancelaciones del mes</span><i class="bi bi-x-octagon"></i></div>
+        <div class="kpi-cabeza"><span>Cancelaciones del mes<button type="button" class="ayuda" data-ayuda="Los pedidos anulados del mes, por la empresa o por el cliente. El porcentaje es sobre todos los pedidos del mes." aria-label="¿Qué es «Cancelaciones del mes»?">?</button></span><i class="bi bi-x-octagon"></i></div>
         <b>{{ mes.anulados }} <span class="fs-6 fw-semibold">({{ cancelacion|floatformat:1 }} %)</span></b>
         <small>{% if var_cancelacion is not None %}<span class="kpi-chip">{% if var_cancelacion > 0 %}+{% endif %}{{ var_cancelacion|floatformat:1 }} pts</span>{% else %}<span class="kpi-chip">—</span>{% endif %} vs. el mes anterior</small>
     </div></div>

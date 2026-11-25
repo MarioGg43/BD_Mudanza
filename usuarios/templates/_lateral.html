@@ -87,7 +87,7 @@
             <span class="punto-vivo"></span>{% if mudanzas_en_curso %}{{ mudanzas_en_curso }} en curso{% else %}Sin mudanzas en curso{% endif %}
         </a>
         {% endif %}
-        <a href="{% url 'notificaciones_bandeja' %}" class="barra-boton" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}">
+        <a href="{% url 'notificaciones_bandeja' %}" data-campanita class="barra-boton" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}">
             <i class="bi bi-bell{% if notificaciones_sin_leer %}-fill{% endif %}"></i>{% if notificaciones_sin_leer %}<span class="barra-numero">{% if notificaciones_sin_leer > 99 %}99+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}
         </a>
         <a href="{% url 'mi_cuenta' %}" class="barra-usuario"><span class="lateral-avatar chico" aria-hidden="true">{{ usuario_sesion.Nombre|first|upper }}</span><span class="solo-ancho">{{ usuario_sesion.Nombre }}</span></a>

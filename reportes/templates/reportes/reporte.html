@@ -44,7 +44,7 @@
     <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 tabla-reporte" data-ordenable>
         <thead class="table-light">
-            <tr>{% for titulo, clave_col, tipo in datos.columnas %}<th{% if tipo|es_numero %} class="text-end"{% endif %}>{{ titulo }}</th>{% endfor %}</tr>
+            <tr>{% for titulo, clave_col, tipo in datos.columnas %}<th{% if tipo|es_numero %} class="text-end"{% endif %}>{{ titulo }}{% with a=ayudas|dato:clave_col %}{% if a %}<button type="button" class="ayuda" data-ayuda="{{ a }}" aria-label="¿Qué es «{{ titulo }}»?">?</button>{% endif %}{% endwith %}</th>{% endfor %}</tr>
         </thead>
         <tbody>
             {% for fila in pagina %}

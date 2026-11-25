@@ -43,7 +43,7 @@
             {% endif %}
             {% if usuario_sesion %}
             {# campanita: cuántas notificaciones sin leer tiene (Parcial N° 2, M3) #}
-            <a href="{% url 'notificaciones_bandeja' %}" class="campanita{% if '/notificaciones/' in ruta %} activo{% endif %}"
+            <a href="{% url 'notificaciones_bandeja' %}" data-campanita class="campanita{% if '/notificaciones/' in ruta %} activo{% endif %}"
                title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}">
                 <i class="bi bi-bell{% if notificaciones_sin_leer %}-fill{% endif %}"></i>{% if notificaciones_sin_leer %}<span class="campanita-numero">{% if notificaciones_sin_leer > 99 %}99+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}
             </a>
