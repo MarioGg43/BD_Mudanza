@@ -34,9 +34,7 @@
       </p>
   </div>
 
-  {% if messages %}{% for m in messages %}
-  <div class="{% if m.tags == 'danger' or m.tags == 'error' %}aviso-error{% else %}aviso-ok{% endif %} p-3 rounded-xl text-sm" role="status">{{ m }}</div>
-  {% endfor %}{% endif %}
+  {# los avisos («Empezaron la mudanza»…) los muestra la plantilla base, arriba a la derecha #}
 
   <!-- MÓDULO OPERATIVO: TAREAS ASIGNADAS -->
   <div class="tarjeta p-6">
@@ -45,20 +43,20 @@
       Mis mudanzas
     </h3>
     {% for p in mudanzas %}
-    <div class="caja-suave p-4 rounded-xl mb-3 text-xs space-y-2">
+    <div class="caja-suave p-4 rounded-xl mb-3 text-sm space-y-2 mudanza-portal" id="mudanza-{{ p.id_pedido }}">
       <div class="flex flex-wrap justify-between items-center gap-2">
         <p class="font-bold texto-tinta text-sm"><i class="fa-solid fa-calendar-day text-marca mr-1"></i>{{ p.fecha_servicio|date:"l"|capfirst }} {{ p.fecha_servicio|date:"d/m/Y" }} · {{ p.hora_servicio|time:"H:i" }} a {{ p.hasta }}</p>
         <span class="chip-marca px-2 py-0.5 rounded font-semibold">{% if p.en_curso %}En curso desde las {{ p.inicio_real|time:"H:i" }}{% elif p.estado == 'Confirmado' %}Confirmada{% else %}A confirmar{% endif %}</span>
       </div>
       {% if p.soy_chofer and p.estado == 'Confirmado' %}
-      <div class="flex flex-wrap items-center gap-2 pt-1">
+      <div class="portal-acciones pt-1">
         {% if p.en_curso %}
-        <a href="{% url 'pedidos_terminar' p.id_pedido %}" class="btn-primary px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-flag-checkered mr-1"></i>Terminamos</a>
-        <a href="{% url 'pedidos_relevamiento' p.id_pedido %}" class="btn-secundario px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-clipboard-list mr-1"></i>Relevamiento</a><button type="button" class="ayuda" data-ayuda="Al llegar al domicilio, el chofer carga lo que hay de verdad: si hay más cosas que las declaradas, las suma, y si corresponde, un recargo con su motivo." aria-label="¿Qué es «Relevamiento»?">?</button>
-        <span class="texto-suave">Empezaron a las {{ p.inicio_real|time:"H:i" }}. Fin estimado: {{ p.fin_esperado|time:"H:i" }}. Si hay más cosas de las declaradas, cargalo en «Relevamiento».</span>
+        <a href="{% url 'pedidos_terminar' p.id_pedido %}" class="btn-primary boton-grande"><i class="fa-solid fa-flag-checkered"></i>Terminamos</a>
+        <a href="{% url 'pedidos_relevamiento' p.id_pedido %}" class="btn-secundario boton-grande"><i class="fa-solid fa-clipboard-list"></i>Relevamiento</a>
+        <span class="texto-suave">Empezaron a las {{ p.inicio_real|time:"H:i" }}. Fin estimado: {{ p.fin_esperado|time:"H:i" }}. Si hay más cosas de las declaradas, cargalo en «Relevamiento».<button type="button" class="ayuda" data-ayuda="Al llegar al domicilio, el chofer carga lo que hay de verdad: si hay más cosas que las declaradas, las suma, y si corresponde, un recargo con su motivo." aria-label="¿Qué es «Relevamiento»?">?</button></span>
         {% elif p.puede_empezar %}
         <form method="post" action="{% url 'pedidos_empezar' p.id_pedido %}" data-confirmar="¿Empezaron la mudanza?" data-confirmar-detalle="Queda guardada la hora y los materiales salen del depósito." data-confirmar-boton="Sí, empezamos">{% csrf_token %}
-          <button class="btn-primary px-4 py-2 rounded-lg font-bold text-sm cursor-pointer"><i class="fa-solid fa-play mr-1"></i>Empezamos</button>
+          <button class="btn-primary boton-grande cursor-pointer"><i class="fa-solid fa-play"></i>Empezamos</button>
         </form>
         {% if p.empieza_tarde %}<span class="aviso-error px-2 py-1 rounded font-semibold"><i class="fa-solid fa-clock mr-1"></i>Atrasada: tenía que empezar a las {{ p.hora_servicio|time:"H:i" }}</span>
         {% else %}<span class="texto-suave">Tocalo cuando lleguen y empiecen a cargar.</span>{% endif %}
@@ -69,12 +67,14 @@
         {% endif %}
       </div>
       {% endif %}
-      <p class="flex flex-wrap items-center gap-2">
-        <span><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b> &nbsp;→&nbsp; <span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></span>
-        <a href="{{ p.como_llegar }}" target="_blank" rel="noopener noreferrer" class="btn-como-llegar px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5">
-          <i class="fa-solid fa-route"></i> Cómo llegar
-        </a>
-      </p>
+      <p><span class="texto-suave">Desde:</span> <b>{{ p.origen }}</b><br><span class="texto-suave">Hasta:</span> <b>{{ p.destino }}</b></p>
+      <div class="portal-contacto">
+        <a href="{{ p.como_llegar }}" target="_blank" rel="noopener noreferrer" class="btn-como-llegar boton-medio"><i class="fa-solid fa-route"></i>Cómo llegar</a>
+        {% if p.llamar %}
+        <a href="{{ p.llamar }}" class="btn-secundario boton-medio"><i class="fa-solid fa-phone"></i>Llamar</a>
+        <a href="{{ p.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn-secundario boton-medio"><i class="bi bi-whatsapp"></i>WhatsApp</a>
+        {% endif %}
+      </div>
       <p><span class="texto-suave">Vehículo:</span> {{ p.patente_vehiculo.patente }} · {{ p.patente_vehiculo.marca_modelo }}
          &nbsp;·&nbsp; <span class="texto-suave">Servicios:</span> {% for d in p.detalles.all %}{{ d.idServicio.Tipo_servicio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
       <p><span class="texto-suave">Equipo:</span> {% for x in p.personal.all %}{{ x.idUsuario.Nombre }} {{ x.idUsuario.Apellido }} ({{ x.get_Funcion_display|lower }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
@@ -103,6 +103,20 @@
     </div>
     {% endfor %}
   </div>
+
+  {% if accion %}
+  {# en el celular, lo que hay que tocar ahora queda fijo abajo, al alcance del pulgar #}
+  <div class="barra-accion" aria-label="Acción de la mudanza N° {{ accion.id_pedido }}">
+    {% if accion.en_curso %}
+    <a href="{% url 'pedidos_terminar' accion.id_pedido %}" class="btn-primary boton-grande"><i class="fa-solid fa-flag-checkered"></i>Terminamos · N° {{ accion.id_pedido }}</a>
+    {% else %}
+    <form method="post" action="{% url 'pedidos_empezar' accion.id_pedido %}" data-confirmar="¿Empezaron la mudanza?" data-confirmar-detalle="Queda guardada la hora y los materiales salen del depósito." data-confirmar-boton="Sí, empezamos">{% csrf_token %}
+      <button class="btn-primary boton-grande cursor-pointer"><i class="fa-solid fa-play"></i>Empezamos · N° {{ accion.id_pedido }}</button>
+    </form>
+    {% endif %}
+  </div>
+  <script>document.body.classList.add('con-barra-accion');</script>
+  {% endif %}
 
   <!-- MÓDULO DE FLOTA VEHICULAR (PRESERVADO EN CÓDIGO - OCULTO TEMPORALMENTE) -->
   <div class="tarjeta p-6 space-y-4" style="display: none !important;">

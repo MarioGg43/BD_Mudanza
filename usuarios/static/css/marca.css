@@ -11,8 +11,11 @@
   --rojo: #E10E0E;
   --coral: #FC7753;
   --amarillo: #FFC107;
-  --grad: linear-gradient(128deg, #FF8A00 0%, #FF5E08 48%, #E10E0E 100%);
-  --grad-osc: linear-gradient(128deg, #F07F00 0%, #EE5200 48%, #C90C0C 100%);
+  /* el degradado de la marca, en los tonos que dejan leer la letra blanca: contraste de 4,5:1 o más
+     (WCAG AA). El naranja claro de antes (#FF8A00) daba 2,4:1. La vista previa original: --grad-vivo */
+  --grad: linear-gradient(128deg, #D24600 0%, #C73A06 48%, #B80B0B 100%);
+  --grad-osc: linear-gradient(128deg, #B33A00 0%, #A82E05 48%, #9A0909 100%);
+  --grad-vivo: linear-gradient(128deg, #FF8A00 0%, #FF5E08 48%, #E10E0E 100%);
   --naranja-osc: #C04F00;
   --naranja-suave: #FFF0E2;
   --rojo-osc: #B30B0B;
@@ -544,7 +547,7 @@ input[data-calendario] + .form-control[readonly] { background-color: #fff; curso
 /* =====================================================================
  * Menú lateral del personal (_lateral.html) y barra de arriba
  * ===================================================================== */
-:root { --ancho-lateral: 264px; --lateral-fondo: #e8590c; --lateral-fondo-2: #b8360b; }
+:root { --ancho-lateral: 264px; --lateral-fondo: #C9440B; --lateral-fondo-2: #b8360b; }
 body.con-lateral { padding-left: var(--ancho-lateral); }
 .lateral {
   position: fixed; inset: 0 auto 0 0; width: var(--ancho-lateral); z-index: 1040;
@@ -668,7 +671,7 @@ body.con-lateral { padding-left: var(--ancho-lateral); }
 .tablero-accesos b { display: block; font-size: .9rem; }
 .tablero-accesos small { display: block; font-size: .75rem; color: var(--tinta-2); }
 .acceso-icono { flex: 0 0 40px; height: 40px; border-radius: 12px; display: inline-grid; place-items: center; color: #fff; font-size: 1.1rem; }
-.acceso-icono.naranja { background: linear-gradient(135deg, #ff8a1f, #e2551b); }
+.acceso-icono.naranja { background: linear-gradient(135deg, #D24600, #B8360B); }
 .acceso-icono.violeta { background: linear-gradient(135deg, #7a6cf0, #5143c9); }
 .acceso-icono.azul { background: linear-gradient(135deg, #3a8ae6, #2465bd); }
 .acceso-icono.verde { background: linear-gradient(135deg, #22b97f, #138a5d); }
@@ -685,10 +688,10 @@ body.con-lateral { padding-left: var(--ancho-lateral); }
 .tarjeta-kpi > b { display: block; font-size: 1.75rem; margin: .5rem 0 .35rem; line-height: 1.15; }
 .tarjeta-kpi small { font-size: .78rem; opacity: .95; position: relative; z-index: 1; }
 .kpi-chip { display: inline-block; background: rgba(255, 255, 255, .25); border-radius: 999px; padding: .05rem .5rem; font-weight: 700; margin-right: .25rem; }
-.kpi-naranja { background: linear-gradient(135deg, #ff8a1f 0%, #e2551b 100%); }
-.kpi-verde { background: linear-gradient(135deg, #1e9e6e 0%, #0f7a52 100%); }
-.kpi-azul { background: linear-gradient(135deg, #2f7fdc 0%, #1d58ad 100%); }
-.kpi-rojo { background: linear-gradient(135deg, #e5484d 0%, #b8263b 100%); }
+.kpi-naranja { background: linear-gradient(135deg, #D24600 0%, #B8360B 100%); }
+.kpi-verde { background: linear-gradient(135deg, #13805A 0%, #0f7a52 100%); }
+.kpi-azul { background: linear-gradient(135deg, #2a72cf 0%, #1d58ad 100%); }
+.kpi-rojo { background: linear-gradient(135deg, #d2353f 0%, #b8263b 100%); }
 
 .grafico-caja { position: relative; height: 240px; }
 .grafico-caja.alto { height: 300px; }
@@ -831,3 +834,23 @@ a.aviso-tarjeta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18
 .mapa-mini { flex: 0 0 120px; height: 90px; border-radius: 9px; overflow: hidden; background: #eee; }
 .ubicacion-texto { min-width: 0; }
 @media (max-width: 400px) { .mapa-mini { flex-basis: 90px; height: 72px; } }
+
+/* ---------- portal del chofer: pensado para usarlo en la calle, con el celular y una mano ---------- */
+.boton-grande { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px;
+  padding: .7rem 1.25rem; font-size: 1rem; font-weight: 700; border-radius: 12px; text-decoration: none; }
+.boton-medio { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px;
+  padding: .55rem 1rem; font-size: .92rem; font-weight: 600; border-radius: 10px; text-decoration: none; }
+.portal-acciones { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.portal-contacto { display: flex; flex-wrap: wrap; gap: .5rem; }
+.barra-accion { display: none; }
+@media (max-width: 640px) {
+  .mudanza-portal { font-size: .95rem; }
+  .portal-acciones > .boton-grande, .portal-acciones > form, .portal-acciones > form .boton-grande { width: 100%; }
+  .portal-contacto > a { flex: 1 1 40%; }
+  .portal-contacto > a:first-child { flex-basis: 100%; }  /* «Cómo llegar» arriba y entero; llamar y WhatsApp abajo */
+  .barra-accion { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1020; gap: .5rem;
+    padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom)); background: #fff;
+    border-top: 1px solid var(--linea); box-shadow: 0 -8px 20px rgba(0, 0, 0, .08); }
+  .barra-accion > a, .barra-accion > form, .barra-accion .boton-grande { flex: 1; width: 100%; }
+  body.con-barra-accion { padding-bottom: 80px; }
+}

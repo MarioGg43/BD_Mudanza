@@ -169,13 +169,30 @@ def usuario_portal(request):
             p.materiales = [{'material': m, 'cantidad': c, 'hay': m.stock_material, 'falta': max(c - m.stock_material, 0)}
                             for m, c in materiales.sugeridos(p).items()]
         p.falta_algo = any(m.get('falta') for m in p.materiales)
+        p.llamar, p.whatsapp = _contacto(p.idUsuario.Telefono)
+    # lo que el chofer tiene que tocar ahora (en el celular queda fijo abajo): «Terminamos» o «Empezamos»
+    accion = next((p for p in mudanzas if p.soy_chofer and p.estado == Pedido.CONFIRMADO
+                   and (p.en_curso or p.puede_empezar)), None)
     return render(request, 'usuario_portal.html', {
+        'accion': accion,
         'usuario_actual': usuario_actual,
         'permisos_rol': permisos,
         'vehiculos': vehiculos,
         'mudanzas': mudanzas,
         'en_curso': sum(1 for p in mudanzas if p.en_curso),
     })
+
+def _contacto(telefono):
+    """Los enlaces para llamar al cliente y escribirle por WhatsApp. El teléfono puede venir con el código
+    del país (+54 387 4112233) o sin él (387 4112233, de Argentina)."""
+    if not telefono:
+        return None, None
+    digitos = ''.join(c for c in telefono if c.isdigit())
+    internacional = digitos if telefono.strip().startswith('+') else '54' + digitos.lstrip('0')
+    # en Argentina, WhatsApp pide el 9 de celular después del 54
+    whatsapp = '549' + internacional[2:] if internacional.startswith('54') and not internacional.startswith('549') else internacional
+    return f'tel:+{internacional}', f'https://wa.me/{whatsapp}'
+
 
 # ---- MI CUENTA: cada persona ve sus datos y cambia su clave; el cliente, también su correo y teléfono ----
 def mi_cuenta(request):
@@ -201,7 +218,8 @@ def mi_cuenta(request):
         except operaciones.ErrorUsuario as e:
             errores = {'accion': accion, (e.campo or 'general'): str(e)}
     return render(request, 'mi_cuenta.html', {
-        'usuario_actual': usuario, 'edita_datos': edita_datos, 'datos': datos, 'errores': errores})
+        'usuario_actual': usuario, 'edita_datos': edita_datos, 'datos': datos, 'errores': errores,
+        'gestiona_correos': tiene_permiso(usuario, 'USR_EDITAR_CORREO')})
 
 
 def sin_permisos(request):

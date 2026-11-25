@@ -422,10 +422,9 @@ class VencidosTest(BaseReglas):
         self.assertFalse(p.vencido)  # confirmado y ya empezó: se finaliza, no está vencido
 
     def test_vence_hoy_cuando_pasa_la_hora(self):
-        ahora = timezone.localtime()
+        hace_5 = timezone.localtime() - timedelta(minutes=5)  # pasada la medianoche, «hace 5 minutos» es ayer
         p = self.registrar()
-        Pedido.objects.filter(pk=p.pk).update(fecha_servicio=ahora.date(),
-                                              hora_servicio=(ahora - timedelta(minutes=5)).time())
+        Pedido.objects.filter(pk=p.pk).update(fecha_servicio=hace_5.date(), hora_servicio=hace_5.time())
         p.refresh_from_db()
         self.assertTrue(p.vencido)
 

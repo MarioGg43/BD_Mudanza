@@ -9,7 +9,7 @@
       animation:cp-baja .14s ease-out}
     @keyframes cp-baja{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
     .cp-cabeza{display:flex;justify-content:space-between;align-items:baseline;padding:.8rem 1rem;
-      background:linear-gradient(128deg,#FF8A00,#FF5E08 55%,#E10E0E);color:#fff}
+      background:linear-gradient(128deg,#D24600,#C73A06 55%,#B80B0B);color:#fff}
     .cp-cabeza span{font-size:.8rem;opacity:.9}
     .cp-lista{list-style:none;margin:0;padding:.25rem 0;max-height:min(360px,60vh);overflow:auto}
     .cp-lista form{margin:0}

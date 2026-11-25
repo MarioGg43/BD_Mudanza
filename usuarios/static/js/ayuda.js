@@ -7,6 +7,8 @@
     .ayuda{all:unset;box-sizing:border-box;display:inline-grid;place-items:center;width:1.15rem;height:1.15rem;margin-left:.3rem;
       border-radius:50%;background:#FFF0E2;color:#C04F00;border:1px solid #F3C9A5;font-size:.72rem;font-weight:700;
       cursor:help;vertical-align:.1em;line-height:1;text-transform:none;letter-spacing:0}
+    .ayuda{position:relative}
+    .ayuda::after{content:'';position:absolute;inset:-12px}  /* el área que se toca es más grande que el círculo */
     .ayuda:hover,.ayuda[aria-expanded="true"]{background:#FF7A00;color:#fff;border-color:#FF7A00}
     .ayuda:focus-visible{outline:2px solid #FF7A00;outline-offset:2px}
     .ayuda-globo{position:fixed;z-index:1600;max-width:280px;padding:.6rem .75rem;border-radius:10px;background:#2b211a;color:#fff;

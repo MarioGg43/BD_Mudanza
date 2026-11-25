@@ -25,7 +25,7 @@
     .cf-boton:focus-visible{outline:3px solid #FF7A00;outline-offset:2px}
     .cf-no{background:#fff;color:#3b322b;border:1px solid #d6cbc0}
     .cf-no:hover{background:#f6efe8}
-    .cf-si{color:#fff;background:linear-gradient(128deg,#FF8A00,#FF5E08 55%,#E10E0E)}
+    .cf-si{color:#fff;background:linear-gradient(128deg,#D24600,#C73A06 55%,#B80B0B)}
     .cf-peligro .cf-si{background:#C4170F}
     .cf-si:hover{filter:brightness(1.05)}
     @keyframes cf-aparece{from{opacity:0}to{opacity:1}}

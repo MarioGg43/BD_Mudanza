@@ -1,86 +1,160 @@
 {% extends 'vehiculos/base.html' %}
 {% block title %}Mi cuenta{% endblock %}
 {% comment %}
-  «Mi cuenta»: sus datos, cambiar el correo y el teléfono (solo el cliente; al personal se los cambia
-  el administrador) y cambiar la clave pidiendo la actual. Las reglas están en usuarios/operaciones.py.
+  «Mi cuenta»: el perfil con sus datos y dos botones que abren un cartel en la misma pantalla:
+  «Editar mis datos» (correo y teléfono; solo el cliente, al personal se los cambia el administrador)
+  y «Cambiar mi clave» (pidiendo la actual). Las reglas están en usuarios/operaciones.py.
+  Si al guardar hay un error, la página vuelve con ese mismo cartel abierto y el error marcado.
 {% endcomment %}
 {% block content %}
+<style>
+  .perfil-cabeza{display:flex;align-items:center;gap:1rem;padding:1.5rem;border-radius:16px 16px 0 0;color:#fff;
+    background:linear-gradient(128deg,#D24600,#C73A06 55%,#B80B0B)}
+  .perfil-inicial{flex:none;width:4rem;height:4rem;border-radius:50%;display:grid;place-items:center;font-size:1.6rem;font-weight:700;
+    background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.6)}
+  .perfil-rol{display:inline-block;margin-top:.25rem;padding:.15rem .6rem;border-radius:999px;background:rgba(255,255,255,.2);font-size:.8rem;font-weight:600}
+  .perfil-datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem 1.5rem;margin:0}
+  .perfil-datos dt{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:#8a7a6d;margin-bottom:.15rem}
+  .perfil-datos dd{margin:0;font-weight:600;color:#2b211a;overflow-wrap:anywhere}
+  .perfil-cabeza h2, .perfil-rol, .modal-marca .modal-title{color:#fff!important}
+  .modal-marca .modal-header{color:#fff;border:0;background:linear-gradient(128deg,#D24600,#C73A06 55%,#B80B0B)}
+  .modal-marca .btn-close{filter:invert(1) grayscale(1) brightness(2)}
+  .modal-marca .modal-content{border:0;border-radius:16px;overflow:hidden}
+</style>
+
 <div class="mx-auto" style="max-width: 860px;">
     <h1 class="h3 fw-bold mb-1">Mi cuenta</h1>
     <p class="text-muted mb-4">Tus datos y tu clave para entrar al sistema.</p>
 
-    <div class="row g-3">
-        {# ---------- datos de la cuenta ---------- #}
-        <div class="col-lg-6">
-            <section class="card-panel bg-white p-4 h-100" aria-labelledby="tituloDatos">
-                <h2 class="h6 fw-bold text-uppercase text-muted mb-3" id="tituloDatos"><i class="bi bi-person-vcard me-1"></i>Mis datos</h2>
-                <dl class="row small mb-3">
-                    <dt class="col-5 text-muted fw-normal">Nombre</dt><dd class="col-7 fw-semibold">{{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }}</dd>
-                    <dt class="col-5 text-muted fw-normal">DNI</dt><dd class="col-7">{{ usuario_actual.DNI }}</dd>
-                    <dt class="col-5 text-muted fw-normal">Usuario</dt><dd class="col-7">{{ usuario_actual.NombreUsuario }}</dd>
-                    <dt class="col-5 text-muted fw-normal">Rol</dt><dd class="col-7">{{ usuario_actual.idRol.nom_rol }}</dd>
-                    {% if not edita_datos %}
-                    <dt class="col-5 text-muted fw-normal">Correo</dt><dd class="col-7 text-break">{{ usuario_actual.Correo }}</dd>
-                    <dt class="col-5 text-muted fw-normal">Teléfono</dt><dd class="col-7">{{ usuario_actual.Telefono|default:"—" }}</dd>
-                    {% endif %}
-                </dl>
+    <section class="card-panel bg-white p-0" aria-labelledby="tituloPerfil">
+        <div class="perfil-cabeza">
+            <div class="perfil-inicial" aria-hidden="true">{{ usuario_actual.Nombre|slice:":1"|upper }}{{ usuario_actual.Apellido|slice:":1"|upper }}</div>
+            <div>
+                <h2 class="h4 fw-bold mb-0" id="tituloPerfil">{{ usuario_actual.Nombre }} {{ usuario_actual.Apellido }}</h2>
+                <span class="perfil-rol">{{ usuario_actual.idRol.nom_rol }}</span>
+            </div>
+        </div>
+        <div class="p-4">
+            <dl class="perfil-datos">
+                <div><dt>Usuario</dt><dd>{{ usuario_actual.NombreUsuario }}</dd></div>
+                <div><dt>DNI</dt><dd>{{ usuario_actual.DNI }}</dd></div>
+                <div><dt>Correo</dt><dd>{{ usuario_actual.Correo }}</dd></div>
+                <div><dt>Teléfono</dt><dd>{{ usuario_actual.Telefono|default:"No cargado" }}</dd></div>
+            </dl>
+            <div class="d-flex flex-wrap gap-2 mt-4">
                 {% if edita_datos %}
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    <input type="hidden" name="accion" value="datos">
-                    {% if errores.accion == 'datos' and errores.general %}<div class="alert alert-danger py-2 small">{{ errores.general }}</div>{% endif %}
-                    <div class="mb-3">
-                        <label for="correo" class="form-label fw-semibold">Correo</label>
-                        <input type="email" id="correo" name="correo" maxlength="150" autocomplete="email" required
-                               class="form-control{% if errores.correo %} is-invalid{% endif %}" value="{{ datos.correo }}">
-                        {% if errores.correo %}<div class="invalid-feedback">{{ errores.correo }}</div>{% endif %}
-                        <div class="form-text">Lo usás para entrar y para recuperar la clave si te la olvidás.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="telefono" class="form-label fw-semibold">Teléfono <span class="text-muted fw-normal">(opcional)</span></label>
-                        <input type="tel" id="telefono" name="telefono" maxlength="30" autocomplete="tel" inputmode="tel"
-                               class="form-control{% if errores.telefono %} is-invalid{% endif %}" value="{{ datos.telefono }}" placeholder="Ej.: 387 4112233">
-                        {% if errores.telefono %}<div class="invalid-feedback">{{ errores.telefono }}</div>{% endif %}
-                        <div class="form-text">Para que el chofer te pueda avisar el día de la mudanza.</div>
-                    </div>
-                    <button class="btn btn-primary fw-bold"><i class="bi bi-check2 me-1"></i>Guardar mis datos</button>
-                </form>
-                {% else %}
-                <p class="small text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Si tu correo o tu teléfono cambiaron, pedíselo al administrador.</p>
+                <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modalDatos">
+                    <i class="bi bi-pencil-square me-1"></i>Editar mis datos</button>
                 {% endif %}
-            </section>
+                <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#modalClave">
+                    <i class="bi bi-key me-1"></i>Cambiar mi clave</button>
+            </div>
+            {% if not edita_datos %}
+            <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>{% if gestiona_correos %}Tu correo lo cambiás desde
+                <a href="{% url 'admin_dashboard' %}">Usuarios</a>, como el de cualquier persona del personal.{% else %}Si tu correo o tu teléfono cambiaron, pedíselo al administrador.{% endif %}</p>
+            {% endif %}
         </div>
-
-        {# ---------- cambiar la clave ---------- #}
-        <div class="col-lg-6">
-            <section class="card-panel bg-white p-4 h-100" aria-labelledby="tituloClave">
-                <h2 class="h6 fw-bold text-uppercase text-muted mb-3" id="tituloClave"><i class="bi bi-key me-1"></i>Cambiar mi clave</h2>
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    <input type="hidden" name="accion" value="clave">
-                    <div class="mb-3">
-                        <label for="actual" class="form-label fw-semibold">Clave actual</label>
-                        <input type="password" id="actual" name="actual" autocomplete="current-password" required
-                               class="form-control{% if errores.actual %} is-invalid{% endif %}">
-                        {% if errores.actual %}<div class="invalid-feedback d-block">{{ errores.actual }}</div>{% endif %}
-                    </div>
-                    <div class="mb-3">
-                        <label for="nueva" class="form-label fw-semibold">Clave nueva</label>
-                        <input type="password" id="nueva" name="nueva" autocomplete="new-password" required
-                               class="form-control{% if errores.nueva %} is-invalid{% endif %}">
-                        {% if errores.nueva %}<div class="invalid-feedback d-block">{{ errores.nueva }}</div>{% endif %}
-                        <div class="form-text">8 o más caracteres, con mayúscula, minúscula, número y un caracter especial.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="confirmar" class="form-label fw-semibold">Repetí la clave nueva</label>
-                        <input type="password" id="confirmar" name="confirmar" autocomplete="new-password" required
-                               class="form-control{% if errores.confirmar %} is-invalid{% endif %}">
-                        {% if errores.confirmar %}<div class="invalid-feedback d-block">{{ errores.confirmar }}</div>{% endif %}
-                    </div>
-                    <button class="btn btn-primary fw-bold"><i class="bi bi-shield-lock me-1"></i>Cambiar mi clave</button>
-                </form>
-            </section>
-        </div>
-    </div>
+    </section>
 </div>
+
+{% if edita_datos %}
+{# ---------- editar correo y teléfono ---------- #}
+<div class="modal fade modal-marca" id="modalDatos" tabindex="-1" aria-labelledby="tituloModalDatos" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" novalidate class="modal-content" data-sin-aviso>
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="datos">
+      <div class="modal-header">
+        <h2 class="modal-title h5 fw-bold" id="tituloModalDatos"><i class="bi bi-pencil-square me-1"></i>Editar mis datos</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        {% if errores.accion == 'datos' and errores.general %}<div class="alert alert-danger py-2 small">{{ errores.general }}</div>{% endif %}
+        <div class="mb-3">
+          <label for="correo" class="form-label fw-semibold">Correo</label>
+          <input type="email" id="correo" name="correo" maxlength="150" autocomplete="email" required
+                 class="form-control{% if errores.correo %} is-invalid{% endif %}" value="{{ datos.correo }}">
+          {% if errores.correo %}<div class="invalid-feedback">{{ errores.correo }}</div>{% endif %}
+          <div class="form-text">Lo usás para entrar y para recuperar la clave si te la olvidás.</div>
+        </div>
+        <div class="mb-1">
+          <label for="telefono" class="form-label fw-semibold">Teléfono <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="tel" id="telefono" name="telefono" maxlength="30" autocomplete="tel" inputmode="tel"
+                 class="form-control{% if errores.telefono %} is-invalid{% endif %}" value="{{ datos.telefono }}">
+          {% if errores.telefono %}<div class="invalid-feedback d-block">{{ errores.telefono }}</div>{% endif %}
+          <div class="form-text">Para que el chofer te pueda avisar el día de la mudanza.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary fw-bold"><i class="bi bi-check2 me-1"></i>Guardar mis datos</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ---------- cambiar la clave ---------- #}
+<div class="modal fade modal-marca" id="modalClave" tabindex="-1" aria-labelledby="tituloModalClave" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" novalidate class="modal-content" data-sin-aviso>
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="clave">
+      <div class="modal-header">
+        <h2 class="modal-title h5 fw-bold" id="tituloModalClave"><i class="bi bi-key me-1"></i>Cambiar mi clave</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="actual" class="form-label fw-semibold">Clave actual</label>
+          <input type="password" id="actual" name="actual" autocomplete="current-password" required
+                 class="form-control{% if errores.actual %} is-invalid{% endif %}">
+          {% if errores.actual %}<div class="invalid-feedback d-block">{{ errores.actual }}</div>{% endif %}
+        </div>
+        <div class="mb-3">
+          <label for="nueva" class="form-label fw-semibold">Clave nueva</label>
+          <input type="password" id="nueva" name="nueva" autocomplete="new-password" required
+                 class="form-control{% if errores.nueva %} is-invalid{% endif %}">
+          {% if errores.nueva %}<div class="invalid-feedback d-block">{{ errores.nueva }}</div>{% endif %}
+          <div class="form-text">8 o más caracteres, con mayúscula, minúscula, número y un carácter especial.</div>
+        </div>
+        <div class="mb-1">
+          <label for="confirmar" class="form-label fw-semibold">Repetí la clave nueva</label>
+          <input type="password" id="confirmar" name="confirmar" autocomplete="new-password" required
+                 class="form-control{% if errores.confirmar %} is-invalid{% endif %}">
+          {% if errores.confirmar %}<div class="invalid-feedback d-block">{{ errores.confirmar }}</div>{% endif %}
+        </div>
+        {% if errores.accion == 'clave' and errores.general %}<div class="alert alert-danger py-2 small mt-3 mb-0">{{ errores.general }}</div>{% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary fw-bold"><i class="bi bi-shield-lock me-1"></i>Cambiar mi clave</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // si al guardar hubo un error, el cartel vuelve a abrirse solo con el error marcado
+  {% if errores.accion == 'datos' %}bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDatos')).show();{% endif %}
+  {% if errores.accion == 'clave' %}bootstrap.Modal.getOrCreateInstance(document.getElementById('modalClave')).show();{% endif %}
+  // al cerrar con «Cancelar», el formulario vuelve a como estaba
+  document.querySelectorAll('.modal-marca').forEach((m) => m.addEventListener('hidden.bs.modal', () => {
+    const f = m.querySelector('form');
+    if (f && !f.dataset.enviando) {
+      f.reset();
+      // el teléfono vuelve con el código del país adelante: se vuelve a separar en el selector
+      f.querySelectorAll('[name="telefono"]').forEach((t) => t.dispatchEvent(new Event('input', { bubbles: true })));
+      f.querySelectorAll('.v-burbuja').forEach((b) => { b.hidden = true; });
+      f.querySelectorAll('.v-mal, .v-bien').forEach((c) => c.classList.remove('v-mal', 'v-bien'));
+    }
+  }));
+  // el foco va al primer campo al abrir
+  document.querySelectorAll('.modal-marca').forEach((m) => m.addEventListener('shown.bs.modal', () => {
+    const c = m.querySelector('input:not([type=hidden])');
+    if (c) c.focus();
+  }));
+</script>
 {% endblock %}
