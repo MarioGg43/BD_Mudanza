@@ -27,6 +27,7 @@
 {% endif %}
 
 <form method="get" class="card-panel bg-white p-3 mb-4">
+    {% if request.GET.orden %}<input type="hidden" name="orden" value="{{ request.GET.orden }}">{% endif %}{# al filtrar se mantiene el orden elegido #}
     <div class="row g-2 align-items-end">
         {% for field in form %}
         <div class="col-6 col-md">
@@ -45,12 +46,12 @@
 {# en la computadora, la tabla; en el celular, una tarjeta por pedido (abajo) #}
 <p class="small text-muted mb-2">{{ pagina.paginator.count }} pedido{{ pagina.paginator.count|pluralize }}{% if pagina.paginator.num_pages > 1 %} · mostrando del {{ pagina.start_index }} al {{ pagina.end_index }}{% endif %}.</p>
 <div class="card-panel bg-white p-0 overflow-auto d-none d-md-block">
-    <table class="table table-hover align-middle mb-0">
+    <table class="table table-hover align-middle mb-0" data-ordenable="servidor">
         <thead class="table-light">
             <tr>
-                <th>N°</th><th>Registrado</th><th>Mudanza</th>
-                {% if ve_todos %}<th>Cliente</th>{% endif %}
-                <th>Servicios</th><th class="text-end">Total</th><th>Estado</th><th></th>
+                <th data-orden="numero">N°</th><th data-orden="registrado">Registrado</th><th data-orden="mudanza">Mudanza</th>
+                {% if ve_todos %}<th data-orden="cliente">Cliente</th>{% endif %}
+                <th>Servicios</th><th class="text-end" data-orden="total">Total</th><th data-orden="estado">Estado</th><th></th>
             </tr>
         </thead>
         <tbody>

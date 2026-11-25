@@ -41,13 +41,24 @@ def _pedido_visible(request, id_pedido):
     return pedido
 
 
+# por qué columna se puede ordenar la lista de pedidos (?orden=total o ?orden=-total)
+ORDENES = {'numero': ['id_pedido'], 'registrado': ['Fecha_pedido', 'id_pedido'],
+           'mudanza': ['fecha_servicio', 'hora_servicio'], 'cliente': ['idUsuario__Apellido', 'idUsuario__Nombre'],
+           'total': ['total'], 'estado': ['estado']}
+
+
 def _consulta(request):
     """La consulta con los filtros del GET: la usan la pantalla y el PDF."""
     ve_todos = _ve_todos(request.usuario)
     base = Pedido.objects.all() if ve_todos else Pedido.objects.filter(idUsuario=request.usuario)
     form = FiltroPedidosForm(request.GET or None, ve_todos=ve_todos)
     filtros = form.filtros() if form.is_valid() else {}
-    return form, ve_todos, reglas.filtrar_pedidos(base, **filtros)
+    pedidos = reglas.filtrar_pedidos(base, **filtros)
+    campo = request.GET.get('orden', '')
+    if campo.lstrip('-') in ORDENES:
+        signo = '-' if campo.startswith('-') else ''
+        pedidos = pedidos.order_by(*[signo + c for c in ORDENES[campo.lstrip('-')]], '-id_pedido')
+    return form, ve_todos, pedidos
 
 
 @requiere_permiso('PED_CONSULTAR')

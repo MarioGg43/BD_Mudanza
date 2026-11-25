@@ -32,7 +32,7 @@
 <div class="card-panel bg-white p-3 mb-3">
     <h2 class="h6 fw-bold text-uppercase text-muted mb-2">Resumen por motivo</h2>
     <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
+    <table class="table table-sm align-middle mb-0" data-ordenable>
         <thead class="table-light"><tr><th>Tipo</th><th>Motivo</th><th class="text-end">Cantidad</th><th class="text-end">% del total</th></tr></thead>
         <tbody>{% for r in datos.resumen %}<tr><td>{{ r.tipo }}</td><td>{{ r.motivo }}</td><td class="text-end">{{ r.cantidad }}</td><td class="text-end">{{ r.porcentaje|formato:"porcentaje" }}</td></tr>{% endfor %}</tbody>
     </table>
@@ -42,7 +42,7 @@
 
 <div class="card-panel bg-white p-0 mb-2">
     <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0 tabla-reporte">
+    <table class="table table-hover align-middle mb-0 tabla-reporte" data-ordenable>
         <thead class="table-light">
             <tr>{% for titulo, clave_col, tipo in datos.columnas %}<th{% if tipo|es_numero %} class="text-end"{% endif %}>{{ titulo }}</th>{% endfor %}</tr>
         </thead>

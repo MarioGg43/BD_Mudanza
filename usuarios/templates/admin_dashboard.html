@@ -19,7 +19,7 @@
       <span><strong>Pedido N° {{ r.id_pedido }}</strong> · {{ r.idUsuario.Nombre }} {{ r.idUsuario.Apellido }} · {{ r.patente_vehiculo_id }} · {{ r.fecha_servicio|date:"d/m" }}, fin estimado {{ r.hasta }}{% if r.atrasada %} · <strong>Otra mudanza la espera</strong>{% endif %}</span>
       <span class="flex items-center gap-2">
         <a href="{% url 'pedidos_detalle' r.id_pedido %}" class="btn-secundario px-3 py-1 rounded-lg">Ver pedido</a>
-        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" class="inline" onsubmit="return confirm('¿Finalizar la mudanza N° {{ r.id_pedido }}? Queda cerrada y no se puede volver atrás.')">{% csrf_token %}
+        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" class="inline" data-confirmar="¿Finalizar la mudanza N° {{ r.id_pedido }}?" data-confirmar-detalle="Queda cerrada y no se puede volver atrás." data-confirmar-boton="Sí, finalizar">{% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}">
           <button class="btn-primary px-3 py-1 rounded-lg font-semibold cursor-pointer"><i class="fa-solid fa-flag-checkered mr-1"></i>Finalizar</button>
         </form>
@@ -63,7 +63,7 @@
     </div>
 
     <div class="overflow-x-auto">
-      <table class="tabla-marca w-full text-left border-collapse text-xs sm:text-sm" id="tablaUsuarios">
+      <table class="tabla-marca w-full text-left border-collapse text-xs sm:text-sm" id="tablaUsuarios" data-ordenable>
         <thead>
           <tr class="uppercase text-[11px] tracking-wider">
             <th class="p-3 sm:p-4 font-semibold">DNI</th>
@@ -86,7 +86,7 @@
               <span class="chip-marca font-mono text-xs px-2 py-1 rounded">{{ u.NombreUsuario }}</span>
             </td>
             <td class="p-3 sm:p-4 texto-suave" id="correo-{{ u.DNI }}">{{ u.Correo }}</td>
-            <td class="p-3 sm:p-4">
+            <td class="p-3 sm:p-4" data-orden="{{ u.idRol.nom_rol }}">
               {% if u.DNI == usuario_actual.DNI %}
               <span class="chip-marca text-xs px-2 py-1 rounded"
                     title="No podés cambiar tu propio rol">{{ u.idRol.nom_rol }}</span>
@@ -425,7 +425,7 @@ async function cambiarRol(dni) {
   const select = document.getElementById(`rol-${dni}`);
   const idRol = select.value;
   const nombreRol = select.options[select.selectedIndex].text;
-  if (!confirm(`¿Asignar el rol "${nombreRol}" a este usuario?`)) return;
+  if (!(await confirmar({ titulo: `¿Asignarle el rol «${nombreRol}»?`, boton: 'Sí, cambiar el rol' }))) return;
 
   const formData = new FormData();
   formData.append('idRol', idRol);
@@ -434,7 +434,7 @@ async function cambiarRol(dni) {
   const res = await fetch(`/usuarios/${dni}/cambiar-rol/`, { method: 'POST', body: formData });
   const data = await res.json();
   if (!data.ok) {
-    alert(data.error || 'No se pudo cambiar el rol.');
+    avisar('No se pudo cambiar el rol', data.error || 'Probá de nuevo en un momento.');
     return;
   }
   window.location.reload();
@@ -512,20 +512,25 @@ async function guardarRestablecerClave(e) {
 }
 
 async function abrirModalBaja(dni, ape, nom) {
-  if (!confirm(`¿Dar de baja a ${ape}, ${nom} (DNI ${dni})?
-El usuario pasará a Inactivo y se asentará la fecha de baja.`)) return;
+  if (!(await confirmar({ titulo: `¿Dar de baja a ${ape}, ${nom}?`, peligro: true, boton: 'Sí, dar de baja',
+                          mensaje: `DNI ${dni}. Queda inactivo, con la fecha de baja, y se puede reactivar cuando haga falta.` }))) return;
   const formData = new FormData();
   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   const res = await fetch(`/usuarios/${dni}/baja/`, { method: 'POST', body: formData });
-  if (res.ok) window.location.reload();
+  if (res.ok) { window.location.reload(); return; }
+  const data = await res.json().catch(() => ({}));
+  avisar('No se pudo dar de baja', data.error || 'Probá de nuevo en un momento.');
 }
 
 async function reactivarUsuario(dni) {
-  if (!confirm(`¿Reactivar al usuario con DNI ${dni}?`)) return;
+  if (!(await confirmar({ titulo: '¿Reactivar a este usuario?', mensaje: `DNI ${dni}. Vuelve a poder entrar al sistema.`,
+                          boton: 'Sí, reactivar' }))) return;
   const formData = new FormData();
   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   const res = await fetch(`/usuarios/${dni}/reactivar/`, { method: 'POST', body: formData });
-  if (res.ok) window.location.reload();
+  if (res.ok) { window.location.reload(); return; }
+  const data = await res.json().catch(() => ({}));
+  avisar('No se pudo reactivar', data.error || 'Probá de nuevo en un momento.');
 }
 
 </script>

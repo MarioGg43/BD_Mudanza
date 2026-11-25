@@ -407,6 +407,19 @@ class RegistroClienteTest(BaseVistas):
 
 
 class RevisionFinalTest(BaseVistas):
+    def test_la_lista_se_ordena_por_columna_en_todas_las_paginas(self):
+        self.entrar(ADMIN)
+        self.pedido_de(self.cliente)
+        self.pedido_de(self.otro, dias=2)
+        totales = [p.total for p in self.client.get('/pedidos/', {'orden': '-total'}).context['pedidos']]
+        self.assertEqual(totales, sorted(totales, reverse=True))
+        totales = [p.total for p in self.client.get('/pedidos/', {'orden': 'total'}).context['pedidos']]
+        self.assertEqual(totales, sorted(totales))
+        # una columna que no existe se ignora (queda el orden de siempre: el más nuevo primero)
+        ids = [p.pk for p in self.client.get('/pedidos/', {'orden': 'clave'}).context['pedidos']]
+        self.assertEqual(ids, sorted(ids, reverse=True))
+        self.assertContains(self.client.get('/pedidos/'), 'data-ordenable="servidor"')
+
     def test_el_filtro_rechaza_un_rango_invertido(self):
         self.entrar(ADMIN)
         hoy = timezone.localdate()

@@ -109,6 +109,18 @@ class PantallasTest(TestCase):
         self.assertContains(r, 'id="avisos"')
         self.assertContains(r, 'está activo otra vez.')
 
+    def test_las_preguntas_usan_el_cartel_propio_y_no_la_ventanita_del_navegador(self):
+        import glob
+        for ruta in glob.glob('*/templates/**/*.html', recursive=True):
+            texto = open(ruta, encoding='utf-8').read()
+            self.assertNotIn('confirm(', texto.replace('confirmar(', ''), ruta)
+            self.assertNotIn('alert(', texto, ruta)
+        self.entrar(ADMIN)
+        for url in ('/panel/', '/objetos/'):  # una pantalla de cada plantilla base
+            r = self.client.get(url)
+            self.assertContains(r, 'js/confirmar.js')
+            self.assertContains(r, 'js/validar.js')
+
     def test_solo_activos_se_queda_en_usuarios(self):
         # antes llevaba a «/», que ahora es la página de la empresa
         self.entrar(ADMIN)

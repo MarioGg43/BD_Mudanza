@@ -11,7 +11,7 @@
     <div class="d-flex gap-2">
         <a href="{% url 'materiales_editar' material.id_material %}" class="btn btn-warning">Editar</a>
         {% if material.Activo %}
-        <form method="post" action="{% url 'materiales_baja' material.id_material %}" onsubmit="return confirm('¿Dar de baja «{{ material.nom_material|escapejs }}»? Deja de salir en las mudanzas; el historial queda.')">
+        <form method="post" action="{% url 'materiales_baja' material.id_material %}" data-confirmar="¿Dar de baja «{{ material.nom_material }}»?" data-confirmar-detalle="Deja de salir en las mudanzas; el historial queda." data-confirmar-boton="Sí, dar de baja" data-peligro>
             {% csrf_token %}<button class="btn btn-outline-danger">Dar de baja</button>
         </form>
         {% endif %}

@@ -599,13 +599,69 @@
     if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); if (!guardar.disabled) guardar.click(); }
   });
 
-  form.addEventListener('submit', (e) => {
+  // Antes de enviar, un resumen para revisar todo («Corregir» vuelve al formulario sin perder nada)
+  function resumen() {
+    const caja = document.createElement('div');
+    const fila = (titulo, ...lineas) => {
+      const f = document.createElement('div');
+      f.style.cssText = 'display:grid;grid-template-columns:7.5rem 1fr;gap:.75rem;padding:.55rem 0;border-bottom:1px solid #f0e8e0';
+      const t = document.createElement('div');
+      t.style.cssText = 'font-weight:600;color:#7a6a5d';
+      t.textContent = titulo;
+      const v = document.createElement('div');
+      v.style.color = '#2b211a';
+      lineas.filter(Boolean).forEach((l, i) => {
+        const d = document.createElement('div');
+        if (i) d.style.cssText = 'font-size:.85rem;color:#7a6a5d';
+        d.textContent = l;
+        v.append(d);
+      });
+      f.append(t, v);
+      caja.append(f);
+    };
+    const [a, m, d] = fecha.value.split('-').map(Number);
+    const dia = fecha.value ? new Date(a, m - 1, d).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    fila('Cuándo', dia ? dia.charAt(0).toUpperCase() + dia.slice(1) + ', a las ' + horaInicio.value : '',
+         document.getElementById('duracion').textContent);
+    fila('Desde', form.querySelector('[name="origen"]').value);
+    fila('Hasta', form.querySelector('[name="destino"]').value);
+    const etiquetaDe = (input) => (form.querySelector('label[for="' + input.id + '"]') || {}).textContent || '';
+    const principal = form.querySelector('.servicio:checked');
+    fila('Servicio', principal ? etiquetaDe(principal).trim() : '',
+         ...[...form.querySelectorAll('.adicional:checked')].map((x) => '+ ' + etiquetaDe(x).trim()));
+    fila('Qué se lleva', ...items.map((it) => it.cantidad + ' × ' + etiqueta(it) + (it.fragil ? ' (frágil)' : '')
+                                             + (it.detalle ? ': ' + it.detalle : '')));
+    fila('Vehículo', select.selectedOptions[0] ? select.selectedOptions[0].textContent : '');
+    fila('Total', '$' + document.getElementById('total').textContent, document.getElementById('detalleTotal').textContent);
+    caja.lastChild.style.borderBottom = '0';
+    caja.lastChild.lastChild.firstChild.style.cssText = 'font-weight:700;font-size:1.1rem';
+    const nota = document.createElement('p');
+    nota.style.cssText = 'margin:.75rem 0 0;font-size:.85rem;color:#7a6a5d';
+    nota.textContent = {% if pedido %}'Al guardar, el pedido vuelve a quedar pendiente hasta que la empresa lo confirme.'{% else %}'El pedido queda pendiente hasta que la empresa lo confirme.'{% endif %};
+    caja.append(nota);
+    return caja;
+  }
+
+  form.addEventListener('submit', async (e) => {
     if (!items.length) {
       e.preventDefault();
       errorInventario.textContent = 'Agregá al menos un objeto con el botón «Agregar objeto».';
       errorInventario.classList.remove('d-none');
       errorInventario.scrollIntoView({ block: 'center' });
+      return;
     }
+    if (form.dataset.revisado) return;  // ya lo revisó: ahora sí se envía
+    e.preventDefault();
+    const quien = e.submitter;
+    const ok = await confirmar({
+      titulo: {% if pedido %}'Revisá los cambios antes de guardarlos'{% else %}'Revisá tu pedido antes de enviarlo'{% endif %},
+      contenido: resumen(), ancho: true, icono: '✓', cancelar: 'Corregir',
+      boton: {% if pedido %}'Sí, guardar los cambios'{% else %}'Sí, registrar el pedido'{% endif %},
+    });
+    if (!ok) return;
+    form.dataset.revisado = '1';
+    form.requestSubmit(quien && quien.form === form ? quien : undefined);
+    delete form.dataset.revisado;
   });
   dibujar();
 

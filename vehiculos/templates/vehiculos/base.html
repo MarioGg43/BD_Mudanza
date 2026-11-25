@@ -38,7 +38,7 @@
                         {% if r.atrasada %}<span class="badge text-bg-danger ms-1"><i class="bi bi-alarm"></i> Otra mudanza la espera</span>{% endif %}</span>
                     <div class="d-flex gap-2">
                         <a href="{% url 'pedidos_detalle' r.id_pedido %}" class="btn btn-sm btn-outline-secondary">Ver pedido</a>
-                        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" onsubmit="return confirm('¿Finalizar la mudanza N° {{ r.id_pedido }}? Queda cerrada y no se puede volver atrás.')">{% csrf_token %}
+                        <form method="post" action="{% url 'pedidos_finalizar' r.id_pedido %}" data-confirmar="¿Finalizar la mudanza N° {{ r.id_pedido }}?" data-confirmar-detalle="Queda cerrada y no se puede volver atrás." data-confirmar-boton="Sí, finalizar">{% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <button class="btn btn-sm btn-success fw-semibold"><i class="bi bi-flag-fill me-1"></i>Finalizar</button>
                         </form>
@@ -57,6 +57,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/ver_clave.js' %}"></script>
     <script src="{% static 'js/validar.js' %}"></script>
+    <script src="{% static 'js/confirmar.js' %}"></script>
+    <script src="{% static 'js/ordenar.js' %}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

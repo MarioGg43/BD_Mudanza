@@ -6,7 +6,7 @@
     <a href="{% url 'roles_crear' %}" class="btn btn-success fw-bold"><i class="bi bi-plus-circle me-1"></i>Nuevo rol</a>
 </div>
 <div class="card-panel bg-white p-0 overflow-auto">
-    <table class="table align-middle mb-0">
+    <table class="table align-middle mb-0" data-ordenable>
         <thead class="table-light"><tr><th>Rol</th><th>Descripción</th><th class="text-center">Usuarios</th><th>Permisos</th><th></th></tr></thead>
         <tbody>
             {% for rol in roles %}
@@ -31,7 +31,7 @@
                     <a href="{% url 'roles_editar' rol.id_rol %}" class="btn btn-sm btn-warning">Editar</a>
                     {% if rol.cantidad == 0 and rol.nom_rol not in del_sistema %}
                     <form method="post" action="{% url 'roles_eliminar' rol.id_rol %}" class="d-inline"
-                          onsubmit="return confirm('¿Eliminar el rol «{{ rol.nom_rol|escapejs }}»?')">
+                          data-confirmar="¿Eliminar el rol «{{ rol.nom_rol }}»?" data-confirmar-detalle="No se puede deshacer." data-confirmar-boton="Sí, eliminar" data-peligro>
                         {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button>
                     </form>
                     {% endif %}
